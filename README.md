@@ -33,5 +33,7 @@ Item {
 
 
 ### Roadmap
-[] ImageTransport   
-[] Publishers(?)  
+
+- [x] ~Subscribers for any topic~
+- [ ] ImageTransport   
+- [ ] Publishers(?)  
