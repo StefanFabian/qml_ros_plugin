@@ -10,7 +10,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp topic_tools ros_type_introspection)
+find_package(catkin REQUIRED roscpp image_transport ros_type_introspection tf2_ros topic_tools)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -79,7 +79,7 @@ find_package(Qt5 COMPONENTS Core Qml Quick REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES qml_ros_plugin
-  CATKIN_DEPENDS roscpp topic_tools ros_type_introspection
+  CATKIN_DEPENDS roscpp image_transport ros_type_introspection  tf2_ros topic_tools
 #  DEPENDS system_lib
 )
 
@@ -98,9 +98,17 @@ include_directories(
 )
 
 set(SOURCES
+#  include/qml_ros_plugin/image_subscriber.h
+  include/qml_ros_plugin/message_conversions.h
   include/qml_ros_plugin/subscriber.h
+  include/qml_ros_plugin/tf_transform.h
+  include/qml_ros_plugin/tf_transform_listener.h
+#  src/image_subscriber.cpp
+  src/message_conversions.cpp
   src/qml_ros_plugin.cpp
   src/subscriber.cpp
+  src/tf_transform.cpp
+  src/tf_transform_listener.cpp
 )
 
 ## Declare a C++ library

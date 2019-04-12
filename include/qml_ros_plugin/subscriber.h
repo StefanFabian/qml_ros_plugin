@@ -1,6 +1,5 @@
-//
-// Created by Stefan Fabian on 25.03.19.
-//
+// Copyright (c) 2019 Stefan Fabian. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #ifndef QML_ROS_PLUGIN_SUBSCRIBER_H
 #define QML_ROS_PLUGIN_SUBSCRIBER_H
@@ -45,15 +44,15 @@ public:
 
   ~Subscriber() override;
 
-  QString topic();
+  const QString &topic() const;
 
   void setTopic( const QString &value );
 
-  bool running();
+  bool running() const;
 
   void setRunning( bool value );
 
-  QVariant message();
+  const QVariant &message() const;
 
   Q_INVOKABLE unsigned int getNumPublishers();
 

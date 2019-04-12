@@ -51,8 +51,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <depend>roscpp</depend>
-  <depend>topic_tools</depend>
+  <depend>image_transport</depend>
   <depend>ros_type_introspection</depend>
+  <depend>tf2_ros</depend>
+  <depend>topic_tools</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

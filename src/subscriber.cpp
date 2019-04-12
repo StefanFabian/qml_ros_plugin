@@ -1,6 +1,5 @@
-//
-// Created by Stefan Fabian on 25.03.19.
-//
+// Copyright (c) 2019 Stefan Fabian. All rights reserved.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/subscriber.h"
 
@@ -15,7 +14,7 @@ Subscriber::Subscriber() : running_( true ), is_subscribed_( false ) { }
 
 Subscriber::~Subscriber() = default;
 
-QString Subscriber::topic() { return topic_; }
+const QString &Subscriber::topic() const { return topic_; }
 
 void Subscriber::setTopic( const QString &value )
 {
@@ -24,7 +23,7 @@ void Subscriber::setTopic( const QString &value )
   emit topicChanged();
 }
 
-bool Subscriber::running() { return running_; }
+bool Subscriber::running() const { return running_; }
 
 void Subscriber::setRunning( bool value )
 {
@@ -35,7 +34,7 @@ void Subscriber::setRunning( bool value )
   emit runningChanged();
 }
 
-QVariant Subscriber::message() { return message_; }
+const QVariant &Subscriber::message() const { return message_; }
 
 unsigned int Subscriber::getNumPublishers()
 {
