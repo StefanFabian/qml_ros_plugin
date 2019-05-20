@@ -8,16 +8,11 @@
 #include <QVariant>
 #include <QMap>
 
-#include <ros_type_introspection/ros_introspection.hpp>
+#include <ros_babel_fish/babel_fish.h>
+#include <ros_babel_fish/babel_fish_message.h>
 
-#include <topic_tools/shape_shifter.h>
-
-#include <ros/ros.h>
-
-namespace RosIntrospection
-{
-class Parser;
-}
+#include <ros/node_handle.h>
+#include <ros/subscriber.h>
 
 namespace qml_ros_plugin
 {
@@ -71,13 +66,11 @@ protected:
 
   void shutdown();
 
-  void messageCallback( const topic_tools::ShapeShifter::ConstPtr &msg );
+  void messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg );
 
   ros::NodeHandle nh_;
   ros::Subscriber subscriber_;
-  RosIntrospection::Parser parser_;
-  std::vector<uint8_t> buffer_;
-  RosIntrospection::FlatMessage flat_message_;
+  ros_babel_fish::BabelFish babel_fish_;
   bool running_;
   bool is_subscribed_;
 

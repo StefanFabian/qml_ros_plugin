@@ -52,9 +52,8 @@
 
   <depend>roscpp</depend>
   <depend>image_transport</depend>
-  <depend>ros_type_introspection</depend>
+  <depend>ros_babel_fish</depend>
   <depend>tf2_ros</depend>
-  <depend>topic_tools</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

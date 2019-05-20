@@ -4,17 +4,19 @@ project(qml_ros_plugin)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
+#set(CMAKE_BUILD_TYPE "Debug")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp image_transport ros_type_introspection tf2_ros topic_tools)
+find_package(catkin REQUIRED roscpp image_transport ros_babel_fish tf2_ros)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(Qt5 COMPONENTS Core Qml Quick REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -79,7 +81,7 @@ find_package(Qt5 COMPONENTS Core Qml Quick REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES qml_ros_plugin
-  CATKIN_DEPENDS roscpp image_transport ros_type_introspection  tf2_ros topic_tools
+  CATKIN_DEPENDS roscpp image_transport ros_babel_fish tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -99,13 +101,17 @@ include_directories(
 
 set(SOURCES
 #  include/qml_ros_plugin/image_subscriber.h
+  include/qml_ros_plugin/array.h
   include/qml_ros_plugin/message_conversions.h
+  include/qml_ros_plugin/service.h
   include/qml_ros_plugin/subscriber.h
   include/qml_ros_plugin/tf_transform.h
   include/qml_ros_plugin/tf_transform_listener.h
 #  src/image_subscriber.cpp
+  src/array.cpp
   src/message_conversions.cpp
   src/qml_ros_plugin.cpp
+  src/service.cpp
   src/subscriber.cpp
   src/tf_transform.cpp
   src/tf_transform_listener.cpp
@@ -168,8 +174,12 @@ target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Qml Qt5:
 # Install Qml plugin as found here https://github.com/4rtzel/cmake-qml-plugin-example/issues/1
 set(URI RosPlugin)
 string(REPLACE "." "/" TARGETPATH ${URI})
-execute_process(COMMAND qmake -query QT_INSTALL_QML OUTPUT_VARIABLE QT_INSTALL_QML_RAW)
+execute_process(COMMAND qmake -qt5 -query QT_INSTALL_QML OUTPUT_VARIABLE QT_INSTALL_QML_RAW)
 string(REPLACE "\n" "" QT_INSTALL_QML ${QT_INSTALL_QML_RAW})
+if("${QT_INSTALL_QML}" STREQUAL "**Unknown**")
+  message(FATAL_ERROR "Could not find qml plugin dir. Is qml installed?")
+endif()
+message(STATUS "Plugin will be installed to ${QT_INSTALL_QML}")
 set(DESTDIR "${QT_INSTALL_QML}/${TARGETPATH}")
 install(TARGETS qml_ros_plugin DESTINATION ${DESTDIR})
 install(FILES ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${DESTDIR})
