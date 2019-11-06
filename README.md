@@ -4,11 +4,10 @@ Currently, has support for the following:
 
 ### Subscribers
 Can be used to subscribe to any topic and message type.  
-Array size is currently limited to 10000.
 
 Usage example:
 ```
-import RosPlugin 1.0
+import Ros 1.0
 
 Item {
   width: 600
@@ -37,7 +36,7 @@ Item {
 A singleton class that can be used to look up tf transforms.   
 Usage example:
 ```
-import RosPlugin 1.0
+import Ros 1.0
 
 Item {
   // ...
@@ -68,7 +67,7 @@ exception that occured and a field *message* with the message of the exception.
 A convenience component that watches a transform.
 Usage example:
 ```
-import RosPlugin 1.0
+import Ros 1.0
 
 Item {
   // ...
@@ -96,6 +95,9 @@ Item {
 This component can be used to watch a transform. Whenever the transform changes, the message and the properties of the
 TfTransform change and the changes are propagated by QML.
 
+### Known Limitations
+The QDateTime object used to map ros::Time does not support microsecond accuracy, hence, information about microseconds and nanoseconds is lost.
+
 ### Installation
 Clone this repo into your workspace (or somewhere else haven't checked if that works, too).
 ```
@@ -106,11 +108,36 @@ cmake ..
 sudo make install
 ```
 
+#### Dependencies
+* [ros_babel_fish](https://github.com/StefanFabian/ros_babel_fish)
+
+### Documentation
+#### Dependencies
+* Doxygen
+* Sphinx
+* sphinx_rtd_theme
+* Breathe
+
+**Example for Ubuntu**  
+Install dependencies
+```
+sudo apt install doxygen
+pip3 install sphinx sphinx_rtd_theme breathe
+```
+#### Build documentation
+```
+cd REPO/docs
+make html
+```
+
+
 ### Roadmap
 
-- [x] ~Subscribers for any topic~
-- [x] ~Look up of Tf transforms~   
+- [x] ~~Subscribers~~
+- [x] ~~Publishers~~  
+- [x] ~~Look up of Tf transforms~~   
+- [ ] Transport Hints
+- [ ] Callback Queues
 - [ ] ImageTransport   
 - [ ] Make available as ros package
-- [ ] Publishers(?)  
 - [ ] Sending of Tf transforms(?)  

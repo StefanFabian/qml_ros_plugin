@@ -1,0 +1,3 @@
+<launch>
+  <test test-name="message_conversions" pkg="qml_ros_plugin" type="test_message_conversions"/>
+</launch>

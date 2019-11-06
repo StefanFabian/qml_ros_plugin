@@ -2,12 +2,19 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/service.h"
+#include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/message_conversions.h"
 
 using namespace ros_babel_fish;
+using namespace qml_ros_plugin::conversion;
 
 namespace qml_ros_plugin
 {
+Service::Service()
+{
+  babel_fish_ = BabelFishDispenser::getBabelFish();
+}
+
 QVariant Service::call( const QString &service, const QString &type, const QVariantMap &req )
 {
   Message::Ptr message = babel_fish_.createServiceRequest( type.toStdString());

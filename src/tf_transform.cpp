@@ -7,6 +7,8 @@
 
 #include <geometry_msgs/TransformStamped.h>
 
+using namespace qml_ros_plugin::conversion;
+
 namespace qml_ros_plugin
 {
 
@@ -53,7 +55,7 @@ void TfTransform::setActive( bool value )
   emit activeChanged();
 }
 
-const QVariant TfTransform::message() const { return message_; }
+const QVariantMap &TfTransform::message() const { return message_; }
 
 const QVariant &TfTransform::translation() const
 {
@@ -67,12 +69,20 @@ const QVariant &TfTransform::rotation() const
   return transform.find( "rotation" ).value();
 }
 
+bool TfTransform::valid() const
+{
+  return message_.contains( "valid" ) && message_["valid"].toBool();
+}
+
 void TfTransform::onTransformChanged()
 {
+  bool wasValid = valid();
   message_ = TfTransformListener::getInstance().lookUpTransform( target_frame_, source_frame_ );
+  if ( valid() != wasValid )
+    emit validChanged();
+  emit rotationChanged();
   emit messageChanged();
   emit translationChanged();
-  emit rotationChanged();
 }
 
 void TfTransform::subscribe()

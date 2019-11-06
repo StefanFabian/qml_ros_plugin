@@ -18,36 +18,35 @@ class connection;
 
 namespace qml_ros_plugin
 {
+/*!
+ * Represents a tf transform between source and target frame.
+ */
 class TfTransform : public QObject
 {
 Q_OBJECT
-  Q_PROPERTY( QString sourceFrame
-                READ sourceFrame
-                WRITE setSourceFrame
-                NOTIFY
-                sourceFrameChanged )
-  Q_PROPERTY( QString targetFrame
-                READ targetFrame
-                WRITE setTargetFrame
-                NOTIFY
-                targetFrameChanged )
-  Q_PROPERTY( bool active
-                READ active
-                WRITE setActive
-                NOTIFY
-                activeChanged )
-  Q_PROPERTY( QVariant message
-                READ message
-                NOTIFY
-                messageChanged )
-  Q_PROPERTY( QVariant translation
-                READ translation
-                NOTIFY
-                translationChanged )
-  Q_PROPERTY( QVariant rotation
-                READ rotation
-                NOTIFY
-                rotationChanged )
+  // @formatter:off
+  //! The source frame of the tf transform, i.e., the frame where the data originated.
+  Q_PROPERTY( QString sourceFrame READ sourceFrame WRITE setSourceFrame NOTIFY sourceFrameChanged )
+
+  //! The target frame of the tf transform, i.e., the frame to which the data should be transformed.
+  Q_PROPERTY( QString targetFrame READ targetFrame WRITE setTargetFrame NOTIFY targetFrameChanged )
+
+  //! Whether this tf transform is active, i.e., receiving transform updates.
+  Q_PROPERTY( bool active READ active WRITE setActive NOTIFY activeChanged )
+
+  //! The last received transform as a geometry_msgs/TransformStamped with an added boolean valid field and optional
+  //! error fields. See TfTransformListener::lookUpTransform
+  Q_PROPERTY( QVariantMap message READ message NOTIFY messageChanged )
+
+  //! The translation part of the tf transform as a vector with x, y, z fields. Zero if no valid transform available (yet).
+  Q_PROPERTY( QVariant translation READ translation NOTIFY translationChanged )
+
+  //! The rotation part of the tf transform as a quaternion with w, x, y, z fields. Identity if no valid transform available (yet).
+  Q_PROPERTY( QVariant rotation READ rotation NOTIFY rotationChanged )
+
+  //! Whether the current transform, i.e., the fields message, translation and rotation are valid.
+  Q_PROPERTY( bool valid READ valid NOTIFY validChanged )
+  // @formatter:on
 public:
   TfTransform();
 
@@ -65,13 +64,16 @@ public:
 
   void setActive( bool value );
 
-  const QVariant message() const;
+  const QVariantMap &message() const;
 
   const QVariant &translation() const;
 
   const QVariant &rotation() const;
 
+  bool valid() const;
+
 signals:
+
   void sourceFrameChanged();
 
   void targetFrameChanged();
@@ -83,6 +85,8 @@ signals:
   void translationChanged();
 
   void rotationChanged();
+
+  void validChanged();
 
 protected slots:
 

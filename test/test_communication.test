@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="tf" type="static_transform_publisher" name="tf_broadcaster" args="0 0 0 0 0 0 0.5 billionaires politics 100" />
+  <test test-name="communication" pkg="qml_ros_plugin" type="test_communication"/>
+</launch>

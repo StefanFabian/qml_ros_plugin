@@ -1,2 +1,2 @@
-module RosPlugin
+module Ros
 plugin qml_ros_plugin
