@@ -1,5 +1,11 @@
+## Warning: Currently in Alpha
+While this plugin contains a significant amount of tests (~95% line coverage), it is still in alpha stadium and bugs
+are expected. Be aware of this. I would not recommend using it in production systems without further testing.
+
 ## QmlRosPlugin
 Connects QML user interfaces to the Robot Operating System (ROS).  
+Please be aware that this loses some of the semantic information that the type of a message would normally provide.
+
 Currently, has support for the following:
 
 ### Subscribers
