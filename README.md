@@ -118,6 +118,7 @@ sudo make install
 * [ros_babel_fish](https://github.com/StefanFabian/ros_babel_fish)
 
 ### Documentation
+You can find the documentation on [readthedocs.io](https://qml-ros-plugin.readthedocs.io/en/latest/index.html) or build it yourself.
 #### Dependencies
 * Doxygen
 * Sphinx
