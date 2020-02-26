@@ -6,8 +6,16 @@
 #define QML_ROS_PLUGIN_COMMON_H
 #include <ros_babel_fish_test_msgs/TestArray.h>
 
+#include <QString>
 #include <random>
 #include <vector>
+
+QT_BEGIN_NAMESPACE
+inline void PrintTo(const QString &qString, ::std::ostream *os)
+{
+  *os << qUtf8Printable(qString);
+}
+QT_END_NAMESPACE
 
 template<typename T>
 void fillArray( std::vector<T> &msg, unsigned seed )
