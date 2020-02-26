@@ -164,13 +164,13 @@ public:
    * @param queue_size The maximum number of incoming messages to be queued for processing.
    * @return A Subscriber instance.
    */
-  Q_INVOKABLE QObject *subscribe( const QString &topic, quint32 queue_size = 10 );
+  Q_INVOKABLE QObject *subscribe( const QString &topic, quint32 queue_size );
 
   /*!
    * @param ns The namespace for this Subscriber.
    * @copydoc subscribe
    */
-  Q_INVOKABLE QObject *subscribe( const QString &ns, const QString &topic, quint32 queue_size = 10 );
+  Q_INVOKABLE QObject *subscribe( const QString &ns, const QString &topic, quint32 queue_size );
 
 signals:
 

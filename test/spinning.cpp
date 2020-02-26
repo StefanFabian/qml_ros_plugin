@@ -37,7 +37,7 @@ TEST( Spinning, testSpinning )
   geometry_msgs::Pose pose_msg;
   pose_msg.position.y = 1.12;
 
-  auto subscriber = dynamic_cast<qml_ros_plugin::Subscriber *>(ros_wrapper.subscribe( "/test" ));
+  auto subscriber = dynamic_cast<qml_ros_plugin::Subscriber *>(ros_wrapper.subscribe( "/test", 1 ));
   processSomeEvents();
   pub.publish( pose_msg );
   processSomeEvents();

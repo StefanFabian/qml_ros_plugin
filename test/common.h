@@ -149,7 +149,7 @@ void fillArray( boost::array<std::string, L> &msg, unsigned seed )
 {
   std::default_random_engine generator( seed );
   std::uniform_int_distribution<unsigned> distribution( std::numeric_limits<unsigned>::min());
-  for ( size_t i = 0; i < msg.length(); ++i )
+  for ( size_t i = 0; i < msg.size(); ++i )
   {
     msg.at( i ) = randomString( distribution( generator ), i == 0 ? 1 : -1 );
   }

@@ -4,6 +4,7 @@ Examples on how to use the QML ROS Plugin
 | Dependencies | |
 | --- | --- |
 | qmlscene | `sudo apt install qmlscene`|
+| QtMultimedia | `sudo apt install qml-module-qtmultimedia` |
 | QtQuick 2 | `sudo apt install qml-module-qtquick2` |
 | QtQuick.Controls 2 | `sudo apt install qml-module-qtquick-controls2` |
 | QtQuick.Layouts | `sudo apt install qml-module-qtquick-layouts` |

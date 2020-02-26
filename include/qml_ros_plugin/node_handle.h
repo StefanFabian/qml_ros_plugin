@@ -40,6 +40,28 @@ protected:
   std::unique_ptr<ros::NodeHandle> nh_;
   std::string ns_;
 };
+
+struct NodeHandleReference
+{
+  explicit NodeHandleReference( NodeHandle *nh, bool owned = false ) : node_handle( nh ), owned_( owned ) { }
+
+  NodeHandleReference( const NodeHandleReference &other ) noexcept : node_handle( other.node_handle ), owned_( false ) { }
+
+  ~NodeHandleReference()
+  {
+    if ( owned_ ) delete node_handle;
+  }
+
+  NodeHandle &operator*() { return *node_handle; }
+
+  NodeHandle *operator->() { return node_handle; }
+
+  NodeHandle *get() { return node_handle; }
+
+  NodeHandle *node_handle;
+private:
+  bool owned_;
+};
 } // qml_ros_plugin
 
 #endif // QML_ROS_PLUGIN_NODE_HANDLE_H

@@ -15,7 +15,7 @@ find_package(catkin REQUIRED roscpp image_transport ros_babel_fish tf2_ros)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Qt5 COMPONENTS Core Qml Quick REQUIRED)
+find_package(Qt5 COMPONENTS Core Multimedia Qml Quick REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -45,6 +45,7 @@ catkin_package(
 include_directories(
   include
   ${Qt5Core_INCLUDE_DIRS}
+  ${Qt5Multimedia_INCLUDE_DIRS}
   ${Qt5Qml_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
@@ -54,6 +55,8 @@ set(SOURCES
   #  include/qml_ros_plugin/image_subscriber.h
   include/qml_ros_plugin/array.h
   include/qml_ros_plugin/babel_fish_dispenser.h
+  include/qml_ros_plugin/image_buffer.h
+  include/qml_ros_plugin/image_transport_subscriber.h
   include/qml_ros_plugin/message_conversions.h
   include/qml_ros_plugin/node_handle.h
   include/qml_ros_plugin/publisher.h
@@ -68,6 +71,8 @@ set(SOURCES
   #  src/image_subscriber.cpp
   src/array.cpp
   src/babel_fish_dispenser.cpp
+  src/image_buffer.cpp
+  src/image_transport_subscriber.cpp
   src/message_conversions.cpp
   src/node_handle.cpp
   src/publisher.cpp
@@ -84,7 +89,7 @@ set(SOURCES
 add_library(qml_ros_plugin ${SOURCES})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Qml Qt5::Quick)
+target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick)
 
 #############
 ## Testing ##
@@ -98,6 +103,10 @@ if (CATKIN_ENABLE_TESTING)
   add_rostest_gtest(${PROJECT_NAME}_test_communication test/test_communication.test test/communication.cpp)
   target_link_libraries(${PROJECT_NAME}_test_communication ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_communication PROPERTIES OUTPUT_NAME test_communication PREFIX "")
+
+  add_rostest_gtest(${PROJECT_NAME}_test_image_conversions test/test_image_conversions.test test/image_conversions.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_image_conversions ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_image_conversions PROPERTIES OUTPUT_NAME test_image_conversions PREFIX "")
 
   add_rostest_gtest(${PROJECT_NAME}_test_message_conversions test/test_message_conversions.test test/message_conversions.cpp)
   target_link_libraries(${PROJECT_NAME}_test_message_conversions ${PROJECT_NAME})

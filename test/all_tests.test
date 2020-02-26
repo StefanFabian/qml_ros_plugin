@@ -1,5 +1,6 @@
 <launch>
   <include file="$(find qml_ros_plugin)/test/test_communication.test"/>
+  <include file="$(find qml_ros_plugin)/test/test_image_conversions.test"/>
   <include file="$(find qml_ros_plugin)/test/test_message_conversions.test"/>
   <include file="$(find qml_ros_plugin)/test/test_ros_life_cycle.test"/>
   <include file="$(find qml_ros_plugin)/test/test_spinning.test"/>

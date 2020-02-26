@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/array.h"
+#include "qml_ros_plugin/image_transport_subscriber.h"
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/publisher.h"
 #include "qml_ros_plugin/ros.h"
@@ -64,12 +65,15 @@ public:
                                       return new Time();
                                     } );
     qmlRegisterSingletonType<WallTime>( "Ros", 1, 0, "WallTime",
-                                    []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
-                                    {
-                                      Q_UNUSED( engine );
-                                      Q_UNUSED( scriptEngine );
-                                      return new WallTime();
-                                    } );
+                                        []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
+                                        {
+                                          Q_UNUSED( engine );
+                                          Q_UNUSED( scriptEngine );
+                                          return new WallTime();
+                                        } );
+
+    // Image transport
+    qmlRegisterType<ImageTransportSubscriber>( "Ros", 1, 0, "ImageTransportSubscriber" );
   }
 };
 }

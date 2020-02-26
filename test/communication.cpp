@@ -122,14 +122,14 @@ TEST( Communication, subscriber )
   ros::NodeHandle pnh( "~private_ns" );
   ros::Publisher pub_pns = pnh.advertise<geometry_msgs::Pose>( "test", 10 );
   EXPECT_EQ( pub_pns.getTopic(), "/communication/private_ns/test" );
-  auto subscriber_pns = dynamic_cast<qml_ros_plugin::Subscriber *>(wrapper.subscribe( "~private_ns", "test" ));
+  auto subscriber_pns = dynamic_cast<qml_ros_plugin::Subscriber *>(wrapper.subscribe( "~private_ns", "test", 1 ));
   QCoreApplication::processEvents();
   ros::spinOnce();
   EXPECT_TRUE( subscriber_pns->isInitialized());
   EXPECT_TRUE( subscriber_pns->running());
   EXPECT_EQ( subscriber_pns->getNumPublishers(), 1U );
   EXPECT_EQ( subscriber_pns->ns(), QString( "/communication/private_ns" )) << subscriber_pns->ns().toStdString();
-  EXPECT_EQ( subscriber_pns->queueSize(), 10U );
+  EXPECT_EQ( subscriber_pns->queueSize(), 1U );
   EXPECT_EQ( subscriber_pns->topic(), QString( "/communication/private_ns/test" ))
           << subscriber_pns->topic().toStdString();
   if ( !waitFor( [ & ]() { return pub_pns.getNumSubscribers() > 0; } ))
@@ -163,11 +163,11 @@ TEST( Communication, subscriber )
 
   ros::Publisher pub_ns = nh.advertise<geometry_msgs::Pose>( "/other_pose", 10 );
   EXPECT_EQ( pub_ns.getTopic(), "/other_pose" );
-  auto subscriber_ns = dynamic_cast<qml_ros_plugin::Subscriber *>(wrapper.subscribe( "/other_pose" ));
+  auto subscriber_ns = dynamic_cast<qml_ros_plugin::Subscriber *>(wrapper.subscribe( "/other_pose", 0 ));
   QCoreApplication::processEvents();
   EXPECT_TRUE( subscriber_ns->isInitialized());
   EXPECT_EQ( subscriber_ns->ns(), QString( "/" )) << subscriber_ns->ns().toStdString();
-  EXPECT_EQ( subscriber_ns->queueSize(), 10U );
+  EXPECT_EQ( subscriber_ns->queueSize(), 0U );
   EXPECT_EQ( subscriber_ns->topic(), QString( "/other_pose" )) << subscriber_ns->topic().toStdString();
   if ( !waitFor( [ & ]() { return pub_ns.getNumSubscribers() > 0; } ))
     FAIL() << "Timout while waiting for subscriber num increasing.";

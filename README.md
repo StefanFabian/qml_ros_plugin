@@ -9,13 +9,14 @@ are expected. Be aware of this. I would not recommend using it in production sys
 Connects QML user interfaces to the Robot Operating System (ROS).  
 Please be aware that this loses some of the semantic information that the type of a message would normally provide.
 
-Currently, has support for the following:
+Currently, has support for the following:  
+**Note:** For full examples including ROS init calls and shutdown handling checkout the examples directory.
 
 ### Subscribers
 Can be used to subscribe to any topic and message type.  
 
 Usage example:
-```
+```qml
 import Ros 1.0
 
 Item {
@@ -39,12 +40,39 @@ Item {
 }
 ```
 
+### Image Transport
+Can be used to stream camera images.
+The default transport used is "compressed".  
+The stream is exposed to QML as a `QObject` with a `QAbstractVideoSurface` based `videoSurface` property
+(see [QML VideoOutput docs](https://doc.qt.io/qt-5/qml-qtmultimedia-videooutput.html#source-prop)) and can be used
+directly as source for the `VideoOutput` control.
+
+Usage example:
+```qml
+import QtMultimedia 5.4
+import Ros 1.0
+
+Item {
+  width: 600
+  height: 400
+
+  ImageTransportSubscriber {
+    id: imageSubscriber
+    topic: "/front_rgb_cam"
+  }
+
+  VideoOutput {
+    source: imageSubscriber
+  }
+}
+
+```
 
 ### Tf Lookup
 #### TfTransformListener
 A singleton class that can be used to look up tf transforms.   
 Usage example:
-```
+```qml
 import Ros 1.0
 
 Item {
@@ -75,7 +103,7 @@ exception that occured and a field *message* with the message of the exception.
 #### TfTransform
 A convenience component that watches a transform.
 Usage example:
-```
+```qml
 import Ros 1.0
 
 Item {
@@ -109,7 +137,7 @@ The QDateTime object used to map ros::Time does not support microsecond accuracy
 
 ### Installation
 Clone this repo into your workspace (or somewhere else haven't checked if that works, too).
-```
+```bash
 cd {REPO}
 mkdir build
 cd build
@@ -130,12 +158,12 @@ You can find the documentation on [readthedocs.io](https://qml-ros-plugin.readth
 
 **Example for Ubuntu**  
 Install dependencies
-```
+```bash
 sudo apt install doxygen
 pip3 install sphinx sphinx_rtd_theme breathe
 ```
 #### Build documentation
-```
+```bash
 cd REPO/docs
 make html
 ```
@@ -148,6 +176,10 @@ make html
 - [x] ~~Look up of Tf transforms~~   
 - [ ] Transport Hints
 - [ ] Callback Queues
-- [ ] ImageTransport   
+- [x] ImageTransport Subscriber  
+- [ ] Handle Endianness in Image messages
 - [ ] Make available as ros package
 - [ ] Sending of Tf transforms(?)  
+- [ ] ImageTransport Publisher(?)
+
+(?) For items with a question mark, please send me user stories (preferably as issues) because I don't know what that would be useful for.

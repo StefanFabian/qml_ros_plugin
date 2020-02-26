@@ -12,7 +12,7 @@ using namespace ros_babel_fish;
 namespace qml_ros_plugin
 {
 
-Subscriber::Subscriber() : own_nh_( true ), running_( true ), is_subscribed_( false ), queue_size_( 10 )
+Subscriber::Subscriber() : own_nh_( true ), running_( true ), is_subscribed_( false ), queue_size_( 1 )
 {
   nh_ = new NodeHandle;
   babel_fish_ = BabelFishDispenser::getBabelFish();
@@ -95,8 +95,8 @@ void Subscriber::subscribe()
   }
   if ( topic_.isEmpty()) return;
   if ( nh_ == nullptr || !nh_->isReady()) return;
-  subscriber_ = nh_->nodeHandle().subscribe<BabelFishMessage>( topic_.toStdString(), 10, &Subscriber::messageCallback,
-                                                               this );
+  subscriber_ = nh_->nodeHandle().subscribe<BabelFishMessage>( topic_.toStdString(), queue_size_,
+                                                               &Subscriber::messageCallback, this );
   is_subscribed_ = true;
 }
 
