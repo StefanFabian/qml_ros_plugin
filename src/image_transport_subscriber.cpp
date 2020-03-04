@@ -16,7 +16,7 @@ ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle *nh, QString topi
 }
 
 ImageTransportSubscriber::ImageTransportSubscriber()
-  : default_transport_( "raw" ), nh_( new NodeHandle, true ), surface_( nullptr ), queue_size_( 1 )
+  : default_transport_( "compressed" ), nh_( new NodeHandle, true ), surface_( nullptr ), queue_size_( 1 )
     , subscribed_( false )
 {
   connect( nh_.get(), &NodeHandle::ready, this, &ImageTransportSubscriber::onNodeHandleReady );
@@ -128,8 +128,9 @@ void ImageTransportSubscriber::processImage()
   surface_->present( QVideoFrame( buffer, QSize( last_image_->width, last_image_->height ), buffer->format()));
 }
 
-const QString &ImageTransportSubscriber::topic() const
+QString ImageTransportSubscriber::topic() const
 {
+  if ( subscribed_ ) return QString::fromStdString( subscriber_.getTopic());
   return topic_;
 }
 

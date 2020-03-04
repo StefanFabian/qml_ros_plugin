@@ -37,7 +37,7 @@ public:
 
   void setVideoSurface( QAbstractVideoSurface *surface );
 
-  const QString &topic() const;
+  QString topic() const;
 
   void setTopic( const QString &value );
 

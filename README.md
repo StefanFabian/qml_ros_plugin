@@ -136,7 +136,7 @@ TfTransform change and the changes are propagated by QML.
 The QDateTime object used to map ros::Time does not support microsecond accuracy, hence, information about microseconds and nanoseconds is lost.
 
 ### Installation
-Clone this repo into your workspace (or somewhere else haven't checked if that works, too).
+Clone this repo and its dependencies into your workspace.
 ```bash
 cd {REPO}
 mkdir build

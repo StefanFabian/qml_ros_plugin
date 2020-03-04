@@ -36,7 +36,6 @@ signals:
 protected:
   void onRosInitialized() override;
 
-protected:
   std::unique_ptr<ros::NodeHandle> nh_;
   std::string ns_;
 };

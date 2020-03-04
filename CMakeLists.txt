@@ -108,6 +108,10 @@ if (CATKIN_ENABLE_TESTING)
   target_link_libraries(${PROJECT_NAME}_test_image_conversions ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_image_conversions PROPERTIES OUTPUT_NAME test_image_conversions PREFIX "")
 
+  add_rostest_gtest(${PROJECT_NAME}_test_image_transport_subscriber test/test_image_transport_subscriber.test test/image_transport_subscriber.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_image_transport_subscriber ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_image_transport_subscriber PROPERTIES OUTPUT_NAME test_image_transport_subscriber PREFIX "")
+
   add_rostest_gtest(${PROJECT_NAME}_test_message_conversions test/test_message_conversions.test test/message_conversions.cpp)
   target_link_libraries(${PROJECT_NAME}_test_message_conversions ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_message_conversions PROPERTIES OUTPUT_NAME test_message_conversions PREFIX "")
