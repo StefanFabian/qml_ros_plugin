@@ -55,6 +55,7 @@ set(SOURCES
   #  include/qml_ros_plugin/image_subscriber.h
   include/qml_ros_plugin/array.h
   include/qml_ros_plugin/babel_fish_dispenser.h
+  include/qml_ros_plugin/console.h
   include/qml_ros_plugin/image_buffer.h
   include/qml_ros_plugin/image_transport_subscriber.h
   include/qml_ros_plugin/message_conversions.h
@@ -71,6 +72,7 @@ set(SOURCES
   #  src/image_subscriber.cpp
   src/array.cpp
   src/babel_fish_dispenser.cpp
+  src/console.cpp
   src/image_buffer.cpp
   src/image_transport_subscriber.cpp
   src/message_conversions.cpp
@@ -123,6 +125,10 @@ if (CATKIN_ENABLE_TESTING)
   add_rostest_gtest(${PROJECT_NAME}_test_spinning test/test_spinning.test test/spinning.cpp)
   target_link_libraries(${PROJECT_NAME}_test_spinning ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_spinning PROPERTIES OUTPUT_NAME test_spinning PREFIX "")
+
+  add_rostest_gtest(${PROJECT_NAME}_test_logging test/test_logging.test test/logging.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_logging ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_logging PROPERTIES OUTPUT_NAME test_logging PREFIX "")
 endif ()
 
 # to run: catkin build --this --no-deps -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -v --catkin-make-args qml_ros_plugin_coverage

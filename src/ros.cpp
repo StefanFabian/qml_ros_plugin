@@ -8,6 +8,7 @@
 #include <ros/ros.h>
 
 #include <QCoreApplication>
+#include <QJSEngine>
 
 namespace qml_ros_plugin
 {
@@ -25,7 +26,7 @@ RosQml::RosQml() : threads_( 1 ), initialized_( false )
   {
     onInitialized();
   }
-  timer_.setInterval( 16 );
+  timer_.setInterval( 33 );
   timer_.start();
 }
 
@@ -82,6 +83,7 @@ void RosQml::checkShutdown()
 {
   if ( ros::ok()) return;
   emit shutdown();
+  timer_.stop();
   if ( spinner_ != nullptr ) spinner_->stop();
 }
 
@@ -109,6 +111,11 @@ void RosQml::updateSpinner()
   }
   spinner_.reset( new ros::AsyncSpinner( threads_ ));
   spinner_->start();
+}
+
+Console RosQml::console() const
+{
+  return {};
 }
 
 /***************************************************************************************************/
@@ -140,9 +147,56 @@ void RosQmlSingletonWrapper::init( const QStringList &args, const QString &name,
   RosQml::getInstance().init( args, name, options );
 }
 
-bool RosQmlSingletonWrapper::ok() const
+bool RosQmlSingletonWrapper::ok() const { return RosQml::getInstance().ok(); }
+
+Console RosQmlSingletonWrapper::console() const
 {
-  return RosQml::getInstance().ok();
+  return RosQml::getInstance().console();
+}
+
+QJSValue RosQmlSingletonWrapper::debug()
+{
+  if ( debug_function_.isCallable()) return debug_function_;
+  return debug_function_ = createLogFunction( ros_console_levels::Debug );
+}
+
+QJSValue RosQmlSingletonWrapper::info()
+{
+  if ( info_function_.isCallable()) return info_function_;
+  return info_function_ = createLogFunction( ros_console_levels::Info );
+}
+
+QJSValue RosQmlSingletonWrapper::warn()
+{
+  if ( warn_function_.isCallable()) return warn_function_;
+  return warn_function_ = createLogFunction( ros_console_levels::Warn );
+}
+
+QJSValue RosQmlSingletonWrapper::error()
+{
+  if ( error_function_.isCallable()) return error_function_;
+  return error_function_ = createLogFunction( ros_console_levels::Error );
+}
+
+QJSValue RosQmlSingletonWrapper::fatal()
+{
+  if ( fatal_function_.isCallable()) return fatal_function_;
+  return fatal_function_ = createLogFunction( ros_console_levels::Fatal );
+}
+
+void RosQmlSingletonWrapper::logInternal( int level, const QString &function,
+                                          const QString &file, int line, const QString &msg, const QString &name ) const
+{
+  std::string logger_name = name.isEmpty() ? ROSCONSOLE_DEFAULT_NAME
+                                           : std::string( ROSCONSOLE_NAME_PREFIX ) + "." + name.toStdString();
+  ROSCONSOLE_DEFINE_LOCATION( true, static_cast<::ros::console::Level>(level), logger_name );
+  if ( ROS_UNLIKELY( __rosconsole_define_location__enabled ))
+  {
+    ::ros::console::print( nullptr, __rosconsole_define_location__loc.logger_,
+                           static_cast<::ros::console::Level>(level),
+                           file.toStdString().c_str(), line, function.toStdString().c_str(),
+                           "%s", msg.toStdString().c_str());
+  }
 }
 
 QObject *RosQmlSingletonWrapper::advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch )
@@ -178,5 +232,32 @@ QObject *RosQmlSingletonWrapper::subscribe( const QString &ns, const QString &to
     it = node_handles_.find( ns_std );
   }
   return new Subscriber( it->second, topic, queue_size );
+}
+
+QJSValue RosQmlSingletonWrapper::createLogFunction( ros_console_levels::RosConsoleLevel level )
+{
+  auto engine = qjsEngine( this );
+  if ( !engine ) return {};
+  // This function extracts the file, method and number which called the log function in order to accurately report it.
+  QJSValue func = engine->evaluate( R"js(function (__ros_instance) {
+  return (function (msg, name) {
+    var stack = new Error().stack.split('\n');
+    if (stack && stack.length >= 2) {
+      var call_info = stack[1].split('@');
+      var method = 'unknown', file = 'unknown', line = 0;
+      if (call_info && call_info.length >= 2) {
+        method = call_info[0];
+        var file_info = call_info[1].replace('file://', '');
+        var line_sep = file_info.lastIndexOf(':');
+        if (line_sep != -1) {
+          file = file_info.substr(0, line_sep);
+          line = Number(file_info.substr(line_sep + 1));
+        }
+      }
+    }
+    __ros_instance.logInternal()js" + QString::number( level ) + R"js(, method, file, Number(line), msg, name);
+  });
+})js" );
+  return func.call( { engine->newQObject( this ) } );
 }
 } // qml_ros_plugin

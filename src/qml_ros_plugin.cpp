@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/array.h"
+#include "qml_ros_plugin/console.h"
 #include "qml_ros_plugin/image_transport_subscriber.h"
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/publisher.h"
@@ -31,6 +32,9 @@ public:
     qmlRegisterType<qml_ros_plugin::Array>();
     qmlRegisterUncreatableMetaObject( ros_init_options::staticMetaObject, "Ros", 1, 0, "RosInitOptions",
                                       "Error: Can not create enum object." );
+    qmlRegisterUncreatableMetaObject( ros_console_levels::staticMetaObject, "Ros", 1, 0, "RosConsoleLevels",
+                                      "Error: Can not create enum object." );
+    qmlRegisterType<Console>();
     qmlRegisterSingletonType<RosQmlSingletonWrapper>( "Ros", 1, 0, "Ros",
                                                       []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
                                                       {

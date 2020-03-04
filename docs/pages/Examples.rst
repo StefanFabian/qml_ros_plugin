@@ -50,3 +50,17 @@ Next, launch the example UI:
 
 It provides a top down view on the position of the robot and sliders to control
 the forward and angular movement.
+
+Logging
+=======
+
+This example demonstrates the logging functionality detailed in :ref:`Logging`.
+The "Output logging level" sets the minimum logging level that is printed whereas the
+"Message logging level" sets the level of the message that is logged when you click
+the `Log` button.
+
+To run, run:
+
+.. code-block::
+
+  qmlscene logging.qml

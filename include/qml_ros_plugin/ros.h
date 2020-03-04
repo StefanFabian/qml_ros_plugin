@@ -4,8 +4,10 @@
 #ifndef QML_ROS_PLUGIN_ROS_H
 #define QML_ROS_PLUGIN_ROS_H
 
+#include "qml_ros_plugin/console.h"
 #include "qml_ros_plugin/node_handle.h"
 
+#include <QJSValue>
 #include <QObject>
 #include <QTimer>
 
@@ -34,11 +36,11 @@ Q_NAMESPACE
 enum RosInitOption
 {
   //! Don't install a SIGINT handler.
-    NoSigintHandler = ros::init_options::NoSigintHandler,
+  NoSigintHandler = ros::init_options::NoSigintHandler,
   //! Anonymize the node name. Adds a random number to the node's name to make it unique.
-    AnonymousName = ros::init_options::AnonymousName,
+  AnonymousName = ros::init_options::AnonymousName,
   //! Don't broadcast rosconsole output to the /rosout topic.
-    NoRosout = ros::init_options::NoRosout
+  NoRosout = ros::init_options::NoRosout
 };
 
 Q_ENUM_NS( RosInitOption )
@@ -93,6 +95,8 @@ public:
    */
   void setThreads( int count );
 
+  Console console() const;
+
 signals:
 
   //! Emitted once when ROS was initialized.
@@ -124,6 +128,15 @@ private:
 class RosQmlSingletonWrapper : public QObject
 {
 Q_OBJECT
+
+  // @formatter:off
+  Q_PROPERTY( qml_ros_plugin::Console console READ console )
+  Q_PROPERTY( QJSValue debug READ debug )
+  Q_PROPERTY( QJSValue info READ info )
+  Q_PROPERTY( QJSValue warn READ warn )
+  Q_PROPERTY( QJSValue error READ error )
+  Q_PROPERTY( QJSValue fatal READ fatal )
+  // @formatter:on
 public:
   RosQmlSingletonWrapper();
 
@@ -137,6 +150,82 @@ public:
 
   //! @copydoc RosQml::ok
   Q_INVOKABLE bool ok() const;
+
+  Console console() const;
+
+  /*!
+   * Outputs a ROS debug message. The equivalent of calling ROS_DEBUG in C++.
+   * The signature in QML is @c debug(msg, consoleName) where @a consoleName is an optional parameter which defaults to
+   * @a ros.qml_ros_plugin.
+   *
+   * @b Note: The msg is not a format string.
+   *
+   * Example:
+   * @code
+   * Ros.debug("The value of x is: " + x);
+   * @endcode
+   */
+  QJSValue debug();
+
+  /*!
+   * Outputs a ROS info message. The equivalent of calling ROS_INFO in C++.
+   * The signature in QML is @c info(msg, consoleName) where @a consoleName is an optional parameter which defaults to
+   * @a ros.qml_ros_plugin.
+   *
+   * @b Note: The argument is not a format string.
+   *
+   * Example:
+   * @code
+   * Ros.info("The value of x is: " + x);
+   * @endcode
+   */
+  QJSValue info();
+
+  /*!
+   * Outputs a ROS warn message. The equivalent of calling ROS_WARN in C++.
+   * The signature in QML is @c warn(msg, consoleName) where @a consoleName is an optional parameter which defaults to
+   * @a ros.qml_ros_plugin.
+   *
+   * @b Note: The argument is not a format string.
+   *
+   * Example:
+   * @code
+   * Ros.warn("The value of x is: " + x);
+   * @endcode
+   */
+  QJSValue warn();
+
+  /*!
+   * Outputs a ROS error message. The equivalent of calling ROS_ERROR in C++.
+   * The signature in QML is @c error(msg, consoleName) where @a consoleName is an optional parameter which defaults to
+   * @a ros.qml_ros_plugin.
+   *
+   * @b Note: The argument is not a format string.
+   *
+   * Example:
+   * @code
+   * Ros.error("The value of x is: " + x);
+   * @endcode
+   */
+  QJSValue error();
+
+  /*!
+   * Outputs a ROS fatal message. The equivalent of calling ROS_FATAL in C++.
+   * The signature in QML is @c fatal(msg, consoleName) where @a consoleName is an optional parameter which defaults to
+   * @a ros.qml_ros_plugin.
+   *
+   * @b Note: The argument is not a format string.
+   *
+   * Example:
+   * @code
+   * Ros.fatal("The value of x is: " + x);
+   * @endcode
+   */
+  QJSValue fatal();
+
+  Q_INVOKABLE void logInternal( int level, const QString &function,
+                                const QString &file, int line, const QString &msg,
+                                const QString &name = QString()) const;
 
   /*!
    * Creates a Publisher to publish ROS messages.
@@ -181,7 +270,15 @@ signals:
   void shutdown();
 
 private:
+  QJSValue createLogFunction( ros_console_levels::RosConsoleLevel level );
+
   std::map<std::string, NodeHandle *> node_handles_;
+  QJSValue log_function_;
+  QJSValue debug_function_;
+  QJSValue info_function_;
+  QJSValue warn_function_;
+  QJSValue error_function_;
+  QJSValue fatal_function_;
 };
 } // qml_ros_plugin
 

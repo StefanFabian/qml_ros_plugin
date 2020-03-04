@@ -5,4 +5,5 @@
   <include file="$(find qml_ros_plugin)/test/test_message_conversions.test"/>
   <include file="$(find qml_ros_plugin)/test/test_ros_life_cycle.test"/>
   <include file="$(find qml_ros_plugin)/test/test_spinning.test"/>
+  <include file="$(find qml_ros_plugin)/test/test_logging.test"/>
 </launch>

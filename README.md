@@ -12,6 +12,27 @@ Please be aware that this loses some of the semantic information that the type o
 Currently, has support for the following:  
 **Note:** For full examples including ROS init calls and shutdown handling checkout the examples directory.
 
+### Logging
+Logging is now supported and correctly reports from which qml file and line the message came!
+```qml
+import Ros 1.0
+
+Item {
+  function doesWork() {
+    Ros.debug("A debug message")
+    // Set the logging level to Debug (default is usually Info)
+    Ros.console.setLoggerLevel(Ros.console.defaultName, RosConsoleLevels.Debug);
+    Ros.debug("A debug message that is actually logged.")
+    Ros.info("I have some information")
+    Ros.warn("This is the last warning")
+    Ros.error("Great! Now there's an error.")
+    Ros.fatal("I'm dead")
+    Ros.info("Just so you know, fatal does not kill a node. Though they usually die after logging fatal")
+  }
+  // ...
+}
+```
+
 ### Subscribers
 Can be used to subscribe to any topic and message type.  
 
@@ -173,12 +194,16 @@ make html
 
 - [x] ~~Subscribers~~
 - [x] ~~Publishers~~  
-- [x] ~~Look up of Tf transforms~~   
-- [ ] Transport Hints
-- [ ] Callback Queues
-- [x] ImageTransport Subscriber  
-- [ ] Handle Endianness in Image messages
+- [x] ~~Look up of Tf transforms~~
+- [x] ~~Service Calls~~   
+- [x] ~~ImageTransport Subscriber~~  
+- [x] ~~Handle Endianness in Image messages~~
+- [x] ~~Logging~~
+- [ ] Action Clients
+- [ ] Service Clients
 - [ ] Make available as ros package
+- [ ] Transport Hints(?)
+- [ ] Callback Queues(?)
 - [ ] Sending of Tf transforms(?)  
 - [ ] ImageTransport Publisher(?)
 
