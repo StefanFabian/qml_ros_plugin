@@ -22,10 +22,13 @@ Q_OBJECT
   //! @formatter:off
   //! Interface for QML. This is the surface the images are passed to.
   Q_PROPERTY(QAbstractVideoSurface *videoSurface READ videoSurface WRITE setVideoSurface)
-  //! The image base topic (without image_raw etc.)
+  //! The image base topic (without image_raw etc.). This value may change once the subscriber is connected and private
+  //! topic names or remappings were evaluated.
   Q_PROPERTY(QString topic READ topic WRITE setTopic NOTIFY topicChanged)
   //! The default transport passed as transport hint. May be overridden by a parameter. (Default: compressed)
   Q_PROPERTY(QString defaultTransport READ defaultTransport WRITE setDefaultTransport NOTIFY defaultTransportChanged)
+  //! Whether or not this ImageTransportSubscriber is subscribed to the given topic
+  Q_PROPERTY(bool subscribed READ subscribed NOTIFY subscribedChanged)
   //! @formatter:on
 public:
 
@@ -45,11 +48,15 @@ public:
 
   void setDefaultTransport( const QString &value );
 
+  bool subscribed();
+
 signals:
 
   void topicChanged();
 
   void defaultTransportChanged();
+
+  void subscribedChanged();
 
 private slots:
 

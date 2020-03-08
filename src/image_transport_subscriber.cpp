@@ -27,9 +27,14 @@ QAbstractVideoSurface *ImageTransportSubscriber::videoSurface() const { return s
 void ImageTransportSubscriber::setVideoSurface( QAbstractVideoSurface *surface )
 {
   if ( surface == surface_ ) return;
+
+  bool subscribed = subscribed_;
+  blockSignals( true );
   unsubscribe();
   surface_ = surface;
   subscribe();
+  blockSignals( false );
+  if ( subscribed != subscribed_ ) emit subscribedChanged();
 }
 
 void ImageTransportSubscriber::onNodeHandleReady()
@@ -46,6 +51,7 @@ void ImageTransportSubscriber::onRosShutdown()
 
 void ImageTransportSubscriber::subscribe()
 {
+  bool was_subscribed = subscribed_;
   if ( subscribed_ ) unsubscribe();
   // This makes sure we lazy subscribe and only subscribe if there is a surface to write to
   if ( surface_ == nullptr ) return;
@@ -67,15 +73,17 @@ void ImageTransportSubscriber::subscribe()
     return;
   }
   subscribed_ = true;
-  if ( subscribed_ && surface_ != nullptr )
-    surface_->start( format_ );
+  if ( !was_subscribed ) emit subscribedChanged();
 }
 
 void ImageTransportSubscriber::unsubscribe()
 {
+  if ( !subscribed_ ) return;
   subscriber_.shutdown();
   if ( surface_ != nullptr && surface_->isActive())
     surface_->stop();
+  subscribed_ = false;
+  emit subscribedChanged();
 }
 
 namespace
@@ -115,14 +123,29 @@ void ImageTransportSubscriber::processImage()
     return;
   }
   auto buffer = new ImageBuffer( last_image_, surface_->supportedPixelFormats());
+
+  const QVideoSurfaceFormat &surface_format = surface_->surfaceFormat();
+  if ( surface_format.frameWidth() != int( last_image_->width ) ||
+       surface_format.frameHeight() != int( last_image_->height ) || surface_format.pixelFormat() != buffer->format())
+  {
+    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer->format());
+    surface_->stop();
+  }
   if ( !surface_->isActive())
   {
     format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer->format());
+    if ( format_.pixelFormat() == QVideoFrame::Format_Invalid )
+    {
+      ROS_ERROR_NAMED( "qml_ros_plugin", "Could not find compatible format for video surface." );
+      unsubscribe();
+      return;
+    }
     if ( !surface_->start( format_ ))
     {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to start video surface: %s",
                        videoSurfaceErrorToString( surface_->error()));
       unsubscribe();
+      return;
     }
   }
   surface_->present( QVideoFrame( buffer, QSize( last_image_->width, last_image_->height ), buffer->format()));
@@ -151,5 +174,10 @@ void ImageTransportSubscriber::setDefaultTransport( const QString &value )
   if ( default_transport_ == value ) return;
   default_transport_ = value;
   emit defaultTransportChanged();
+}
+
+bool ImageTransportSubscriber::subscribed()
+{
+  return subscribed_;
 }
 }
