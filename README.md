@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/StefanFabian/qml_ros_plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/StefanFabian/qml_ros_plugin)
 
 ## Warning: Currently in Alpha
-While this plugin contains a significant amount of tests (~95% line coverage), it is still in alpha stadium and bugs
+While this plugin contains a significant amount of tests, it is still in alpha stadium and bugs
 are expected. Be aware of this. I would not recommend using it in production systems without further testing.
 
 ## QmlRosPlugin
