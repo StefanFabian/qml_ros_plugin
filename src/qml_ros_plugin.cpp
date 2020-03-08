@@ -42,8 +42,10 @@ public:
                                                         Q_UNUSED( scriptEngine );
                                                         return new RosQmlSingletonWrapper;
                                                       } );
-    qmlRegisterType<NodeHandle>();
-    qmlRegisterType<Publisher>();
+    qmlRegisterUncreatableType<NodeHandle>( "Ros", 1, 0, "NodeHandle",
+                                            "Error: Can not create NodeHandle manually in QML." );
+    qmlRegisterUncreatableType<Publisher>( "Ros", 1, 0, "Publisher",
+                                           "Error: Can not create Publisher manually in QML. Use one of the advertise functions." );
 
     qmlRegisterType<Subscriber>( "Ros", 1, 0, "Subscriber" );
     qmlRegisterSingletonType<Service>( "Ros", 1, 0, "Service",

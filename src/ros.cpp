@@ -149,10 +149,11 @@ void RosQmlSingletonWrapper::init( const QStringList &args, const QString &name,
 
 bool RosQmlSingletonWrapper::ok() const { return RosQml::getInstance().ok(); }
 
-Console RosQmlSingletonWrapper::console() const
-{
-  return RosQml::getInstance().console();
-}
+void RosQmlSingletonWrapper::spinOnce() { RosQml::getInstance().spinOnce(); }
+
+void RosQmlSingletonWrapper::setThreads( int count ) { RosQml::getInstance().setThreads( count ); }
+
+Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
 
 QJSValue RosQmlSingletonWrapper::debug()
 {

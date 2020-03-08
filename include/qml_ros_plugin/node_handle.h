@@ -45,7 +45,8 @@ struct NodeHandleReference
 {
   explicit NodeHandleReference( NodeHandle *nh, bool owned = false ) : node_handle( nh ), owned_( owned ) { }
 
-  NodeHandleReference( const NodeHandleReference &other ) noexcept : node_handle( other.node_handle ), owned_( false ) { }
+  NodeHandleReference( const NodeHandleReference &other ) noexcept
+    : node_handle( other.node_handle ), owned_( false ) { }
 
   ~NodeHandleReference()
   {

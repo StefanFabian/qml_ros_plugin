@@ -52,8 +52,29 @@ struct MockSurface : public QAbstractVideoSurface
   QVideoFrame last_frame;
 };
 
+struct MockNoFormatSurface : public QAbstractVideoSurface
+{
+  QList<QVideoFrame::PixelFormat> supportedPixelFormats( QAbstractVideoBuffer::HandleType ) const override
+  {
+    return {};
+  }
 
-TEST( ImageTransportSubscriber, test )
+  bool isFormatSupported( const QVideoSurfaceFormat & ) const override
+  {
+    return false;
+  }
+
+  bool present( const QVideoFrame &frame ) override
+  {
+    last_frame = frame;
+    return true;
+  }
+
+  QVideoFrame last_frame;
+};
+
+
+TEST( ImageTransportSubscriber, testCorrectFormat )
 {
   ros::NodeHandle nh( "~" );
   ros::Publisher img_pub = nh.advertise<sensor_msgs::Image>( "image", 10 );
@@ -89,6 +110,38 @@ TEST( ImageTransportSubscriber, test )
   EXPECT_EQ( mock_surface.last_frame.mappedBytes(), 3 * 3 * 2 );
   EXPECT_EQ( mock_surface.last_frame.bytesPerLine(), 3 * 2 );
   EXPECT_TRUE( compareImage( mock_surface.last_frame.bits(), image->data ));
+}
+
+TEST( ImageTransportSubscriber, testWrongFormat )
+{
+  ros::NodeHandle nh( "~" );
+  ros::Publisher img_pub = nh.advertise<sensor_msgs::Image>( "wrong_image", 10 );
+  NodeHandle qml_nh( "~" );
+  ImageTransportSubscriber subscriber( &qml_nh, "wrong_image", 10 );
+  EXPECT_EQ( subscriber.topic(), "wrong_image" ); // Before subscribing the topic name is not resolved.
+  subscriber.setDefaultTransport( "raw" );
+  EXPECT_EQ( subscriber.defaultTransport(), "raw" );
+  MockNoFormatSurface mock_surface;
+  subscriber.setVideoSurface( &mock_surface );
+  processSomeEvents();
+  EXPECT_EQ( subscriber.topic().toStdString(), img_pub.getTopic());
+  ASSERT_EQ( img_pub.getNumSubscribers(), 1U );
+
+  sensor_msgs::ImagePtr image = boost::make_shared<sensor_msgs::Image>();
+  image->width = 2;
+  image->height = 3;
+  image->step = 2 * 3;
+  image->encoding = sensor_msgs::image_encodings::RGB8;
+  // @formatter:off
+  image->data = { 255,   0,   0,   0, 255,   0,
+                  200, 100,   0,   0, 100, 200,
+                  50, 100,  20, 150, 150, 200 };
+  // @formatter:on
+  img_pub.publish( image );
+  mock_surface.stop();
+  processSomeEvents();
+
+  EXPECT_FALSE( subscriber.subscribed());
 }
 
 int main( int argc, char **argv )

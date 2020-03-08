@@ -122,9 +122,6 @@ private:
   bool initialized_;
 };
 
-/*!
- *
- */
 class RosQmlSingletonWrapper : public QObject
 {
 Q_OBJECT
@@ -150,6 +147,12 @@ public:
 
   //! @copydoc RosQml::ok
   Q_INVOKABLE bool ok() const;
+
+  //! @copydoc RosQml::spinOnce
+  Q_INVOKABLE void spinOnce();
+
+  //! @copydoc RosQml::setThreads
+  Q_INVOKABLE void setThreads( int count );
 
   Console console() const;
 
@@ -239,8 +242,14 @@ public:
   Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch = false );
 
   /*!
+   * Creates a Publisher to publish ROS messages.
+   *
    * @param ns The namespace for this publisher.
-   * @copydoc advertise
+   * @param type The type of the messages published using this publisher.
+   * @param topic The topic on which the messages are published.
+   * @param queue_size The maximum number of outgoing messages to be queued for delivery to subscribers.
+   * @param latch Whether or not this publisher should latch, i.e., always send out the last message to new subscribers.
+   * @return A Publisher instance.
    */
   Q_INVOKABLE QObject *advertise( const QString &ns, const QString &type, const QString &topic, quint32 queue_size,
                                   bool latch = false );
@@ -256,8 +265,13 @@ public:
   Q_INVOKABLE QObject *subscribe( const QString &topic, quint32 queue_size );
 
   /*!
+   * Creates a Subscriber to subscribe to ROS messages.
+   * Convenience function to create a subscriber in a single line.
+   *
    * @param ns The namespace for this Subscriber.
-   * @copydoc subscribe
+   * @param topic The topic to subscribe to.
+   * @param queue_size The maximum number of incoming messages to be queued for processing.
+   * @return A Subscriber instance.
    */
   Q_INVOKABLE QObject *subscribe( const QString &ns, const QString &topic, quint32 queue_size );
 
