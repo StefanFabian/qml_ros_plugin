@@ -1,6 +1,7 @@
 // Copyright (c) 2019 Stefan Fabian. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+#include "qml_ros_plugin/action_client.h"
 #include "qml_ros_plugin/ros.h"
 #include "qml_ros_plugin/publisher.h"
 #include "qml_ros_plugin/subscriber.h"
@@ -233,6 +234,23 @@ QObject *RosQmlSingletonWrapper::subscribe( const QString &ns, const QString &to
     it = node_handles_.find( ns_std );
   }
   return new Subscriber( it->second, topic, queue_size );
+}
+
+QObject *RosQmlSingletonWrapper::createActionClient( const QString &type, const QString &name )
+{
+  return createActionClient( QString(), type, name );
+}
+
+QObject *RosQmlSingletonWrapper::createActionClient( const QString &ns, const QString &type, const QString &name )
+{
+  std::string ns_std = ns.toStdString();
+  auto it = node_handles_.find( ns_std );
+  if ( it == node_handles_.end())
+  {
+    node_handles_.insert( { ns_std, new NodeHandle( ns_std ) } );
+    it = node_handles_.find( ns_std );
+  }
+  return new ActionClient( it->second, type, name );
 }
 
 QJSValue RosQmlSingletonWrapper::createLogFunction( ros_console_levels::RosConsoleLevel level )

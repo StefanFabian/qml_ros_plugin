@@ -63,6 +63,34 @@ QVariantMap msgToMap( const geometry_msgs::Quaternion &msg )
   return result;
 }
 
+QVariantMap msgToMap( const actionlib_msgs::GoalID &msg )
+{
+  QVariantMap result;
+  result.insert( "id", QString::fromStdString( msg.id ));
+  result.insert( "stamp", rosToQmlTime( msg.stamp ));
+  return result;
+}
+
+QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg )
+{
+  QVariantMap result;
+  result.insert( "goal_id", QVariant::fromValue( msgToMap( msg.goal_id )));
+  result.insert( "status", msg.status );
+  result.insert( "text", QString::fromStdString( msg.text ));
+  return result;
+}
+
+QVariantMap msgToMap( const ros_babel_fish::BabelFishActionFeedback &msg, ros_babel_fish::BabelFish &fish )
+{
+  QVariantMap result;
+  result.insert( "header", QVariant::fromValue( msgToMap( msg.header )));
+  result.insert( "status", QVariant::fromValue( msgToMap( msg.status )));
+  BabelFishMessage::Ptr feedback_copy = boost::make_shared<BabelFishMessage>( msg.feedback );
+  TranslatedMessage::ConstPtr translated_feedback = fish.translateMessage( feedback_copy );
+  result.insert( "feedback", QVariant::fromValue( msgToMap( translated_feedback )));
+  return result;
+}
+
 QVariant msgToMap( const TranslatedMessage::ConstPtr &msg )
 {
   return msgToMap( msg, *msg->translated_message );

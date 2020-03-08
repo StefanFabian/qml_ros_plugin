@@ -50,6 +50,7 @@
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>actionlib</depend>
   <depend>roscpp</depend>
   <depend>image_transport</depend>
   <depend>ros_babel_fish</depend>

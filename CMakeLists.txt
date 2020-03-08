@@ -11,7 +11,7 @@ add_definitions(-Wall -Wextra)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED roscpp image_transport ros_babel_fish tf2_ros)
+find_package(catkin REQUIRED actionlib roscpp image_transport ros_babel_fish tf2_ros)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -32,7 +32,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES qml_ros_plugin
-  CATKIN_DEPENDS roscpp image_transport ros_babel_fish tf2_ros
+  CATKIN_DEPENDS actionlib roscpp image_transport ros_babel_fish tf2_ros
   #  DEPENDS system_lib
 )
 
@@ -52,10 +52,11 @@ include_directories(
 )
 
 set(SOURCES
-  #  include/qml_ros_plugin/image_subscriber.h
   include/qml_ros_plugin/array.h
+  include/qml_ros_plugin/action_client.h
   include/qml_ros_plugin/babel_fish_dispenser.h
   include/qml_ros_plugin/console.h
+  include/qml_ros_plugin/goal_handle.h
   include/qml_ros_plugin/image_buffer.h
   include/qml_ros_plugin/image_transport_subscriber.h
   include/qml_ros_plugin/message_conversions.h
@@ -69,10 +70,11 @@ set(SOURCES
   include/qml_ros_plugin/tf_transform.h
   include/qml_ros_plugin/tf_transform_listener.h
   include/qml_ros_plugin/time.h
-  #  src/image_subscriber.cpp
   src/array.cpp
+  src/action_client.cpp
   src/babel_fish_dispenser.cpp
   src/console.cpp
+  src/goal_handle.cpp
   src/image_buffer.cpp
   src/image_transport_subscriber.cpp
   src/message_conversions.cpp
@@ -101,6 +103,10 @@ if (CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   find_package(ros_babel_fish_test_msgs REQUIRED)
   include_directories(${ros_babel_fish_test_msgs_INCLUDE_DIRS})
+
+  add_executable(${PROJECT_NAME}_test_action_server test/action_server.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_action_server ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_action_server PROPERTIES OUTPUT_NAME test_action_server PREFIX "")
 
   add_rostest_gtest(${PROJECT_NAME}_test_communication test/test_communication.test test/communication.cpp)
   target_link_libraries(${PROJECT_NAME}_test_communication ${PROJECT_NAME})

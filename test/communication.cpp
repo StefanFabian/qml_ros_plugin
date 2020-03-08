@@ -5,6 +5,8 @@
 #include "common.h"
 #include "message_comparison.h"
 
+#include <qml_ros_plugin/action_client.h>
+#include <qml_ros_plugin/goal_handle.h>
 #include <qml_ros_plugin/publisher.h>
 #include <qml_ros_plugin/ros.h>
 #include <qml_ros_plugin/service.h>
@@ -17,6 +19,7 @@
 #include <roscpp_tutorials/TwoInts.h>
 
 #include <QCoreApplication>
+#include <QJSEngine>
 #include <tf2_ros/transform_broadcaster.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
@@ -32,22 +35,21 @@ struct MessageStorage
   }
 };
 
-bool waitFor( const std::function<bool()> &pred )
+//! @param wait_count Max time to wait in increments of 33 ms
+bool waitFor( const std::function<bool()> &pred, int wait_count = 10 )
 {
-  int wait_count = 0;
-  while ( ++wait_count < 10 )
+  while ( --wait_count > 0 )
   {
     if ( pred()) return true;
     QCoreApplication::processEvents();
     ros::spinOnce();
-    ros::Duration( 0.05 ).sleep();
+    ros::Duration( 0.033 ).sleep();
   }
   return false;
 }
 
 TEST( Communication, publisher )
 {
-  RosQml::getInstance().setThreads( 0 ); // Disable spinner
   RosQmlSingletonWrapper wrapper;
   ros::NodeHandle nh;
   auto pub_singleton_private_ns = dynamic_cast<qml_ros_plugin::Publisher *>(wrapper.advertise( "~private_ns",
@@ -193,7 +195,7 @@ TEST( Communication, subscriber )
     FAIL() << "Shouldn't have received the message that was published while the subscriber wasn't running.";
 }
 
-TEST( Communication, service )
+TEST( Communication, serviceCall )
 {
   qml_ros_plugin::Service service;
   ros::NodeHandle nh;
@@ -219,6 +221,131 @@ TEST( Communication, service )
             << (result.type() == QVariant::Bool && !result.toBool() ? "Yes" : "No");
   EXPECT_EQ( result.toMap()["sum"].toInt(), 4 )
           << "Contains 'sum'? " << (result.toMap().contains( "sum" ) ? "Yes" : "No");
+}
+
+class ActionClientCallback : public QObject
+{
+Q_OBJECT
+public:
+  Q_INVOKABLE void feedbackCalled( int feedback ) { this->feedback = feedback; }
+
+  Q_INVOKABLE void transitionCalled( int state ) { this->state = state; }
+
+  int feedback = -1;
+  int state = -1;
+};
+
+TEST( Communication, actionClient )
+{
+  RosQml::getInstance().setThreads( 8 ); // Enable spinner for this test
+  qml_ros_plugin::NodeHandle node_handle;
+  QJSEngine engine;
+  ActionClient *client_ptr = new ActionClient( &node_handle, "ros_babel_fish_test_msgs/SimpleTestAction", "action" );
+  engine.newQObject( client_ptr );
+  ActionClient &client = *client_ptr;
+  EXPECT_FALSE( client.isServerConnected());
+  EXPECT_EQ( client.sendGoal( {{ "goal", 8 }} ), nullptr );
+
+  auto *callback_watcher = new ActionClientCallback;
+  QJSValue callback_watcher_js = engine.newQObject( callback_watcher );
+  QJSValue transition_callback = engine.evaluate(
+      "(function (watcher) { return function (handle) { watcher.transitionCalled(handle.commState); }; })" )
+    .call( { callback_watcher_js } );
+  QJSValue feedback_callback = engine.evaluate(
+      "(function (watcher) { return function (handle, feedback) { watcher.feedbackCalled(feedback.feedback); }; })" )
+    .call( { callback_watcher_js } );
+  ASSERT_TRUE( waitFor( [ &client ]() { return client.isServerConnected(); }, 150 )); // Wait max 5 seconds
+  GoalHandle *handle = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 400 }}, transition_callback,
+                                                                   feedback_callback ));
+  ASSERT_NE( handle, nullptr );
+  ASSERT_FALSE( handle->expired());
+  EXPECT_NE( handle->commState(), action_comm_states::DONE );
+  ASSERT_TRUE( waitFor( [ &handle ]() { return handle->commState() == action_comm_states::DONE; }, 90 ));
+  EXPECT_TRUE( waitFor( [ &callback_watcher ]() { return callback_watcher->state == action_comm_states::DONE; } ));
+  EXPECT_EQ( callback_watcher->feedback, 401 );
+  TerminalState terminal_state = handle->terminalState();
+  EXPECT_EQ( terminal_state.state(), action_terminal_states::SUCCEEDED );
+  EXPECT_EQ( terminal_state.text().toStdString(), "test result text" );
+  QVariant result = handle->getResult();
+  ASSERT_EQ( result.type(), QVariant::Map );
+  QVariantMap result_map = result.toMap();
+  ASSERT_TRUE( result_map.contains( "result" ));
+  EXPECT_EQ( result_map["result"].type(), QVariant::Int );
+  EXPECT_EQ( result_map["result"].toInt(), 800 );
+  delete handle;
+
+  // Cancel
+  handle = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 300 }} ));
+  ASSERT_NE( handle, nullptr );
+  EXPECT_NE( handle->commState(), action_comm_states::DONE );
+  EXPECT_TRUE( waitFor( [ &handle ]() { return handle->commState() == action_comm_states::ACTIVE; } ));
+  handle->cancel();
+  EXPECT_EQ( handle->commState(), action_comm_states::WAITING_FOR_CANCEL_ACK );
+  EXPECT_TRUE( waitFor( [ &handle ]() { return handle->commState() == action_comm_states::DONE; } ));
+  terminal_state = handle->terminalState();
+  EXPECT_EQ( handle->terminalState().state(), action_terminal_states::PREEMPTED );
+  delete handle;
+
+  // Cancel all goals
+  GoalHandle *handle1 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 7000 }} ));
+  ASSERT_NE( handle1, nullptr );
+  GoalHandle *handle2 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 8000 }} ));
+  ASSERT_NE( handle2, nullptr );
+  GoalHandle *handle3 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 9000 }} ));
+  ASSERT_NE( handle3, nullptr );
+  EXPECT_TRUE( waitFor( [ &handle1 ]() { return handle1->commState() != action_comm_states::WAITING_FOR_GOAL_ACK; } ));
+  EXPECT_TRUE( waitFor( [ &handle2 ]() { return handle2->commState() != action_comm_states::WAITING_FOR_GOAL_ACK; } ));
+  EXPECT_TRUE( waitFor( [ &handle3 ]() { return handle3->commState() != action_comm_states::WAITING_FOR_GOAL_ACK; } ));
+  client.cancelAllGoals();
+  EXPECT_TRUE( waitFor( [ &handle1 ]() { return handle1->commState() == action_comm_states::DONE; }, 150 ))
+          << handle1->commState();
+  EXPECT_TRUE( waitFor( [ &handle2 ]() { return handle2->commState() == action_comm_states::DONE; }, 150 ))
+          << handle2->commState();
+  EXPECT_TRUE( waitFor( [ &handle3 ]() { return handle3->commState() == action_comm_states::DONE; }, 150 ))
+          << handle3->commState();
+  EXPECT_EQ( handle1->terminalState().state(), action_terminal_states::PREEMPTED );
+  EXPECT_EQ( handle2->terminalState().state(), action_terminal_states::PREEMPTED );
+  EXPECT_EQ( handle3->terminalState().state(), action_terminal_states::PREEMPTED );
+  delete handle1;
+  delete handle2;
+  delete handle3;
+
+  // Cancel all goals before and at time
+  handle1 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 700 }} ));
+  ASSERT_NE( handle1, nullptr );
+  usleep( 5000 );
+  handle2 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 800 }} ));
+  ASSERT_NE( handle2, nullptr );
+  QDateTime now = rosToQmlTime( ros::Time::now());
+  usleep( 5000 );
+  handle3 = dynamic_cast<GoalHandle *>(client.sendGoal( {{ "goal", 190 }} ));
+  ASSERT_NE( handle3, nullptr );
+  ros::spinOnce();
+  QCoreApplication::processEvents();
+  EXPECT_NE( handle1->commState(), action_comm_states::DONE );
+  EXPECT_NE( handle2->commState(), action_comm_states::DONE );
+  EXPECT_NE( handle3->commState(), action_comm_states::DONE );
+  client.cancelGoalsAtAndBeforeTime( now );
+  EXPECT_TRUE( waitFor( [ &handle1 ]() { return handle1->commState() == action_comm_states::DONE; } ));
+  EXPECT_TRUE( waitFor( [ &handle2 ]() { return handle2->commState() == action_comm_states::DONE; } ));
+  EXPECT_EQ( handle1->terminalState().state(), action_terminal_states::PREEMPTED );
+  EXPECT_EQ( handle2->terminalState().state(), action_terminal_states::PREEMPTED );
+  EXPECT_TRUE( waitFor( [ &handle3 ]() { return handle3->commState() == action_comm_states::DONE; } ));
+  terminal_state = handle3->terminalState();
+  EXPECT_EQ( terminal_state.state(), action_terminal_states::SUCCEEDED );
+  EXPECT_EQ( terminal_state.text().toStdString(), "test result text" );
+  result = handle3->getResult();
+  ASSERT_EQ( result.type(), QVariant::Map );
+  result_map = result.toMap();
+  ASSERT_TRUE( result_map.contains( "result" ));
+  EXPECT_EQ( result_map["result"].type(), QVariant::Int );
+  EXPECT_EQ( result_map["result"].toInt(), 380 );
+
+  delete handle1;
+  delete handle2;
+  delete handle3;
+
+  RosQml::getInstance().setThreads( 0 ); // Disable spinner
 }
 
 TEST( Communication, tfTransform )
@@ -338,6 +465,8 @@ int main( int argc, char **argv )
   testing::InitGoogleTest( &argc, argv );
   QCoreApplication app( argc, argv );
   ros::init( argc, argv, "communication" );
+  RosQml::getInstance().setThreads( 0 ); // Disable spinner
   return RUN_ALL_TESTS();
 }
 
+#include "communication.moc"

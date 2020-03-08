@@ -6,6 +6,7 @@
 
 #include <QVariantMap>
 #include <geometry_msgs/TransformStamped.h>
+#include <ros_babel_fish/actionlib/babel_fish_action_feedback.h>
 #include <ros_babel_fish/babel_fish.h>
 
 namespace qml_ros_plugin
@@ -38,6 +39,12 @@ QVariantMap msgToMap( const geometry_msgs::Quaternion &msg );
 QVariantMap msgToMap( const geometry_msgs::Transform &msg );
 
 QVariantMap msgToMap( const geometry_msgs::TransformStamped &msg );
+
+QVariantMap msgToMap( const actionlib_msgs::GoalID &msg );
+
+QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg );
+
+QVariantMap msgToMap( const ros_babel_fish::BabelFishActionFeedback &msg, ros_babel_fish::BabelFish &fish );
 
 QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &msg );
 

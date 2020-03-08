@@ -2,7 +2,9 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/array.h"
+#include "qml_ros_plugin/action_client.h"
 #include "qml_ros_plugin/console.h"
+#include "qml_ros_plugin/goal_handle.h"
 #include "qml_ros_plugin/image_transport_subscriber.h"
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/publisher.h"
@@ -29,7 +31,10 @@ public:
   void registerTypes( const char *uri ) override
   {
     Q_ASSERT( uri == QLatin1String( "Ros" ));
-    qmlRegisterType<qml_ros_plugin::Array>();
+    qRegisterMetaType<ros_babel_fish::BabelFishMessage::ConstPtr>();
+    qRegisterMetaType<actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle>();
+
+    qmlRegisterType<Array>();
     qmlRegisterUncreatableMetaObject( ros_init_options::staticMetaObject, "Ros", 1, 0, "RosInitOptions",
                                       "Error: Can not create enum object." );
     qmlRegisterUncreatableMetaObject( ros_console_levels::staticMetaObject, "Ros", 1, 0, "RosConsoleLevels",
@@ -80,6 +85,17 @@ public:
 
     // Image transport
     qmlRegisterType<ImageTransportSubscriber>( "Ros", 1, 0, "ImageTransportSubscriber" );
+
+    // Action Client
+    qmlRegisterUncreatableMetaObject( action_comm_states::staticMetaObject, "Ros", 1, 0, "ActionCommStates",
+                                      "Error: Can not create enum object." );
+    qmlRegisterUncreatableMetaObject( action_terminal_states::staticMetaObject, "Ros", 1, 0, "ActionTerminalStates",
+                                      "Error: Can not create enum object." );
+    qmlRegisterType<TerminalState>();
+    qmlRegisterUncreatableType<GoalHandle>( "Ros", 1, 0, "GoalHandle",
+                                            "Error: Can not create GoalHandle manually. A GoalHandle is obtained as a return value of ActionClient.sendGoal or as callback parameter." );
+    qmlRegisterUncreatableType<ActionClient>( "Ros", 1, 0, "ActionClient",
+                                              "Error: Can not create ActionClient manually in QML. Use the Ros.createActionClient(...) factory method." );
   }
 };
 }

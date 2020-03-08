@@ -275,6 +275,23 @@ public:
    */
   Q_INVOKABLE QObject *subscribe( const QString &ns, const QString &topic, quint32 queue_size );
 
+  /*!
+   * Creates an ActionClient for the given type and the given name.
+   * @param type The type of the action (which always ends with 'Action'). Example: actionlib_tutorials/FibonacciAction
+   * @param name The name of the action server to connect to. This is essentially a base topic.
+   * @return An instance of ActionClient.
+   */
+  Q_INVOKABLE QObject *createActionClient( const QString &type, const QString &name );
+
+  /*!
+   * Creates an ActionClient for the given type and the given name.
+   * @param ns The namespace for this ActionClient.
+   * @param type The type of the action (which always ends with 'Action'). Example: actionlib_tutorials/FibonacciAction
+   * @param name The name of the action server to connect to. This is essentially a base topic.
+   * @return An instance of ActionClient.
+   */
+  Q_INVOKABLE QObject *createActionClient( const QString &ns, const QString &type, const QString &name );
+
 signals:
 
   //! @copydoc RosQml::initialized

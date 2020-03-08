@@ -1,4 +1,5 @@
 <launch>
   <node pkg="tf2_ros" type="static_transform_publisher" name="tf_broadcaster" args="0 0 0 0 0 0 1 billionaires politics" />
+  <node pkg="qml_ros_plugin" type="test_action_server" name="test_action_server"/>
   <test test-name="communication" pkg="qml_ros_plugin" type="test_communication"/>
 </launch>
