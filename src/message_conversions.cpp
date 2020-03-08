@@ -82,7 +82,7 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
   }
   else if ( msg.type() == MessageTypes::Array )
   {
-    return QVariant::fromValue( new Array( storage, &msg.as<ArrayMessageBase>()));
+    return QVariant::fromValue<QObject *>( new Array( storage, &msg.as<ArrayMessageBase>()));
   }
   switch ( msg.type())
   {
@@ -115,7 +115,7 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
       return QVariant::fromValue( rosToQmlTime( msg.value<ros::Time>()));
     }
     case MessageTypes::Duration:
-      return QVariant::fromValue( msg.as<ValueMessage<ros::Duration>>().getValue().toSec() * 1000 );
+      return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
     default:
       ROS_WARN( "Unknown type '%d' while processing message!", msg.type());
       break;
@@ -644,14 +644,19 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     const QVariantList &list = value.value<QVariantList>();
     return fillArrayFromVariant( msg, list );
   }
-  else if ( value.typeName() == QString( "qml_ros_plugin::Array*" ))
+  else if ( static_cast<QMetaType::Type>(value.type()) == QMetaType::QObjectStar ||
+            value.typeName() == QString( "qml_ros_plugin::Array*" ))
   {
-    const Array &list = *value.value<Array *>();
-    return fillArrayFromVariant( msg, list );
+    const Array *array = value.value<Array *>();
+    if ( array != nullptr )
+    {
+      return fillArrayFromVariant( msg, *array );
+    }
   }
+
   if ( msg.type() & (MessageTypes::Array | MessageTypes::Compound))
   {
-    ROS_WARN_STREAM( "Invalid type for value message: " << value.typeName());
+    ROS_WARN_STREAM( "Invalid type for array/compound message: " << value.typeName());
     return false;
   }
   switch ((int) value.type())
