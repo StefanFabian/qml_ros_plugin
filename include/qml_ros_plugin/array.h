@@ -22,23 +22,21 @@ class Array : public QObject
 Q_OBJECT
   // @formatter:off
   //! The length of the array, i.e., the number of elements.
-  Q_PROPERTY( size_type length READ length WRITE setLength NOTIFY lengthChanged )
+  Q_PROPERTY( int length READ length WRITE setLength NOTIFY lengthChanged )
   // @formatter:on
 public:
-  using size_type = QVariantList::size_type;
-
   Array( ros_babel_fish::TranslatedMessage::ConstPtr translated_message,
-         const ros_babel_fish::ArrayMessageBase *message ); // TODO: Check if raw array data can be passed to qml as data property
+         const ros_babel_fish::ArrayMessageBase *message );
 
 //  Array( const Array &other );
 
   ~Array() override = default;
 
-  size_type length() const;
+  int length() const;
 
-  size_type size() const { return length(); }
+  int size() const { return length(); }
 
-  void setLength( size_type value );
+  void setLength( int value );
 
   /*!
    * If the index is out of the bounds of the array, an empty QVariant is returned.
@@ -46,7 +44,7 @@ public:
    * @param index Index of the retrieved element.
    * @return The array element at the given index.
    */
-  Q_INVOKABLE QVariant at( size_type index ) const;
+  Q_INVOKABLE QVariant at( int index ) const;
 
   /*!
    * Changes the array content by removing delete_count elements at index and inserting the elements in items.
@@ -64,7 +62,7 @@ public:
    *   If delete_count is 0, no elements are removed, e.g., for a insert only operation.
    * @param items The items that will be inserted at start.
    */
-  Q_INVOKABLE void spliceList( size_type start, size_type delete_count, const QVariantList &items );
+  Q_INVOKABLE void spliceList( int start, int delete_count, const QVariantList &items );
 
   /*!
    * Adds the given value to the end of the array.
@@ -97,7 +95,7 @@ public:
   Q_INVOKABLE QVariant shift();
 
   /* Internal functions */
-  bool _isModified( size_type index ) const;
+  bool _isModified( int index ) const;
 
   bool _inCache() const;
 
@@ -108,7 +106,7 @@ signals:
   void lengthChanged();
 
 private:
-  void enlargeCache( size_type size );
+  void enlargeCache( int size );
 
   void fillCache();
 
@@ -117,7 +115,7 @@ private:
   mutable QVariantList cache_;
   bool all_in_cache_;
   QList<bool> modified_;
-  size_type length_;
+  int length_;
 };
 } // qml_ros_plugin
 
