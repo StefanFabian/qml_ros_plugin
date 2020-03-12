@@ -69,6 +69,7 @@ set(SOURCES
   include/qml_ros_plugin/subscriber.h
   include/qml_ros_plugin/tf_transform.h
   include/qml_ros_plugin/tf_transform_listener.h
+  include/qml_ros_plugin/topic_info.h
   include/qml_ros_plugin/time.h
   src/array.cpp
   src/action_client.cpp

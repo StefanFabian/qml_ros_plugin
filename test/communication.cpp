@@ -195,6 +195,62 @@ TEST( Communication, subscriber )
     FAIL() << "Shouldn't have received the message that was published while the subscriber wasn't running.";
 }
 
+TEST( Communication, queryTopics )
+{
+  ros::NodeHandle nh;
+  ros::Publisher pub1 = nh.advertise<geometry_msgs::Pose>( "/query_topics/pose1", 10 );
+  ros::Publisher pub2 = nh.advertise<geometry_msgs::Vector3>( "/query_topics/vector3", 10 );
+  ros::Publisher pub3 = nh.advertise<geometry_msgs::Point>( "/query_topics/point1", 10 );
+  ros::Publisher pub4 = nh.advertise<geometry_msgs::Point>( "/query_topics/point2", 10 );
+  ros::Publisher pub5 = nh.advertise<geometry_msgs::Pose>( "/query_topics/pose2", 10 );
+  ros::Publisher pub6 = nh.advertise<geometry_msgs::Pose>( "/query_topics/pose3", 10 );
+  RosQmlSingletonWrapper wrapper;
+  waitFor( []() { return false; } ); // Wait some time
+  QStringList topics = wrapper.queryTopics();
+  std::string debug_topics;
+  for ( const QString &topic : topics ) debug_topics += '\n' + topic.toStdString();
+  for ( const QString &topic : QStringList{ "/query_topics/pose1", "/query_topics/vector3", "/query_topics/point1",
+                                            "/query_topics/point2", "/query_topics/pose2", "/query_topics/pose3" } )
+  {
+    EXPECT_TRUE( topics.contains( topic ))
+            << topic.toStdString() << " is not in topics." << std::endl << "Declared topics:" << debug_topics;
+  }
+  topics = wrapper.queryTopics( "geometry_msgs/Point" );
+  for ( const QString &topic : QStringList{ "/query_topics/point1", "/query_topics/point2" } )
+  {
+    EXPECT_TRUE( topics.contains( topic )) << topic.toStdString() << " is not in topics of type Point";
+  }
+  topics = wrapper.queryTopics( "geometry_msgs/Pose" );
+  for ( const QString &topic : QStringList{ "/query_topics/pose1", "/query_topics/pose2", "/query_topics/pose3" } )
+  {
+    EXPECT_TRUE( topics.contains( topic )) << topic.toStdString() << " is not in topics of type Pose";
+  }
+  QList<TopicInfo> topic_info = wrapper.queryTopicInfo();
+  for ( const QPair<QString, QString> &pair : QList<QPair<QString, QString>>{{ "/query_topics/pose1",    "geometry_msgs/Pose" },
+                                                                             { "/query_topics/vector3", "geometry_msgs/Vector3" },
+                                                                             { "/query_topics/point1",  "geometry_msgs/Point" },
+                                                                             { "/query_topics/point2",  "geometry_msgs/Point" },
+                                                                             { "/query_topics/pose2",   "geometry_msgs/Pose" },
+                                                                             { "/query_topics/pose3",   "geometry_msgs/Pose" }} )
+  {
+    bool found = false;
+    debug_topics = "";
+    for ( const TopicInfo &info : topic_info )
+    {
+      debug_topics += '\n' + info.name().toStdString();
+      if ( info.name() != pair.first ) continue;
+      EXPECT_EQ( info.datatype(), pair.second );
+      found = true;
+    }
+    EXPECT_TRUE( found ) << "Did not find " << pair.first.toStdString() << " in topic types." << std::endl << "Topics:" << debug_topics;
+  }
+
+  EXPECT_EQ( wrapper.queryTopicType( "/query_topics/point1" ), "geometry_msgs/Point" );
+  EXPECT_EQ( wrapper.queryTopicType( "/query_topics/pose2" ), "geometry_msgs/Pose" );
+  EXPECT_TRUE( wrapper.queryTopicType( "/query_topics/pose20" ).isEmpty())
+          << wrapper.queryTopicType( "/query_topics/pose20" ).toStdString();
+}
+
 TEST( Communication, serviceCall )
 {
   qml_ros_plugin::Service service;

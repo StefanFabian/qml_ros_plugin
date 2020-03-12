@@ -9,8 +9,6 @@
 #include <ros_babel_fish/actionlib/babel_fish_action.h>
 #include <ros_babel_fish/babel_fish.h>
 
-#include <utility>
-
 namespace qml_ros_plugin
 {
 

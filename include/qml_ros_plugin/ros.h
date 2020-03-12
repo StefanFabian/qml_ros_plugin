@@ -6,6 +6,7 @@
 
 #include "qml_ros_plugin/console.h"
 #include "qml_ros_plugin/node_handle.h"
+#include "qml_ros_plugin/topic_info.h"
 
 #include <QJSValue>
 #include <QObject>
@@ -95,6 +96,27 @@ public:
    */
   void setThreads( int count );
 
+  /*!
+   * Queries the ROS master for its topics or using the optional datatype parameter for all topics with the given type.
+   * @param datatype The message type to filter topics for, e.g., sensor_msgs/Image. Omit to query for all topics.
+   * @return A list of topics that matches the given datatype or all topics if no datatype provided.
+   */
+  QStringList queryTopics( const QString &datatype = QString()) const;
+
+  /*!
+   * Queries the ROS master for its topics and their type.
+   * @return A list of TopicInfo.
+   */
+  QList<TopicInfo> queryTopicInfo() const;
+
+  /*!
+   * Queries the ROS master for a topic with the given name.
+   * @param name The name of the topic, e.g., /front_camera/image_raw.
+   * @return The type of the topic if found, otherwise an empty string.
+   */
+  QString queryTopicType( const QString &name ) const;
+
+
   Console console() const;
 
 signals:
@@ -153,6 +175,15 @@ public:
 
   //! @copydoc RosQml::setThreads
   Q_INVOKABLE void setThreads( int count );
+
+  //! @copydoc RosQml::queryTopics
+  Q_INVOKABLE QStringList queryTopics( const QString &datatype = QString()) const;
+
+  //! @copydoc RosQml::queryTopicInfo
+  Q_INVOKABLE QList<TopicInfo> queryTopicInfo() const;
+
+  //! @copydoc RosQml::queryTopicType
+  Q_INVOKABLE QString queryTopicType( const QString &name ) const;
 
   Console console() const;
 

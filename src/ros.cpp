@@ -6,6 +6,7 @@
 #include "qml_ros_plugin/publisher.h"
 #include "qml_ros_plugin/subscriber.h"
 
+#include <ros/master.h>
 #include <ros/ros.h>
 
 #include <QCoreApplication>
@@ -71,6 +72,47 @@ void RosQml::setThreads( int count )
 {
   threads_ = count;
   updateSpinner();
+}
+
+QStringList RosQml::queryTopics( const QString &datatype ) const
+{
+  ros::master::V_TopicInfo topic_info;
+  ros::master::getTopics( topic_info );
+  QStringList result;
+  std::string std_datatype = datatype.toStdString();
+  for ( const auto &topic : topic_info )
+  {
+    if ( !std_datatype.empty() && topic.datatype != std_datatype ) continue;
+    result.append( QString::fromStdString( topic.name ));
+  }
+  return result;
+}
+
+QList<TopicInfo> RosQml::queryTopicInfo() const
+{
+  ros::master::V_TopicInfo topic_info;
+  ros::master::getTopics( topic_info );
+  QList<TopicInfo> result;
+  for ( const auto &topic : topic_info )
+  {
+    result.append( { QString::fromStdString( topic.name ), QString::fromStdString( topic.datatype ) } );
+  }
+  return result;
+}
+
+QString RosQml::queryTopicType( const QString &name ) const
+{
+  if ( name.isEmpty()) return {};
+  ros::master::V_TopicInfo topic_info;
+  ros::master::getTopics( topic_info );
+  QList<TopicInfo> result;
+  std::string std_name = name.toStdString();
+  for ( const auto &topic : topic_info )
+  {
+    if ( std_name != topic.name ) continue;
+    return QString::fromStdString( topic.datatype );
+  }
+  return {};
 }
 
 void RosQml::checkInitialized()
@@ -153,6 +195,18 @@ bool RosQmlSingletonWrapper::ok() const { return RosQml::getInstance().ok(); }
 void RosQmlSingletonWrapper::spinOnce() { RosQml::getInstance().spinOnce(); }
 
 void RosQmlSingletonWrapper::setThreads( int count ) { RosQml::getInstance().setThreads( count ); }
+
+QStringList RosQmlSingletonWrapper::queryTopics( const QString &datatype ) const
+{
+  return RosQml::getInstance().queryTopics( datatype );
+}
+
+QList<TopicInfo> RosQmlSingletonWrapper::queryTopicInfo() const { return RosQml::getInstance().queryTopicInfo(); }
+
+QString RosQmlSingletonWrapper::queryTopicType( const QString &name ) const
+{
+  return RosQml::getInstance().queryTopicType( name );
+}
 
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
 

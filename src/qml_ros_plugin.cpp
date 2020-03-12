@@ -49,6 +49,8 @@ public:
                                                       } );
     qmlRegisterUncreatableType<NodeHandle>( "Ros", 1, 0, "NodeHandle",
                                             "Error: Can not create NodeHandle manually in QML." );
+    qmlRegisterUncreatableType<TopicInfo>( "Ros", 1, 0, "TopicInfo",
+                                           "Error: No point in creating TopicInfo in QML and it's not supported." );
     qmlRegisterUncreatableType<Publisher>( "Ros", 1, 0, "Publisher",
                                            "Error: Can not create Publisher manually in QML. Use one of the advertise functions." );
 
