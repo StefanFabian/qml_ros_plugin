@@ -3,31 +3,84 @@
 
 #include "qml_ros_plugin/image_buffer.h"
 
+#include <boost/endian/conversion.hpp>
+
 namespace qml_ros_plugin
 {
 
 namespace
 {
 
-void iterateImage( const sensor_msgs::Image &img, int bytes_per_pixel,
-                   const std::function<void( const uint8_t * )> &func )
+template<typename T>
+T byteSwap( T val );
+
+template<>
+uint8_t byteSwap( uint8_t val )
 {
-  const uint8_t *stream = img.data.data();
-  int offset = 0;
-  for ( unsigned int row = 0; row < img.height; ++row )
-  {
-    int base = offset;
-    for ( unsigned int col = 0; col < img.width; ++col )
-    {
-      func( stream + base );
-      base += bytes_per_pixel;
-    }
-    offset += img.step;
-  }
+  return val;
+}
+
+#ifdef __GNUC__
+
+// For GCC use builtin swap
+template<>
+uint16_t byteSwap( uint16_t val )
+{
+  return __builtin_bswap16( val );
+}
+
+#else
+
+template<>
+uint16_t byteSwap( uint16_t val )
+{
+  return (val << 8U) | (val >> 8U);
+}
+
+#endif
+
+template<typename T>
+T returnMax( const uint8_t *, T max ) { return max; }
+
+template<typename T, int channel, bool swapEndianness = false>
+T extractChannel( const uint8_t *stream, T max )
+{
+  T val = *(reinterpret_cast<const T *>(stream) + channel);
+  if ( swapEndianness ) val = byteSwap( val );
+  if ( max >= std::numeric_limits<T>::max())
+    return val * ((max + 1) / (std::numeric_limits<T>::max() + 1));
+  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
+}
+
+template<int channel>
+float extractFloatChannelFromBigEndian( const uint8_t *stream, float max )
+{
+  stream += 4 * channel;
+  float value = 0;
+  void *data = &value;
+  *reinterpret_cast<uint32_t *>(data) = (static_cast<uint32_t>(*stream) << 24U) |
+                                        (static_cast<uint32_t>(*(stream + 1)) << 16U) |
+                                        (static_cast<uint32_t>(*(stream + 2)) << 8U) |
+                                        (static_cast<uint32_t>(*(stream + 3)));
+  return value * max;
+}
+
+template<int channel>
+float extractFloatChannelFromLittleEndian( const uint8_t *stream, float max )
+{
+  stream += 4 * channel;
+  float value = 0;
+  void *data = &value;
+  *reinterpret_cast<uint32_t *>(data) = (static_cast<uint32_t>(*(stream + 3)) << 24U) |
+                                        (static_cast<uint32_t>(*(stream + 2)) << 16U) |
+                                        (static_cast<uint32_t>(*(stream + 1)) << 8U) |
+                                        (static_cast<uint32_t>(*stream));
+  return value * max;
 }
 
 template<typename T>
-using Extractor = std::function<T( const uint8_t *, T )>;
+using Extractor = T( const uint8_t *, T );
+
 
 template<typename T>
 void setFromStream( uint8_t *&output, T val )
@@ -36,10 +89,72 @@ void setFromStream( uint8_t *&output, T val )
   ++output;
 }
 
-template<typename T>
+template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3>
+void setPixel( const uint8_t *stream, uint8_t *&output )
+{
+  setFromStream( output, static_cast<uint8_t>(C1( stream, 255 )));
+  setFromStream( output, static_cast<uint8_t>(C2( stream, 255 )));
+  setFromStream( output, static_cast<uint8_t>(C3( stream, 255 )));
+}
+
+template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3, Extractor<T> C4>
+void setPixel( const uint8_t *stream, uint32_t *&output )
+{
+  *output = (static_cast<uint32_t>(static_cast<uint8_t>(C1( stream, 255 ))) << 24U) |
+            (static_cast<uint32_t>(static_cast<uint8_t>(C2( stream, 255 ))) << 16U) |
+            (static_cast<uint32_t>(static_cast<uint8_t>(C3( stream, 255 ))) << 8U) |
+            static_cast<uint32_t>(static_cast<uint8_t>(C4( stream, 255 )));
+  ++output;
+}
+
+template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3, Extractor<T> C4>
+void setPixelPreMultiplied( const uint8_t *stream, uint32_t *&output )
+{
+  uint32_t alpha = C1( stream, 255 );
+  *output = (static_cast<uint32_t>(static_cast<uint8_t>( alpha )) << 24U) |
+            (static_cast<uint32_t>(static_cast<uint8_t>( alpha * C2( stream, 255 ) / 255 )) << 16U) |
+            (static_cast<uint32_t>(static_cast<uint8_t>( alpha * C3( stream, 255 ) / 255 )) << 8U) |
+            static_cast<uint32_t>(static_cast<uint8_t>( alpha * C4( stream, 255 ) / 255 ));
+  ++output;
+}
+
+template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3>
+void setPixelGrayscale( const uint8_t *stream, uint8_t *&output )
+{
+  *output = static_cast<uint8_t>((C1( stream, 255 ) + C2( stream, 255 ) + C3( stream, 255 )) / 3);
+  ++output;
+}
+
+template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3>
+void setPixelGrayscale( const uint8_t *stream, uint16_t *&output )
+{
+  typedef typename std::conditional<std::is_same<T, uint8_t>::value, uint8_t, uint16_t>::type MaxType;
+  constexpr MaxType max = std::numeric_limits<MaxType>::max();
+  constexpr uint16_t mult = (std::numeric_limits<uint16_t>::max() + 1) / (max + 1);
+  *output = static_cast<uint16_t>((C1( stream, max ) + C2( stream, max ) + C3( stream, max )) * mult / 3);
+  ++output;
+}
+
+template<typename T, void func( const uint8_t *, T *& ), int BYTES_PER_PIXEL>
+void iterateImage( const sensor_msgs::Image &img, T *data )
+{
+  const uint8_t *stream = img.data.data();
+  int offset = 0;
+  for ( unsigned int row = 0; row < img.height; ++row )
+  {
+    int base = offset;
+    for ( unsigned int col = 0; col < img.width; ++col )
+    {
+      func( stream + base, data );
+      base += BYTES_PER_PIXEL;
+    }
+    offset += img.step;
+  }
+}
+
+template<typename T, Extractor<T> R, Extractor<T> G, Extractor<T> B, Extractor<T> A, int BYTES_PER_PIXEL>
 bool convertToFormat( const sensor_msgs::Image &img, QVideoFrame::PixelFormat format, uint8_t **data,
-                      int &num_bytes, int &bytes_per_line, int bytes_per_pixel,
-                      const Extractor<T> &R, const Extractor<T> &G, const Extractor<T> &B, const Extractor<T> &A )
+                      int &num_bytes, int &bytes_per_line )
 {
   // Reserve array
   switch ( format )
@@ -75,132 +190,40 @@ bool convertToFormat( const sensor_msgs::Image &img, QVideoFrame::PixelFormat fo
   switch ( format )
   {
     case QVideoFrame::Format_RGB24:
-    {
-      auto output = *data;
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        setFromStream( output, static_cast<uint8_t>(R( stream, 255 )));
-        setFromStream( output, static_cast<uint8_t>(G( stream, 255 )));
-        setFromStream( output, static_cast<uint8_t>(B( stream, 255 )));
-      } );
+      iterateImage<uint8_t, setPixel<T, R, G, B>, BYTES_PER_PIXEL>( img, *data );
       return true;
-    }
     case QVideoFrame::Format_BGR24:
-    {
-      auto output = *data;
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        setFromStream( output, static_cast<uint8_t>(B( stream, 255 )));
-        setFromStream( output, static_cast<uint8_t>(G( stream, 255 )));
-        setFromStream( output, static_cast<uint8_t>(R( stream, 255 )));
-      } );
+      iterateImage<uint8_t, setPixel<T, B, G, R>, BYTES_PER_PIXEL>( img, *data );
       return true;
-    }
     case QVideoFrame::Format_RGB32:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        *output = (255U << 24U) | (static_cast<uint32_t>(static_cast<uint8_t>(R( stream, 255 ))) << 16U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(G( stream, 255 ))) << 8U) |
-                  static_cast<uint32_t>(static_cast<uint8_t>(B( stream, 255 )));
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixel<T, returnMax<T>, R, G, B>, BYTES_PER_PIXEL>( img,
+                                                                                   reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
     case QVideoFrame::Format_ARGB32:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        *output = (static_cast<uint32_t>(static_cast<uint8_t>(A( stream, 255 ))) << 24U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(R( stream, 255 ))) << 16U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(G( stream, 255 ))) << 8U) |
-                  static_cast<uint32_t>(static_cast<uint8_t>(B( stream, 255 )));
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixel<T, A, R, G, B>, BYTES_PER_PIXEL>( img, reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
     case QVideoFrame::Format_ARGB32_Premultiplied:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        T alpha = A( stream, 255 );
-        *output = (static_cast<uint32_t>(static_cast<uint8_t>(alpha)) << 24U) |
-                  (static_cast<uint32_t>(alpha * static_cast<uint8_t>(R( stream, 255 )) / 255) << 16U) |
-                  (static_cast<uint32_t>(alpha * static_cast<uint8_t>(G( stream, 255 )) / 255) << 8U) |
-                  static_cast<uint32_t>(alpha * static_cast<uint8_t>(B( stream, 255 )) / 255);
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixelPreMultiplied<T, A, R, G, B>, BYTES_PER_PIXEL>( img,
+                                                                                     reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
     case QVideoFrame::Format_BGR32:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        // Contrary to docs in Qt 5.9.5 this is actually 0xffBBGGRR not 0xBBGGRRff
-        *output = (0xffU << 24U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(B( stream, 255 ))) << 16U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(G( stream, 255 ))) << 8U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(R( stream, 255 ))) << 0U);
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixel<T, returnMax<T>, B, G, R>, BYTES_PER_PIXEL>( img,
+                                                                                   reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
+      // Contrary to docs in Qt 5.9.5 this is actually 0xAABBGGRR not 0xBBGGRRAA
     case QVideoFrame::Format_BGRA32:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        // Contrary to docs in Qt 5.9.5 this is actually 0xAABBGGRR not 0xBBGGRRAA
-        *output = (static_cast<uint32_t>(static_cast<uint8_t>(A( stream, 255 )) << 24U)) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(B( stream, 255 ))) << 16U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(G( stream, 255 ))) << 8U) |
-                  (static_cast<uint32_t>(static_cast<uint8_t>(R( stream, 255 ))) << 0U);
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixel<T, A, B, G, R>, BYTES_PER_PIXEL>( img, reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
     case QVideoFrame::Format_BGRA32_Premultiplied:
-    {
-      auto output = reinterpret_cast<uint32_t *>(*data);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        // Contrary to docs in Qt 5.9.5 this is actually 0xAABBGGRR not 0xBBGGRRAA
-        T alpha = A( stream, 255 );
-        *output = (static_cast<uint32_t>(static_cast<uint8_t>( alpha )) << 24U) |
-                  (static_cast<uint32_t>(alpha * static_cast<uint8_t>(B( stream, 255 )) / 255) << 16U) |
-                  (static_cast<uint32_t>(alpha * static_cast<uint8_t>(G( stream, 255 )) / 255) << 8U) |
-                  (static_cast<uint32_t>(alpha * static_cast<uint8_t>(R( stream, 255 )) / 255) << 0U);
-        ++output;
-      } );
+      iterateImage<uint32_t, setPixelPreMultiplied<T, A, B, G, R>, BYTES_PER_PIXEL>( img,
+                                                                                     reinterpret_cast<uint32_t *>(*data));
       return true;
-    }
     case QVideoFrame::Format_Y8:
-    {
-      auto output = *data;
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        *output = static_cast<uint8_t>((R( stream, 255 ) + G( stream, 255 ) + B( stream, 255 )) / 3);
-        ++output;
-      } );
+      iterateImage<uint8_t, setPixelGrayscale<T, R, G, B>, BYTES_PER_PIXEL>( img, *data );
       return true;
-    }
     case QVideoFrame::Format_Y16:
-    {
-      auto output = reinterpret_cast<uint16_t *>(*data);
-      typedef typename std::conditional<std::is_same<T, uint8_t>::value, uint8_t, uint16_t>::type MaxType;
-      const MaxType max = std::numeric_limits<MaxType>::max();
-      const uint16_t mult = (std::numeric_limits<uint16_t>::max() + 1) / (max + 1);
-      iterateImage( img, bytes_per_pixel, [ & ]( const uint8_t *stream )
-      {
-        *output = static_cast<uint16_t>((R( stream, max ) + G( stream, max ) + B( stream, max )) * mult / 3);
-        ++output;
-      } );
+      iterateImage<uint16_t, setPixelGrayscale<T, R, G, B>, BYTES_PER_PIXEL>( img, reinterpret_cast<uint16_t *>(*data));
       return true;
-    }
     default:
       qWarning( "Tried to convert to unknown format. This should not be happen! Please open an issue on GitHub." );
   }
@@ -212,91 +235,23 @@ bool convertToFormat( const sensor_msgs::Image &img, QVideoFrame::PixelFormat fo
  * e.g., the same channels, and second by their memory usage (prefer outputs that require no copy over those that do
  * and if a copy is needed prefer formats that use less memory).
  */
-template<typename T>
+template<typename T, Extractor<T> R, Extractor<T> G, Extractor<T> B, Extractor<T> A, int BYTES_PER_PIXEL>
 QVideoFrame::PixelFormat convertToClosestFormat( const sensor_msgs::Image &img, uint8_t **data,
-                                                 int &num_bytes, int &bytes_per_line, int bytes_per_pixel,
+                                                 int &num_bytes, int &bytes_per_line,
                                                  const QList<QVideoFrame::PixelFormat> &native_formats,
                                                  const QList<QVideoFrame::PixelFormat> &supported_formats,
-                                                 const QList<QVideoFrame::PixelFormat> &preferred_formats,
-                                                 const Extractor<T> &R, const Extractor<T> &G,
-                                                 const Extractor<T> &B, const Extractor<T> &A )
+                                                 const QList<QVideoFrame::PixelFormat> &preferred_formats )
 {
   for ( QVideoFrame::PixelFormat format : preferred_formats )
   {
     if ( supported_formats.contains( format ))
     {
       if ( native_formats.contains( format )) return format; // No conversion necessary
-      if ( convertToFormat( img, format, data, num_bytes, bytes_per_line, bytes_per_pixel, R, G, B, A ))
+      if ( convertToFormat<T, R, G, B, A, BYTES_PER_PIXEL>( img, format, data, num_bytes, bytes_per_line ))
         return format;
     }
   }
   return QVideoFrame::Format_Invalid;
-}
-
-bool isBigEndian()
-{
-  uint32_t value = 0x01;
-  const void *ptr = &value;
-  return *static_cast<const uint8_t *>(ptr) == 0;
-}
-
-template<typename T, int channel>
-T extractChannel( const uint8_t *stream, T max )
-{
-  T val = *(reinterpret_cast<const T *>(stream) + channel);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 1, T>::type extractChannelFromBigEndian( const uint8_t *stream, T max )
-{
-  T val = *(reinterpret_cast<const T *>(stream) + channel);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 2, T>::type extractChannelFromBigEndian( const uint8_t *stream, T max )
-{
-  uint16_t tmp = (static_cast<uint32_t>(*(stream + 2 * channel)) << 8U) | *(stream + 2 * channel + 1);
-  T val = *reinterpret_cast<const T *>(&tmp);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 4, T>::type extractChannelFromBigEndian( const uint8_t *stream, T max )
-{
-  uint32_t tmp = (static_cast<uint32_t>(*(stream + 4 * channel)) << 24U) |
-                 (static_cast<uint32_t>(*(stream + 4 * channel + 1)) << 16U) |
-                 (static_cast<uint32_t>(*(stream + 4 * channel + 2)) << 8U) |
-                 *(stream + 4 * channel + 3);
-  T val = *reinterpret_cast<const T *>(&tmp);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 1, T>::type extractChannelFromLittleEndian( const uint8_t *stream, T max )
-{
-  T val = *(reinterpret_cast<const T *>(stream) + channel);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 2, T>::type extractChannelFromLittleEndian( const uint8_t *stream, T max )
-{
-  uint16_t tmp = (static_cast<uint32_t>(*(stream + 2 * channel + 1)) << 8U) | *(stream + 2 * channel);
-  T val = *reinterpret_cast<const T *>(&tmp);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
-}
-
-template<typename T, int channel>
-typename std::enable_if<sizeof( T ) == 4, T>::type extractChannelFromLittleEndian( const uint8_t *stream, T max )
-{
-  uint32_t tmp = (static_cast<uint32_t>(*(stream + 4 * channel + 3)) << 24U) |
-                 (static_cast<uint32_t>(*(stream + 4 * channel + 2)) << 16U) |
-                 (static_cast<uint32_t>(*(stream + 4 * channel + 1)) << 8U) |
-                 *(stream + 4 * channel);
-  T val = *reinterpret_cast<const T *>(&tmp);
-  return val / ((std::numeric_limits<T>::max() + 1) / (max + 1));
 }
 
 
@@ -305,264 +260,215 @@ QVideoFrame::PixelFormat convertFrame( const sensor_msgs::Image &img, uint8_t **
 {
   num_bytes = img.data.size();
   bytes_per_line = img.step;
-  bool same_endianness = static_cast<bool>(img.is_bigendian) == isBigEndian();
+  bool same_endianness =
+    (boost::endian::order::native == boost::endian::order::big) == static_cast<bool>(img.is_bigendian);
   if ( img.encoding == sensor_msgs::image_encodings::RGB8 )
   {
-    return convertToClosestFormat<uint8_t>( img, data, num_bytes, bytes_per_line, 3,
-                                            { QVideoFrame::Format_RGB24 }, supported_formats,
-                                            { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                              QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                              QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                              QVideoFrame::Format_ARGB32_Premultiplied,
-                                              QVideoFrame::Format_BGRA32_Premultiplied,
-                                              QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                            extractChannel<uint8_t, 0>, extractChannel<uint8_t, 1>,
-                                            extractChannel<uint8_t, 2>,
-                                            []( const uint8_t *, uint8_t ) { return 255; } );
+    return convertToClosestFormat<uint8_t, extractChannel<uint8_t, 0>, extractChannel<uint8_t, 1>,
+      extractChannel<uint8_t, 2>, returnMax<uint8_t>, 3>( img, data, num_bytes, bytes_per_line,
+                                                          { QVideoFrame::Format_RGB24 }, supported_formats,
+                                                          { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+                                                            QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+                                                            QVideoFrame::Format_ARGB32,
+                                                            QVideoFrame::Format_BGRA32,
+                                                            QVideoFrame::Format_ARGB32_Premultiplied,
+                                                            QVideoFrame::Format_BGRA32_Premultiplied,
+                                                            QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::BGR8 )
   {
-    return convertToClosestFormat<uint8_t>( img, data, num_bytes, bytes_per_line, 3,
-                                            { QVideoFrame::Format_BGR24 }, supported_formats,
-                                            { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
-                                              QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
-                                              QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
-                                              QVideoFrame::Format_BGRA32_Premultiplied,
-                                              QVideoFrame::Format_ARGB32_Premultiplied,
-                                              QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                            extractChannel<uint8_t, 2>, extractChannel<uint8_t, 1>,
-                                            extractChannel<uint8_t, 0>,
-                                            []( const uint8_t *, uint8_t ) { return 255; } );
+    return convertToClosestFormat<uint8_t, extractChannel<uint8_t, 2>, extractChannel<uint8_t, 1>,
+      extractChannel<uint8_t, 0>, returnMax<uint8_t>, 3>( img, data, num_bytes, bytes_per_line,
+                                                          { QVideoFrame::Format_BGR24 }, supported_formats,
+                                                          { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+                                                            QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
+                                                            QVideoFrame::Format_BGRA32,
+                                                            QVideoFrame::Format_ARGB32,
+                                                            QVideoFrame::Format_BGRA32_Premultiplied,
+                                                            QVideoFrame::Format_ARGB32_Premultiplied,
+                                                            QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::MONO8 ||
             img.encoding == sensor_msgs::image_encodings::TYPE_8UC1 )
   {
-    return convertToClosestFormat<uint8_t>( img, data, num_bytes, bytes_per_line, 1,
-                                            { QVideoFrame::Format_Y8 }, supported_formats,
-                                            { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16,
-                                              QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                              QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                              QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                              QVideoFrame::Format_ARGB32_Premultiplied,
-                                              QVideoFrame::Format_BGRA32_Premultiplied },
-                                            extractChannel<uint8_t, 0>, extractChannel<uint8_t, 0>,
-                                            extractChannel<uint8_t, 0>,
-                                            []( const uint8_t *, uint8_t ) { return 255; } );
+    return convertToClosestFormat<uint8_t, extractChannel<uint8_t, 0>, extractChannel<uint8_t, 0>,
+      extractChannel<uint8_t, 0>, returnMax<uint8_t>, 1>( img, data, num_bytes, bytes_per_line,
+                                                          { QVideoFrame::Format_Y8 }, supported_formats,
+                                                          { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16,
+                                                            QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+                                                            QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+                                                            QVideoFrame::Format_ARGB32,
+                                                            QVideoFrame::Format_BGRA32,
+                                                            QVideoFrame::Format_ARGB32_Premultiplied,
+                                                            QVideoFrame::Format_BGRA32_Premultiplied } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::MONO16 ||
             img.encoding == sensor_msgs::image_encodings::TYPE_16UC1 )
   {
-    Extractor<uint16_t> extractor;
     if ( same_endianness )
-      extractor = extractChannel<uint16_t, 0>;
-    else if ( img.is_bigendian )
-      extractor = extractChannelFromBigEndian<uint16_t, 0>;
-    else
-      extractor = extractChannelFromLittleEndian<uint16_t, 0>;
-    QList<QVideoFrame::PixelFormat> native_formats;
-    if ( same_endianness ) native_formats = { QVideoFrame::Format_Y16 };
-    return convertToClosestFormat<uint16_t>( img, data, num_bytes, bytes_per_line, 2,
-                                             native_formats, supported_formats,
-                                             { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
-                                               QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                               QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                               QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                               QVideoFrame::Format_ARGB32_Premultiplied,
-                                               QVideoFrame::Format_BGRA32_Premultiplied },
-                                             extractor, extractor, extractor,
-                                             []( const uint8_t *, uint16_t max ) { return max; } );
+      return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0>, extractChannel<uint16_t, 0>, extractChannel<uint16_t, 0>, returnMax<uint16_t>, 2>(
+        img, data, num_bytes, bytes_per_line,
+        { QVideoFrame::Format_Y16 }, supported_formats,
+        { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
+          QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+          QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+          QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_BGRA32_Premultiplied } );
+
+    return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0, true>, extractChannel<uint16_t, 0, true>, extractChannel<uint16_t, 0, true>, returnMax<uint16_t>, 2>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
+        QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+        QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGRA32_Premultiplied } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::RGB16 )
   {
-    Extractor<uint16_t> R, G, B;
     if ( same_endianness )
-    {
-      R = extractChannel<uint16_t, 0>;
-      G = extractChannel<uint16_t, 1>;
-      B = extractChannel<uint16_t, 2>;
-    }
-    else if ( img.is_bigendian )
-    {
-      R = extractChannelFromBigEndian<uint16_t, 0>;
-      G = extractChannelFromBigEndian<uint16_t, 1>;
-      B = extractChannelFromBigEndian<uint16_t, 2>;
-    }
-    else
-    {
-      R = extractChannelFromLittleEndian<uint16_t, 0>;
-      G = extractChannelFromLittleEndian<uint16_t, 1>;
-      B = extractChannelFromLittleEndian<uint16_t, 2>;
-    }
-    return convertToClosestFormat<uint16_t>( img, data, num_bytes, bytes_per_line, 6,
-                                             {}, supported_formats,
-                                             { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                               QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                               QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                               QVideoFrame::Format_ARGB32_Premultiplied,
-                                               QVideoFrame::Format_BGRA32_Premultiplied,
-                                               QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                             R, G, B, []( const uint8_t *, uint16_t max ) { return max; } );
+      return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0>, extractChannel<uint16_t, 1>, extractChannel<uint16_t, 2>, returnMax<uint16_t>, 6>(
+        img, data, num_bytes, bytes_per_line,
+        {}, supported_formats,
+        { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+          QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+          QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_BGRA32_Premultiplied,
+          QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0, true>, extractChannel<uint16_t, 1, true>, extractChannel<uint16_t, 2, true>, returnMax<uint16_t>, 6>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+        QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGRA32_Premultiplied,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::BGR16 )
   {
-    Extractor<uint16_t> R, G, B;
     if ( same_endianness )
-    {
-      B = extractChannel<uint16_t, 0>;
-      G = extractChannel<uint16_t, 1>;
-      R = extractChannel<uint16_t, 2>;
-    }
-    else if ( img.is_bigendian )
-    {
-      B = extractChannelFromBigEndian<uint16_t, 0>;
-      G = extractChannelFromBigEndian<uint16_t, 1>;
-      R = extractChannelFromBigEndian<uint16_t, 2>;
-    }
-    else
-    {
-      B = extractChannelFromLittleEndian<uint16_t, 0>;
-      G = extractChannelFromLittleEndian<uint16_t, 1>;
-      R = extractChannelFromLittleEndian<uint16_t, 2>;
-    }
-    return convertToClosestFormat<uint16_t>( img, data, num_bytes, bytes_per_line, 6,
-                                             {}, supported_formats,
-                                             { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
-                                               QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
-                                               QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
-                                               QVideoFrame::Format_BGRA32_Premultiplied,
-                                               QVideoFrame::Format_ARGB32_Premultiplied,
-                                               QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                             R, G, B, []( const uint8_t *, uint16_t max ) { return max; } );
+      return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 2>, extractChannel<uint16_t, 1>, extractChannel<uint16_t, 0>, returnMax, 6>(
+        img, data, num_bytes, bytes_per_line,
+        {}, supported_formats,
+        { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+          QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
+          QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+          QVideoFrame::Format_BGRA32_Premultiplied,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 2, true>, extractChannel<uint16_t, 1, true>, extractChannel<uint16_t, 0, true>, returnMax, 6>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+        QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
+        QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+        QVideoFrame::Format_BGRA32_Premultiplied,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::RGBA8 )
   {
     // Native format is BGRA32 if little endian because then RGBA in memory is ABGR as an uint32 which is somehow
     // the actual layout of BGRA32 in Qt 5.9.5 (contrary to what the documentation says)
     QList<QVideoFrame::PixelFormat> native_formats;
-    if ( !isBigEndian()) native_formats = { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGR32 };
-    return convertToClosestFormat<uint8_t>( img, data, num_bytes, bytes_per_line, 4,
-                                            native_formats, supported_formats,
-                                            { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
-                                              QVideoFrame::Format_ARGB32_Premultiplied,
-                                              QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_BGR32,
-                                              QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                              QVideoFrame::Format_RGB32,
-                                              QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                            extractChannel<uint8_t, 0>, extractChannel<uint8_t, 1>,
-                                            extractChannel<uint8_t, 2>, extractChannel<uint8_t, 3> );
+    if ( boost::endian::order::native == boost::endian::order::little )
+      native_formats = { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGR32 };
+    return convertToClosestFormat<uint8_t, extractChannel<uint8_t, 0>, extractChannel<uint8_t, 1>, extractChannel<uint8_t, 2>, extractChannel<uint8_t, 3>, 4>(
+      img, data, num_bytes, bytes_per_line,
+      native_formats, supported_formats,
+      { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+        QVideoFrame::Format_RGB32,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::BGRA8 )
   {
     // Native format is ARGB32 if little endian because then BGRA in memory is ARGB as an uint32
     QList<QVideoFrame::PixelFormat> native_formats;
-    if ( !isBigEndian()) native_formats = { QVideoFrame::Format_ARGB32, QVideoFrame::Format_RGB32 };
-    return convertToClosestFormat<uint8_t>( img, data, num_bytes, bytes_per_line, 4,
-                                            native_formats,
-                                            supported_formats,
-                                            { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                              QVideoFrame::Format_BGRA32_Premultiplied,
-                                              QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB32,
-                                              QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
-                                              QVideoFrame::Format_BGR32,
-                                              QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                            extractChannel<uint8_t, 2>, extractChannel<uint8_t, 1>,
-                                            extractChannel<uint8_t, 0>, extractChannel<uint8_t, 3> );
+    if ( boost::endian::order::native == boost::endian::order::little )
+      native_formats = { QVideoFrame::Format_ARGB32, QVideoFrame::Format_RGB32 };
+    return convertToClosestFormat<uint8_t, extractChannel<uint8_t, 2>, extractChannel<uint8_t, 1>, extractChannel<uint8_t, 0>, extractChannel<uint8_t, 3>, 4>(
+      img, data, num_bytes, bytes_per_line,
+      native_formats,
+      supported_formats,
+      { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+        QVideoFrame::Format_BGRA32_Premultiplied,
+        QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB32,
+        QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+        QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::RGBA16 )
   {
-    Extractor<uint16_t> R, G, B, A;
     if ( same_endianness )
-    {
-      R = extractChannel<uint16_t, 0>;
-      G = extractChannel<uint16_t, 1>;
-      B = extractChannel<uint16_t, 2>;
-      A = extractChannel<uint16_t, 3>;
-    }
-    else if ( img.is_bigendian )
-    {
-      R = extractChannelFromBigEndian<uint16_t, 0>;
-      G = extractChannelFromBigEndian<uint16_t, 1>;
-      B = extractChannelFromBigEndian<uint16_t, 2>;
-      A = extractChannelFromBigEndian<uint16_t, 3>;
-    }
-    else
-    {
-      R = extractChannelFromLittleEndian<uint16_t, 0>;
-      G = extractChannelFromLittleEndian<uint16_t, 1>;
-      B = extractChannelFromLittleEndian<uint16_t, 2>;
-      A = extractChannelFromLittleEndian<uint16_t, 3>;
-    }
-    return convertToClosestFormat<uint16_t>( img, data, num_bytes, bytes_per_line, 8,
-                                             {}, supported_formats,
-                                             { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                               QVideoFrame::Format_ARGB32_Premultiplied,
-                                               QVideoFrame::Format_BGRA32_Premultiplied,
-                                               QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                               QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                               QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                             R, G, B, A );
+      return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0>, extractChannel<uint16_t, 1>, extractChannel<uint16_t, 2>, extractChannel<uint16_t, 3>, 8>(
+        img, data, num_bytes, bytes_per_line,
+        {}, supported_formats,
+        { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_BGRA32_Premultiplied,
+          QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+          QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+          QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 0, true>, extractChannel<uint16_t, 1, true>, extractChannel<uint16_t, 2, true>, extractChannel<uint16_t, 3, true>, 8>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGRA32_Premultiplied,
+        QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+        QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::BGRA16 )
   {
-    Extractor<uint16_t> R, G, B, A;
     if ( same_endianness )
-    {
-      B = extractChannel<uint16_t, 0>;
-      G = extractChannel<uint16_t, 1>;
-      R = extractChannel<uint16_t, 2>;
-      A = extractChannel<uint16_t, 3>;
-    }
-    else if ( img.is_bigendian )
-    {
-      B = extractChannelFromBigEndian<uint16_t, 0>;
-      G = extractChannelFromBigEndian<uint16_t, 1>;
-      R = extractChannelFromBigEndian<uint16_t, 2>;
-      A = extractChannelFromBigEndian<uint16_t, 3>;
-    }
-    else
-    {
-      B = extractChannelFromLittleEndian<uint16_t, 0>;
-      G = extractChannelFromLittleEndian<uint16_t, 1>;
-      R = extractChannelFromLittleEndian<uint16_t, 2>;
-      A = extractChannelFromLittleEndian<uint16_t, 3>;
-    }
-    return convertToClosestFormat<uint16_t>( img, data, num_bytes, bytes_per_line, 8,
-                                             {}, supported_formats,
-                                             { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
-                                               QVideoFrame::Format_BGRA32_Premultiplied,
-                                               QVideoFrame::Format_ARGB32_Premultiplied,
-                                               QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
-                                               QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
-                                               QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 },
-                                             R, G, B, A );
+      return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 2>, extractChannel<uint16_t, 1>, extractChannel<uint16_t, 0>, extractChannel<uint16_t, 3>, 8>(
+        img, data, num_bytes, bytes_per_line,
+        {}, supported_formats,
+        { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+          QVideoFrame::Format_BGRA32_Premultiplied,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+          QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
+          QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    return convertToClosestFormat<uint16_t, extractChannel<uint16_t, 2, true>, extractChannel<uint16_t, 1, true>, extractChannel<uint16_t, 0, true>, extractChannel<uint16_t, 3, true>, 8>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+        QVideoFrame::Format_BGRA32_Premultiplied,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB24,
+        QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32,
+        QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
   }
   else if ( img.encoding == sensor_msgs::image_encodings::TYPE_32FC1 )
   {
-    Extractor<float> extractor;
     if ( img.is_bigendian )
-      extractor = []( const uint8_t *p, float max ) -> float
-      {
-        uint32_t tmp = (static_cast<uint32_t>(*p) << 24U) | (static_cast<uint32_t>(*(p + 1)) << 16U) |
-                       (static_cast<uint32_t>(*(p + 2)) << 8U) | (static_cast<uint32_t>(*(p + 3)));
-        return *reinterpret_cast<float *>(&tmp) * max;
-      };
-    else
-      extractor = []( const uint8_t *p, float max ) -> float
-      {
-        uint32_t tmp = (static_cast<uint32_t>(*(p + 3)) << 24U) | (static_cast<uint32_t>(*(p + 2)) << 16U) |
-                       (static_cast<uint32_t>(*(p + 1)) << 8U) | (static_cast<uint32_t>(*p));
-        return *reinterpret_cast<float *>(&tmp) * max;
-      };
-    return convertToClosestFormat<float>( img, data, num_bytes, bytes_per_line, 4,
-                                          {}, supported_formats,
-                                          { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
-                                            QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
-                                            QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
-                                            QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
-                                            QVideoFrame::Format_ARGB32_Premultiplied,
-                                            QVideoFrame::Format_BGRA32_Premultiplied },
-                                          extractor, extractor, extractor,
-                                          []( const uint8_t *, float max ) { return max; } );
+      return convertToClosestFormat<float, extractFloatChannelFromBigEndian<0>, extractFloatChannelFromBigEndian<0>, extractFloatChannelFromBigEndian<0>, returnMax<float>, 4>(
+        img, data, num_bytes, bytes_per_line,
+        {}, supported_formats,
+        { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
+          QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+          QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+          QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+          QVideoFrame::Format_ARGB32_Premultiplied,
+          QVideoFrame::Format_BGRA32_Premultiplied } );
+    return convertToClosestFormat<float, extractFloatChannelFromLittleEndian<0>, extractFloatChannelFromLittleEndian<0>, extractFloatChannelFromLittleEndian<0>, returnMax<float>, 4>(
+      img, data, num_bytes, bytes_per_line,
+      {}, supported_formats,
+      { QVideoFrame::Format_Y16, QVideoFrame::Format_Y8,
+        QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+        QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
+        QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+        QVideoFrame::Format_ARGB32_Premultiplied,
+        QVideoFrame::Format_BGRA32_Premultiplied } );
   }
   return QVideoFrame::Format_Invalid;
 }
