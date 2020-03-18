@@ -118,20 +118,24 @@ void setPixelPreMultiplied( const uint8_t *stream, uint32_t *&output )
   ++output;
 }
 
-template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3>
+template<typename T, Extractor<T> R, Extractor<T> G, Extractor<T> B>
 void setPixelGrayscale( const uint8_t *stream, uint8_t *&output )
 {
-  *output = static_cast<uint8_t>((C1( stream, 255 ) + C2( stream, 255 ) + C3( stream, 255 )) / 3);
+  // Using weighted method instead of average for perceptually better results
+  float value = 0.299f * R( stream, 255 ) + 0.587f * G( stream, 255 ) + 0.114f * B( stream, 255 );
+  *output = static_cast<uint8_t>(value);
   ++output;
 }
 
-template<typename T, Extractor<T> C1, Extractor<T> C2, Extractor<T> C3>
+template<typename T, Extractor<T> R, Extractor<T> G, Extractor<T> B>
 void setPixelGrayscale( const uint8_t *stream, uint16_t *&output )
 {
   typedef typename std::conditional<std::is_same<T, uint8_t>::value, uint8_t, uint16_t>::type MaxType;
   constexpr MaxType max = std::numeric_limits<MaxType>::max();
   constexpr uint16_t mult = (std::numeric_limits<uint16_t>::max() + 1) / (max + 1);
-  *output = static_cast<uint16_t>((C1( stream, max ) + C2( stream, max ) + C3( stream, max )) * mult / 3);
+  // Using weighted method instead of average for perceptually better results
+  float value = 0.299f * R( stream, max ) + 0.587f * G( stream, max ) + 0.114f * B( stream, max );
+  *output = static_cast<uint16_t>(value * mult);
   ++output;
 }
 

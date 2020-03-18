@@ -180,9 +180,9 @@ TEST( ImageConversions, testRGB8 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -192,9 +192,9 @@ TEST( ImageConversions, testRGB8 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -339,9 +339,9 @@ TEST( ImageConversions, testBGR8 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -351,9 +351,9 @@ TEST( ImageConversions, testBGR8 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -491,9 +491,9 @@ TEST( ImageConversions, testRGBA8 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -503,9 +503,9 @@ TEST( ImageConversions, testRGBA8 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -643,9 +643,9 @@ TEST( ImageConversions, testBGRA8 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -655,9 +655,9 @@ TEST( ImageConversions, testBGRA8 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -808,9 +808,9 @@ TEST( ImageConversions, testRGB16 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -820,9 +820,9 @@ TEST( ImageConversions, testRGB16 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5555, 0x5555,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C8A, 0x9645,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -972,9 +972,9 @@ TEST( ImageConversions, testBGR16 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -984,9 +984,9 @@ TEST( ImageConversions, testBGR16 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -1135,9 +1135,9 @@ TEST( ImageConversions, testRGBA16 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -1147,9 +1147,9 @@ TEST( ImageConversions, testRGBA16 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
@@ -1298,9 +1298,9 @@ TEST( ImageConversions, testBGRA16 )
     EXPECT_EQ( num_bytes, 2 * 3 );
     EXPECT_EQ( bytes_per_line, 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    EXPECT_TRUE( compareImage( data, { 85, 85,
-                                       100, 100,
-                                       56, 166 } ));
+    EXPECT_TRUE( compareImage( data, { 76, 149,
+                                       118, 81,
+                                       75, 155 } ));
   }
 
   {
@@ -1310,9 +1310,9 @@ TEST( ImageConversions, testBGRA16 )
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
     EXPECT_EQ( bytes_per_line, 2 * 2 );
     EXPECT_NE( data, image->data.data()) << "Copy is necessary!";
-    uint16_t reference[] = { 0x5500, 0x5500,
-                             0x6400, 0x6400,
-                             0x38AA, 0xA6AA };
+    uint16_t reference[] = { 0x4C3E, 0x95AF,
+                             0x7680, 0x5180,
+                             0x4BEE, 0x9BB3 };
     auto *ref_ptr = reinterpret_cast<uint8_t *>(reference);
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 )));
   }
