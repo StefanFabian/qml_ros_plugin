@@ -3,22 +3,26 @@
 
 #include "qml_ros_plugin/image_transport_subscriber.h"
 #include "qml_ros_plugin/image_buffer.h"
+#include "qml_ros_plugin/ros.h"
 
 namespace qml_ros_plugin
 {
 
 ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle *nh, QString topic, quint32 queue_size )
-  : topic_( std::move( topic )), default_transport_( "compressed" ), nh_( nh ), surface_( nullptr )
-    , queue_size_( queue_size ), subscribed_( false )
+  : topic_( std::move( topic )), default_transport_( "compressed" ), nh_( nh ), queue_size_( queue_size )
 {
+  no_image_timer_.setSingleShot( true );
+  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
   connect( nh_.get(), &NodeHandle::ready, this, &ImageTransportSubscriber::onNodeHandleReady );
   subscribe();
 }
 
 ImageTransportSubscriber::ImageTransportSubscriber()
-  : default_transport_( "compressed" ), nh_( new NodeHandle, true ), surface_( nullptr ), queue_size_( 1 )
-    , subscribed_( false )
+  : default_transport_( "compressed" ), nh_( new NodeHandle( RosQml::getInstance().backgroundQueue()), true )
+    , queue_size_( 1 )
 {
+  no_image_timer_.setSingleShot( true );
+  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
   connect( nh_.get(), &NodeHandle::ready, this, &ImageTransportSubscriber::onNodeHandleReady );
 }
 
@@ -111,29 +115,48 @@ const char *videoSurfaceErrorToString( QAbstractVideoSurface::Error error )
 void ImageTransportSubscriber::imageCallback( const sensor_msgs::ImageConstPtr &img )
 {
   if ( surface_ == nullptr ) return;
-  last_image_ = img;
+  auto buffer = new ImageBuffer( img, surface_->supportedPixelFormats());
+  {
+    std::lock_guard<std::mutex> lock( image_lock_ );
+    last_image_ = img;
+    buffer_ = buffer;
+  }
   QMetaObject::invokeMethod( this, "processImage", Qt::AutoConnection );
 }
 
 void ImageTransportSubscriber::processImage()
 {
-  if ( last_image_ == nullptr )
+  if ( surface_ == nullptr ) return;
+  std::lock_guard<std::mutex> lock( image_lock_ );
+  // Show blank image after {timeout} seconds of no image
+  ros::Time now = ros::Time::now();
+  if ( buffer_ == nullptr )
   {
+    int elapsed_time_ = static_cast<int>((now - last_frame_timestamp_).toNSec() / 1000000);
+
+    if ( timeout_ == 0 ) return;
+    if ( elapsed_time_ < timeout_ )
+    {
+      no_image_timer_.start( timeout_ - elapsed_time_ );
+      return;
+    }
     surface_->present( QVideoFrame());
     return;
   }
-  auto buffer = new ImageBuffer( last_image_, surface_->supportedPixelFormats());
+  last_frame_timestamp_ = now;
+  if ( timeout_ != 0 )
+    no_image_timer_.start( timeout_ );
 
   const QVideoSurfaceFormat &surface_format = surface_->surfaceFormat();
   if ( surface_format.frameWidth() != int( last_image_->width ) ||
-       surface_format.frameHeight() != int( last_image_->height ) || surface_format.pixelFormat() != buffer->format())
+       surface_format.frameHeight() != int( last_image_->height ) || surface_format.pixelFormat() != buffer_->format())
   {
-    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer->format());
+    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer_->format());
     surface_->stop();
   }
   if ( !surface_->isActive())
   {
-    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer->format());
+    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer_->format());
     if ( format_.pixelFormat() == QVideoFrame::Format_Invalid )
     {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Could not find compatible format for video surface." );
@@ -148,7 +171,8 @@ void ImageTransportSubscriber::processImage()
       return;
     }
   }
-  surface_->present( QVideoFrame( buffer, QSize( last_image_->width, last_image_->height ), buffer->format()));
+  surface_->present( QVideoFrame( buffer_, QSize( last_image_->width, last_image_->height ), buffer_->format()));
+  buffer_ = nullptr;
 }
 
 QString ImageTransportSubscriber::topic() const
@@ -164,10 +188,7 @@ void ImageTransportSubscriber::setTopic( const QString &value )
   emit topicChanged();
 }
 
-const QString &ImageTransportSubscriber::defaultTransport() const
-{
-  return default_transport_;
-}
+const QString &ImageTransportSubscriber::defaultTransport() const { return default_transport_; }
 
 void ImageTransportSubscriber::setDefaultTransport( const QString &value )
 {
@@ -176,8 +197,13 @@ void ImageTransportSubscriber::setDefaultTransport( const QString &value )
   emit defaultTransportChanged();
 }
 
-bool ImageTransportSubscriber::subscribed()
+bool ImageTransportSubscriber::subscribed() const { return subscribed_; }
+
+int ImageTransportSubscriber::timeout() const { return timeout_; }
+
+void ImageTransportSubscriber::setTimeout( int value )
 {
-  return subscribed_;
+  timeout_ = value;
+  emit timeoutChanged();
 }
 }

@@ -84,7 +84,7 @@ public:
   bool ok() const;
 
   /*!
-   * Processes a single round of callbacks.
+   * Processes a single round of callbacks. The background queue will be called on a detached thread.
    * Not needed unless you disable the AsyncSpinner using setThreads(int) with the argument 0.
    */
   void spinOnce();
@@ -92,7 +92,8 @@ public:
   /*!
    * Sets the thread count for the AsyncSpinner. If asynchronous spinning is disabled, you have to manually call
    * spinOnce() to receive and publish messages.
-   * @param count How many threads the AsyncSpinner will use. Set to zero to disable spinning.
+   * This will affect both the main callback queue spinner and the background callback queue spinner.
+   * @param count How many threads the AsyncSpinners will use. Set to zero to disable spinning.
    */
   void setThreads( int count );
 
@@ -119,6 +120,8 @@ public:
 
   Console console() const;
 
+  std::shared_ptr<ros::CallbackQueue> backgroundQueue();
+
 signals:
 
   //! Emitted once when ROS was initialized.
@@ -140,6 +143,8 @@ private:
 
   QTimer timer_;
   std::unique_ptr<ros::AsyncSpinner> spinner_;
+  std::unique_ptr<ros::AsyncSpinner> background_spinner_;
+  std::shared_ptr<ros::CallbackQueue> background_queue_;
   int threads_;
   bool initialized_;
 };

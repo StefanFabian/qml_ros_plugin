@@ -21,6 +21,8 @@ Q_OBJECT
 public:
   explicit NodeHandle( std::string ns = std::string());
 
+  explicit NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string ns = std::string());
+
   Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch = false );
 
   bool isReady() const;
@@ -37,6 +39,7 @@ protected:
 
   void onRosInitialized() override;
 
+  std::shared_ptr<ros::CallbackQueue> queue_;
   std::unique_ptr<ros::NodeHandle> nh_;
   std::string ns_;
 };

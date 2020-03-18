@@ -8,13 +8,17 @@
 #include "qml_ros_plugin/node_handle.h"
 
 #include <QAbstractVideoSurface>
+#include <QTimer>
 #include <QVideoSurfaceFormat>
 
 #include <image_transport/subscriber.h>
 #include <image_transport/image_transport.h>
+#include <mutex>
 
 namespace qml_ros_plugin
 {
+
+class ImageBuffer;
 
 class ImageTransportSubscriber : public QObjectRos
 {
@@ -29,6 +33,9 @@ Q_OBJECT
   Q_PROPERTY(QString defaultTransport READ defaultTransport WRITE setDefaultTransport NOTIFY defaultTransportChanged)
   //! Whether or not this ImageTransportSubscriber is subscribed to the given topic
   Q_PROPERTY(bool subscribed READ subscribed NOTIFY subscribedChanged)
+  //! The timeout when no image is received until a blank frame is served. Set to 0 to disable and always show last frame.
+  //! Default is 3000 ms.
+  Q_PROPERTY(int timeout READ timeout WRITE setTimeout NOTIFY timeoutChanged)
   //! @formatter:on
 public:
 
@@ -48,7 +55,11 @@ public:
 
   void setDefaultTransport( const QString &value );
 
-  bool subscribed();
+  bool subscribed() const;
+
+  int timeout() const;
+
+  void setTimeout( int value );
 
 signals:
 
@@ -57,6 +68,8 @@ signals:
   void defaultTransportChanged();
 
   void subscribedChanged();
+
+  void timeoutChanged();
 
 private slots:
 
@@ -73,16 +86,22 @@ private:
 
   void unsubscribe();
 
+  QTimer no_image_timer_;
   QVideoSurfaceFormat format_;
   QString topic_;
   QString default_transport_;
-  image_transport::Subscriber subscriber_;
-  sensor_msgs::ImageConstPtr last_image_;
+  std::shared_ptr<ros::CallbackQueue> background_queue_;
   NodeHandleReference nh_;
+  image_transport::Subscriber subscriber_;
+  std::mutex image_lock_;
+  sensor_msgs::ImageConstPtr last_image_ = nullptr;
+  ImageBuffer *buffer_ = nullptr;
   std::unique_ptr<image_transport::ImageTransport> transport_;
-  QAbstractVideoSurface *surface_;
+  QAbstractVideoSurface *surface_ = nullptr;
+  ros::Time last_frame_timestamp_;
   quint32 queue_size_;
-  bool subscribed_;
+  int timeout_ = 3000;
+  bool subscribed_ = false;
 };
 }
 

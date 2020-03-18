@@ -11,6 +11,7 @@
 
 #include <QCoreApplication>
 #include <QJSEngine>
+#include <thread>
 
 namespace qml_ros_plugin
 {
@@ -23,6 +24,7 @@ RosQml &RosQml::getInstance()
 
 RosQml::RosQml() : threads_( 1 ), initialized_( false )
 {
+  background_queue_ = std::make_shared<ros::CallbackQueue>();
   connect( &timer_, &QTimer::timeout, this, &RosQml::checkInitialized );
   if ( ros::isInitialized())
   {
@@ -141,24 +143,36 @@ void RosQml::onInitialized()
 
 void RosQml::spinOnce()
 {
+  if ( !initialized_ ) return;
+  std::thread background_thread( [ this ]() { background_queue_->callAvailable(); } );
+  background_thread.detach();
   ros::spinOnce();
 }
 
 void RosQml::updateSpinner()
 {
   if ( spinner_ ) spinner_->stop();
+  if ( background_spinner_ ) background_spinner_->stop();
   if ( threads_ == 0 )
   {
     spinner_.reset();
+    background_spinner_.reset();
     return;
   }
+  background_spinner_.reset( new ros::AsyncSpinner( threads_, background_queue_.get()));
   spinner_.reset( new ros::AsyncSpinner( threads_ ));
   spinner_->start();
+  background_spinner_->start();
 }
 
 Console RosQml::console() const
 {
   return {};
+}
+
+std::shared_ptr<ros::CallbackQueue> RosQml::backgroundQueue()
+{
+  return background_queue_;
 }
 
 /***************************************************************************************************/
