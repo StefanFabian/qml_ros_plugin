@@ -12,26 +12,23 @@ using namespace ros_babel_fish;
 namespace qml_ros_plugin
 {
 
-Subscriber::Subscriber() : own_nh_( true ), running_( true ), is_subscribed_( false ), queue_size_( 1 )
+Subscriber::Subscriber() : running_( true ), is_subscribed_( false ), queue_size_( 1 )
 {
-  nh_ = new NodeHandle;
+  nh_ = std::make_shared<NodeHandle>();
   babel_fish_ = BabelFishDispenser::getBabelFish();
-  connect( nh_, &NodeHandle::ready, this, &Subscriber::subscribe );
+  connect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
 }
 
-Subscriber::Subscriber( NodeHandle *nh, QString topic, quint32 queue_size, bool running )
-  : nh_( nh ), own_nh_( false ), running_( running ), is_subscribed_( false ), topic_( std::move( topic ))
-    , queue_size_( queue_size )
+Subscriber::Subscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size, bool running )
+  : nh_( std::move( nh )), running_( running ), is_subscribed_( false ), topic_( std::move( topic )), queue_size_(
+  queue_size )
 {
   babel_fish_ = BabelFishDispenser::getBabelFish();
-  connect( nh_, &NodeHandle::ready, this, &Subscriber::subscribe );
+  connect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
   if ( nh_->isReady()) subscribe();
 }
 
-Subscriber::~Subscriber()
-{
-  if ( own_nh_ ) delete nh_;
-}
+Subscriber::~Subscriber() = default;
 
 QString Subscriber::topic() const { return QString::fromStdString( subscriber_.getTopic()); }
 
@@ -56,11 +53,9 @@ QString Subscriber::ns() const { return nh_->ns(); }
 void Subscriber::setNs( const QString &value )
 {
   shutdown();
-  disconnect( nh_, &NodeHandle::ready, this, &Subscriber::subscribe );
-  if ( own_nh_ ) delete nh_;
-  nh_ = new NodeHandle( value.toStdString());
-  own_nh_ = true;
-  connect( nh_, &NodeHandle::ready, this, &Subscriber::subscribe );
+  disconnect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
+  nh_ = std::make_shared<NodeHandle>( value.toStdString());
+  connect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
   if ( nh_->isReady())subscribe();
   emit nsChanged();
 }

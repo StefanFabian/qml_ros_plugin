@@ -4,6 +4,7 @@
 #ifndef QML_ROS_PLUGIN_ACTION_CLIENT_H
 #define QML_ROS_PLUGIN_ACTION_CLIENT_H
 
+#include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/qobject_ros.h"
 
 #include <ros_babel_fish/actionlib/babel_fish_action.h>
@@ -26,7 +27,7 @@ Q_OBJECT
   Q_PROPERTY( QString connected READ isServerConnected NOTIFY connectedChanged )
   // @formatter:on
 public:
-  ActionClient( NodeHandle *nh, const QString &action_type, const QString &name );
+  ActionClient( NodeHandle::Ptr nh, const QString &action_type, const QString &name );
 
   Q_INVOKABLE bool isServerConnected() const;
 
@@ -70,7 +71,7 @@ private:
   void onRosShutdown() override;
 
   ros_babel_fish::BabelFish babel_fish_;
-  NodeHandle *nh_;
+  NodeHandle::Ptr nh_;
   QString action_type_;
   QString name_;
   std::shared_ptr<actionlib::ActionClient<ros_babel_fish::BabelFishAction>> client_;

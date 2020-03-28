@@ -39,7 +39,7 @@ Q_OBJECT
   //! @formatter:on
 public:
 
-  ImageTransportSubscriber( NodeHandle *nh, QString topic, quint32 queue_size );
+  ImageTransportSubscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size );
 
   ImageTransportSubscriber();
 
@@ -91,7 +91,7 @@ private:
   QString topic_;
   QString default_transport_;
   std::shared_ptr<ros::CallbackQueue> background_queue_;
-  NodeHandleReference nh_;
+  NodeHandle::Ptr nh_;
   image_transport::Subscriber subscriber_;
   std::mutex image_lock_;
   sensor_msgs::ImageConstPtr last_image_ = nullptr;

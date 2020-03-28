@@ -3,6 +3,7 @@
 
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/publisher.h"
+#include "qml_ros_plugin/ros.h"
 
 #include <ros/callback_queue.h>
 
@@ -15,7 +16,7 @@ NodeHandle::NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string n
 
 QObject *NodeHandle::advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch )
 {
-  return new Publisher( this, type, topic, queue_size, latch );
+  return new Publisher( shared_from_this(), type, topic, queue_size, latch );
 }
 
 bool NodeHandle::isReady() const
@@ -32,7 +33,8 @@ void NodeHandle::onRosInitialized()
 {
   if ( nh_ != nullptr ) return;
   nh_.reset( new ros::NodeHandle( ns_ ));
-  if ( queue_ != nullptr ) nh_->setCallbackQueue( queue_.get());
+  if (queue_ == nullptr) queue_ = RosQml::getInstance().callbackQueue();
+  nh_->setCallbackQueue( queue_.get());
   emit ready();
 }
 

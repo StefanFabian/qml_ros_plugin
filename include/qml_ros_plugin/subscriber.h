@@ -4,6 +4,7 @@
 #ifndef QML_ROS_PLUGIN_SUBSCRIBER_H
 #define QML_ROS_PLUGIN_SUBSCRIBER_H
 
+#include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/qobject_ros.h"
 
 #include <QVariant>
@@ -12,7 +13,6 @@
 #include <ros_babel_fish/babel_fish.h>
 #include <ros_babel_fish/babel_fish_message.h>
 
-#include <ros/node_handle.h>
 #include <ros/subscriber.h>
 
 namespace qml_ros_plugin
@@ -43,7 +43,7 @@ Q_OBJECT
 public:
   Subscriber();
 
-  explicit Subscriber( NodeHandle *nh, QString topic, quint32 queue_size, bool running = true );
+  explicit Subscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size, bool running = true );
 
   ~Subscriber() override;
 
@@ -107,9 +107,7 @@ protected:
 
   void messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg );
 
-  NodeHandle *nh_;
-  //! Indicates whether this subscriber owns the NodeHandle (and has to clean up) or not.
-  bool own_nh_;
+  NodeHandle::Ptr nh_;
   ros::Subscriber subscriber_;
   ros_babel_fish::BabelFish babel_fish_;
   bool running_;

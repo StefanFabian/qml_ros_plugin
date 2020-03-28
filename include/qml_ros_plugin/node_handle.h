@@ -10,7 +10,7 @@
 namespace qml_ros_plugin
 {
 
-class NodeHandle : public QObjectRos
+class NodeHandle : public QObjectRos, public std::enable_shared_from_this<NodeHandle>
 {
 Q_OBJECT
 
@@ -19,6 +19,9 @@ Q_OBJECT
   Q_PROPERTY( QString ns READ ns )
   // @formatter:on
 public:
+  typedef std::shared_ptr<NodeHandle> Ptr;
+  typedef std::shared_ptr<const NodeHandle> ConstPtr;
+
   explicit NodeHandle( std::string ns = std::string());
 
   explicit NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string ns = std::string());
@@ -42,29 +45,6 @@ protected:
   std::shared_ptr<ros::CallbackQueue> queue_;
   std::unique_ptr<ros::NodeHandle> nh_;
   std::string ns_;
-};
-
-struct NodeHandleReference
-{
-  explicit NodeHandleReference( NodeHandle *nh, bool owned = false ) : node_handle( nh ), owned_( owned ) { }
-
-  NodeHandleReference( const NodeHandleReference &other ) noexcept
-    : node_handle( other.node_handle ), owned_( false ) { }
-
-  ~NodeHandleReference()
-  {
-    if ( owned_ ) delete node_handle;
-  }
-
-  NodeHandle &operator*() { return *node_handle; }
-
-  NodeHandle *operator->() { return node_handle; }
-
-  NodeHandle *get() { return node_handle; }
-
-  NodeHandle *node_handle;
-private:
-  bool owned_;
 };
 } // qml_ros_plugin
 

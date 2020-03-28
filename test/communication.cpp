@@ -43,6 +43,7 @@ bool waitFor( const std::function<bool()> &pred, int wait_count = 10 )
     if ( pred()) return true;
     QCoreApplication::processEvents();
     ros::spinOnce();
+    RosQml::getInstance().spinOnce();
     ros::Duration( 0.033 ).sleep();
   }
   return false;
@@ -294,9 +295,9 @@ public:
 TEST( Communication, actionClient )
 {
   RosQml::getInstance().setThreads( 8 ); // Enable spinner for this test
-  qml_ros_plugin::NodeHandle node_handle;
+  NodeHandle::Ptr node_handle = std::make_shared<NodeHandle>();
   QJSEngine engine;
-  ActionClient *client_ptr = new ActionClient( &node_handle, "ros_babel_fish_test_msgs/SimpleTestAction", "action" );
+  ActionClient *client_ptr = new ActionClient( node_handle, "ros_babel_fish_test_msgs/SimpleTestAction", "action" );
   engine.newQObject( client_ptr );
   ActionClient &client = *client_ptr;
   EXPECT_FALSE( client.isServerConnected());

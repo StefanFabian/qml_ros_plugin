@@ -16,7 +16,7 @@ using namespace qml_ros_plugin::conversion;
 namespace qml_ros_plugin
 {
 
-ActionClient::ActionClient( NodeHandle *nh, const QString &action_type, const QString &name )
+ActionClient::ActionClient( NodeHandle::Ptr nh, const QString &action_type, const QString &name )
 {
   babel_fish_ = BabelFishDispenser::getBabelFish();
   nh_ = nh;

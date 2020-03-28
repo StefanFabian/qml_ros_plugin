@@ -4,6 +4,8 @@
 #ifndef QML_ROS_PLUGIN_PUBLISHER_H
 #define QML_ROS_PLUGIN_PUBLISHER_H
 
+#include "qml_ros_plugin/node_handle.h"
+
 #include <QObject>
 #include <QVariant>
 #include <QMap>
@@ -11,13 +13,11 @@
 
 #include <ros_babel_fish/babel_fish.h>
 
-#include <ros/node_handle.h>
 #include <ros/publisher.h>
 #include <ros/single_subscriber_publisher.h>
 
 namespace qml_ros_plugin
 {
-class NodeHandle;
 
 class Publisher : public QObject
 {
@@ -36,7 +36,7 @@ Q_OBJECT
   Q_PROPERTY( bool isAdvertised READ isAdvertised NOTIFY advertised )
   // @formatter:on
 public:
-  Publisher( NodeHandle *nh, QString type, QString topic, uint32_t queue_size, bool latch );
+  Publisher( NodeHandle::Ptr nh, QString type, QString topic, uint32_t queue_size, bool latch );
 
   ~Publisher() override;
 
@@ -86,7 +86,7 @@ protected:
 
   void onSubscriberDisconnected( const ros::SingleSubscriberPublisher &pub );
 
-  NodeHandle *nh_;
+  NodeHandle::Ptr nh_;
   ros::Publisher publisher_;
   ros_babel_fish::BabelFish babel_fish_;
 

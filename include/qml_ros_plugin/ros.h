@@ -84,7 +84,7 @@ public:
   bool ok() const;
 
   /*!
-   * Processes a single round of callbacks. The background queue will be called on a detached thread.
+   * Processes a single round of callbacks. This call is non-blocking as the queue will be called on a detached thread.
    * Not needed unless you disable the AsyncSpinner using setThreads(int) with the argument 0.
    */
   void spinOnce();
@@ -92,8 +92,7 @@ public:
   /*!
    * Sets the thread count for the AsyncSpinner. If asynchronous spinning is disabled, you have to manually call
    * spinOnce() to receive and publish messages.
-   * This will affect both the main callback queue spinner and the background callback queue spinner.
-   * @param count How many threads the AsyncSpinners will use. Set to zero to disable spinning.
+   * @param count How many threads the AsyncSpinner will use. Set to zero to disable spinning. Default: 1
    */
   void setThreads( int count );
 
@@ -120,7 +119,11 @@ public:
 
   Console console() const;
 
-  std::shared_ptr<ros::CallbackQueue> backgroundQueue();
+  /*!
+   * A callback queue that is guaranteed to be called on a background thread.
+   * @return A shared pointer to the callback queue.
+   */
+  std::shared_ptr<ros::CallbackQueue> callbackQueue();
 
 signals:
 
@@ -143,8 +146,7 @@ private:
 
   QTimer timer_;
   std::unique_ptr<ros::AsyncSpinner> spinner_;
-  std::unique_ptr<ros::AsyncSpinner> background_spinner_;
-  std::shared_ptr<ros::CallbackQueue> background_queue_;
+  std::shared_ptr<ros::CallbackQueue> callback_queue_;
   int threads_;
   bool initialized_;
 };
@@ -337,9 +339,11 @@ signals:
   void shutdown();
 
 private:
+  NodeHandle::Ptr findOrCreateNodeHandle( const QString &ns );
+
   QJSValue createLogFunction( ros_console_levels::RosConsoleLevel level );
 
-  std::map<std::string, NodeHandle *> node_handles_;
+  std::map<QString, NodeHandle::Ptr> node_handles_;
   QJSValue log_function_;
   QJSValue debug_function_;
   QJSValue info_function_;

@@ -78,8 +78,8 @@ TEST( ImageTransportSubscriber, testCorrectFormat )
 {
   ros::NodeHandle nh( "~" );
   ros::Publisher img_pub = nh.advertise<sensor_msgs::Image>( "image", 10 );
-  NodeHandle qml_nh( "~" );
-  ImageTransportSubscriber subscriber( &qml_nh, "test", 10 );
+  NodeHandle::Ptr qml_nh = std::make_shared<NodeHandle>( "~" );
+  ImageTransportSubscriber subscriber( qml_nh, "test", 10 );
   EXPECT_EQ( subscriber.topic(), "test" );
   subscriber.setTopic( "image" );
   EXPECT_EQ( subscriber.topic(), "image" ); // Before subscribing the topic name is not resolved.
@@ -116,8 +116,8 @@ TEST( ImageTransportSubscriber, testWrongFormat )
 {
   ros::NodeHandle nh( "~" );
   ros::Publisher img_pub = nh.advertise<sensor_msgs::Image>( "wrong_image", 10 );
-  NodeHandle qml_nh( "~" );
-  ImageTransportSubscriber subscriber( &qml_nh, "wrong_image", 10 );
+  NodeHandle::Ptr qml_nh = std::make_shared<NodeHandle>( "~" );
+  ImageTransportSubscriber subscriber( qml_nh, "wrong_image", 10 );
   EXPECT_EQ( subscriber.topic(), "wrong_image" ); // Before subscribing the topic name is not resolved.
   subscriber.setDefaultTransport( "raw" );
   EXPECT_EQ( subscriber.defaultTransport(), "raw" );

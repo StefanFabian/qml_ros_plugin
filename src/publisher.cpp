@@ -13,19 +13,19 @@ using namespace qml_ros_plugin::conversion;
 namespace qml_ros_plugin
 {
 
-Publisher::Publisher( NodeHandle *nh, QString type, QString topic, uint32_t queue_size, bool latch )
-  : nh_( nh ), is_advertised_( false ), type_( std::move( type )), topic_( std::move( topic ))
+Publisher::Publisher( NodeHandle::Ptr nh, QString type, QString topic, uint32_t queue_size, bool latch )
+  : nh_( std::move( nh )), is_advertised_( false ), type_( std::move( type )), topic_( std::move( topic ))
     , is_latched_( latch ), queue_size_( queue_size )
 {
   std_type_ = type_.toStdString();
   babel_fish_ = BabelFishDispenser::getBabelFish();
 
-  QObject::connect( nh_, &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
+  QObject::connect( nh_.get(), &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
   // Advertise if NodeHandle is ready, i.e., ROS was initialized and the NodeHandle is valid otherwise wait for ready
   if ( nh_->isReady())
   {
     advertise();
-    QObject::disconnect( nh_, &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
+    QObject::disconnect( nh_.get(), &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
   }
 }
 
@@ -56,7 +56,7 @@ bool Publisher::publish( const QVariantMap &msg )
 
 void Publisher::onNodeHandleReady()
 {
-  QObject::disconnect( nh_, &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
+  QObject::disconnect( nh_.get(), &NodeHandle::ready, this, &Publisher::onNodeHandleReady );
   if ( !is_advertised_ ) advertise();
 }
 

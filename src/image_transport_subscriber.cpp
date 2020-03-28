@@ -8,8 +8,8 @@
 namespace qml_ros_plugin
 {
 
-ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle *nh, QString topic, quint32 queue_size )
-  : topic_( std::move( topic )), default_transport_( "compressed" ), nh_( nh ), queue_size_( queue_size )
+ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size )
+  : topic_( std::move( topic )), default_transport_( "compressed" ), nh_( std::move( nh )), queue_size_( queue_size )
 {
   no_image_timer_.setSingleShot( true );
   connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
@@ -18,8 +18,7 @@ ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle *nh, QString topi
 }
 
 ImageTransportSubscriber::ImageTransportSubscriber()
-  : default_transport_( "compressed" ), nh_( new NodeHandle( RosQml::getInstance().backgroundQueue()), true )
-    , queue_size_( 1 )
+  : default_transport_( "compressed" ), nh_( std::make_shared<NodeHandle>()), queue_size_( 1 )
 {
   no_image_timer_.setSingleShot( true );
   connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
@@ -128,7 +127,7 @@ void ImageTransportSubscriber::processImage()
 {
   if ( surface_ == nullptr ) return;
   std::lock_guard<std::mutex> lock( image_lock_ );
-  // Show blank image after {timeout} seconds of no image
+  // Show blank image after {timeout} seconds
   ros::Time now = ros::Time::now();
   if ( buffer_ == nullptr )
   {
