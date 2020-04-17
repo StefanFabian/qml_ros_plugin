@@ -8,13 +8,8 @@ add_definitions(-Wall -Wextra)
 
 #set(CMAKE_BUILD_TYPE "Debug")
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED actionlib roscpp image_transport ros_babel_fish tf2_ros)
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
 find_package(Qt5 COMPONENTS Core Multimedia Qml Quick REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
@@ -23,17 +18,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 ###################################
 ## catkin specific configuration ##
 ###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
   LIBRARIES qml_ros_plugin
   CATKIN_DEPENDS actionlib roscpp image_transport ros_babel_fish tf2_ros
-  #  DEPENDS system_lib
+  DEPENDS Qt5Core Qt5Multimedia Qt5Qml
 )
 
 ###########
@@ -90,10 +78,7 @@ set(SOURCES
   src/tf_transform_listener.cpp
   src/time.cpp)
 
-## Declare a C++ library
 add_library(qml_ros_plugin ${SOURCES})
-
-## Specify libraries to link a library or executable target against
 target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick)
 
 #############
@@ -148,9 +133,6 @@ if (CATKIN_ENABLE_TESTING AND ENABLE_COVERAGE_TESTING)
   set(COVERAGE_EXCLUDES "*/${PROJECT_NAME}/test*" "*/build/*" "*/src/qml_ros_plugin.cpp")
   add_code_coverage(NAME ${PROJECT_NAME}_coverage)
 endif ()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
 
 #############
 ## Install ##

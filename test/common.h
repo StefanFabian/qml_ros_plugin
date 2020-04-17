@@ -17,6 +17,12 @@ inline void PrintTo(const QString &qString, ::std::ostream *os)
 }
 QT_END_NAMESPACE
 
+std::ostream &operator<<(std::ostream &stream, const QString &value)
+{
+  stream << value.toStdString();
+  return stream;
+}
+
 template<typename T>
 void fillArray( std::vector<T> &msg, unsigned seed )
 {

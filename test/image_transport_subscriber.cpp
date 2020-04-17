@@ -135,7 +135,7 @@ TEST( ImageTransportSubscriber, testWrongFormat )
   // @formatter:off
   image->data = { 255,   0,   0,   0, 255,   0,
                   200, 100,   0,   0, 100, 200,
-                  50, 100,  20, 150, 150, 200 };
+                   50, 100,  20, 150, 150, 200 };
   // @formatter:on
   img_pub.publish( image );
   mock_surface.stop();
