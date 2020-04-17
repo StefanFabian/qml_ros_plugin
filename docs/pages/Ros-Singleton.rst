@@ -75,8 +75,24 @@ Example:
     if (Ros.queryTopicType(topics[i]) == "sensor_msgs/Image") cameraTopics.push(topics[i])
   }
 
+Package API
+-----------
+The package property provides a wrapper for ``ros::package``.
+
+.. code-block:: qml
+
+  // Retrieve a list of all packages
+  var packages = Ros.package.getAll()
+  // Get the fully-qualified path to a specific package
+  var path = Ros.package.getPath("some_pkg")
+  // Get plugins for a package as a map [package_name -> [values]]
+  var plugins = Ros.package.getPlugins("rviz", "plugin")
+
 API
 ---
+.. doxygenclass:: qml_ros_plugin::Package
+  :members:
+
 .. doxygenclass:: qml_ros_plugin::TopicInfo
   :members:
 

@@ -6,6 +6,7 @@
 
 #include "qml_ros_plugin/console.h"
 #include "qml_ros_plugin/node_handle.h"
+#include "qml_ros_plugin/package.h"
 #include "qml_ros_plugin/topic_info.h"
 
 #include <QJSValue>
@@ -119,6 +120,8 @@ public:
 
   Console console() const;
 
+  Package package() const;
+
   /*!
    * A callback queue that is guaranteed to be called on a background thread.
    * @return A shared pointer to the callback queue.
@@ -157,6 +160,7 @@ Q_OBJECT
 
   // @formatter:off
   Q_PROPERTY( qml_ros_plugin::Console console READ console )
+  Q_PROPERTY( qml_ros_plugin::Package package READ package )
   Q_PROPERTY( QJSValue debug READ debug )
   Q_PROPERTY( QJSValue info READ info )
   Q_PROPERTY( QJSValue warn READ warn )
@@ -193,6 +197,8 @@ public:
   Q_INVOKABLE QString queryTopicType( const QString &name ) const;
 
   Console console() const;
+
+  Package package() const;
 
   /*!
    * Outputs a ROS debug message. The equivalent of calling ROS_DEBUG in C++.

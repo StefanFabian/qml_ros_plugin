@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>world</name>
+  <version>1.0.0</version>
+  <description>The world package</description>
+
+  <maintainer email="qml_ros_plugin@stefanfabian.me">Stefan Fabian</maintainer>
+
+  <license>GPLv3</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <export>
+
+  </export>
+</package>

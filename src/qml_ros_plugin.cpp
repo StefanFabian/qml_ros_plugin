@@ -35,11 +35,12 @@ public:
     qRegisterMetaType<actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle>();
 
     qmlRegisterType<Array>();
+    qmlRegisterType<Console>();
+    qmlRegisterType<Package>();
     qmlRegisterUncreatableMetaObject( ros_init_options::staticMetaObject, "Ros", 1, 0, "RosInitOptions",
                                       "Error: Can not create enum object." );
     qmlRegisterUncreatableMetaObject( ros_console_levels::staticMetaObject, "Ros", 1, 0, "RosConsoleLevels",
                                       "Error: Can not create enum object." );
-    qmlRegisterType<Console>();
     qmlRegisterSingletonType<RosQmlSingletonWrapper>( "Ros", 1, 0, "Ros",
                                                       []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
                                                       {

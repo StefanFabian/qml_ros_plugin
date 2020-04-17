@@ -160,10 +160,9 @@ void RosQml::updateSpinner()
   spinner_->start();
 }
 
-Console RosQml::console() const
-{
-  return {};
-}
+Console RosQml::console() const { return {}; }
+
+Package RosQml::package() const { return {}; }
 
 std::shared_ptr<ros::CallbackQueue> RosQml::callbackQueue()
 {
@@ -211,6 +210,8 @@ QString RosQmlSingletonWrapper::queryTopicType( const QString &name ) const
 }
 
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
+
+Package RosQmlSingletonWrapper::package() const { return RosQml::getInstance().package(); }
 
 QJSValue RosQmlSingletonWrapper::debug()
 {

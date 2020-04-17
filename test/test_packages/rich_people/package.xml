@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rich_people</name>
+  <version>1.0.0</version>
+  <description>The rich_people package</description>
+
+  <maintainer email="qml_ros_plugin@stefanfabian.me">Stefan Fabian</maintainer>
+
+  <license>Birthright</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>poor_people</depend>
+  <depend>world</depend>
+
+  <export>
+    <poor_people plugin="exploitation"/>
+    <world wars="true" value="Nothing but despair"/>
+  </export>
+</package>

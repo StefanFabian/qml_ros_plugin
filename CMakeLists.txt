@@ -49,6 +49,7 @@ set(SOURCES
   include/qml_ros_plugin/image_transport_subscriber.h
   include/qml_ros_plugin/message_conversions.h
   include/qml_ros_plugin/node_handle.h
+  include/qml_ros_plugin/package.h
   include/qml_ros_plugin/publisher.h
   include/qml_ros_plugin/qml_ros_conversion.h
   include/qml_ros_plugin/qobject_ros.h
@@ -68,6 +69,7 @@ set(SOURCES
   src/image_transport_subscriber.cpp
   src/message_conversions.cpp
   src/node_handle.cpp
+  src/package.cpp
   src/publisher.cpp
   src/qml_ros_plugin.cpp
   src/qobject_ros.cpp
@@ -121,6 +123,10 @@ if (CATKIN_ENABLE_TESTING)
   add_rostest_gtest(${PROJECT_NAME}_test_logging test/test_logging.test test/logging.cpp)
   target_link_libraries(${PROJECT_NAME}_test_logging ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_logging PROPERTIES OUTPUT_NAME test_logging PREFIX "")
+
+  add_rostest_gtest(${PROJECT_NAME}_test_package test/test_package.test test/package.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_package ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_package PROPERTIES OUTPUT_NAME test_package PREFIX "")
 endif ()
 
 # to run: catkin build --this --no-deps -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -v --catkin-make-args qml_ros_plugin_coverage

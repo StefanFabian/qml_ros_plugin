@@ -1,0 +1,3 @@
+<launch>
+  <test test-name="package" pkg="qml_ros_plugin" type="test_package"/>
+</launch>
