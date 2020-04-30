@@ -27,6 +27,25 @@ The service either returns ``false`` if the call failed, ``true`` if the call
 was successful but the service description has an empty return message, and the
 return message of the service otherwise.
 
+A service call is blocking and it is usually not a good idea to make blocking work
+on the UI thread. For that reason, there is also the ``callAsync`` method which
+runs the service call on a new separate thread and is additionally passed an
+optional callback which is called after the service call completed.
+
+.. code-block:: qml
+
+  Button {
+    onClicked: {
+      textResult.text = "Loading..."
+      Service.callAsync(
+        "/add_two_ints", "roscpp_tutorials/TwoInts",
+        { a: inputA.value, b: inputB.value },
+        function (result) {
+          textResult.text = !!result ? ("Result: " + result.sum) : "Failed"
+        })
+    }
+  }
+
 API
 ---
 

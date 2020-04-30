@@ -5,6 +5,9 @@
 #include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/message_conversions.h"
 
+#include <QJSEngine>
+#include <thread>
+
 using namespace ros_babel_fish;
 using namespace qml_ros_plugin::conversion;
 
@@ -24,5 +27,43 @@ QVariant Service::call( const QString &service, const QString &type, const QVari
   if ( !result ) return QVariant( false );
   if ( response->input_message->size() == 0 ) return QVariant( true );
   return msgToMap( response, *response->translated_message );
+}
+
+void Service::callAsync( const QString &service, const QString &type, const QVariantMap &req, const QJSValue &callback )
+{
+  std::string std_service = service.toStdString();
+  Message::Ptr message = babel_fish_.createServiceRequest( type.toStdString());
+  fillMessage( *message, req );
+  std::thread thread( [ std_service, this, message, callback ]() -> void
+                      {
+                        TranslatedMessage::Ptr response;
+                        bool result = babel_fish_.callService( std_service, message, response );
+                        if ( !callback.isCallable()) return;
+                        if ( !result )
+                        {
+                          QMetaObject::invokeMethod( this, "invokeCallback", Qt::AutoConnection,
+                                                     Q_ARG( QJSValue, callback ),
+                                                     Q_ARG( QVariant, QVariant( false )));
+                          return;
+                        }
+                        if ( response->input_message->size() == 0 )
+                        {
+                          QMetaObject::invokeMethod( this, "invokeCallback", Qt::AutoConnection,
+                                                     Q_ARG( QJSValue, callback ),
+                                                     Q_ARG( QVariant, QVariant( true )));
+                          return;
+                        }
+                        QMetaObject::invokeMethod( this, "invokeCallback", Qt::AutoConnection,
+                                                   Q_ARG( QJSValue, callback ),
+                                                   Q_ARG( QVariant,
+                                                          msgToMap( response, *response->translated_message )));
+                      } );
+  thread.detach();
+}
+
+void Service::invokeCallback( QJSValue value, QVariant result )
+{
+  QJSEngine *engine = qjsEngine( this );
+  value.call( { engine->toScriptValue( result ) } );
 }
 } // qml_ros_plugin
