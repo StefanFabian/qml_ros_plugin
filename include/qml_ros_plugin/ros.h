@@ -159,13 +159,13 @@ class RosQmlSingletonWrapper : public QObject
 Q_OBJECT
 
   // @formatter:off
-  Q_PROPERTY( qml_ros_plugin::Console console READ console )
-  Q_PROPERTY( qml_ros_plugin::Package package READ package )
-  Q_PROPERTY( QJSValue debug READ debug )
-  Q_PROPERTY( QJSValue info READ info )
-  Q_PROPERTY( QJSValue warn READ warn )
-  Q_PROPERTY( QJSValue error READ error )
-  Q_PROPERTY( QJSValue fatal READ fatal )
+  Q_PROPERTY( qml_ros_plugin::Console console READ console CONSTANT )
+  Q_PROPERTY( qml_ros_plugin::Package package READ package CONSTANT )
+  Q_PROPERTY( QJSValue debug READ debug CONSTANT )
+  Q_PROPERTY( QJSValue info READ info CONSTANT )
+  Q_PROPERTY( QJSValue warn READ warn CONSTANT )
+  Q_PROPERTY( QJSValue error READ error CONSTANT )
+  Q_PROPERTY( QJSValue fatal READ fatal CONSTANT )
   // @formatter:on
 public:
   RosQmlSingletonWrapper();
