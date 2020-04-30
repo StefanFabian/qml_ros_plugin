@@ -9,7 +9,11 @@
 #include <qml_ros_plugin/message_conversions.h>
 #include <qml_ros_plugin/qml_ros_conversion.h>
 
+#include <QAbstractListModel>
+#include <QCoreApplication>
 #include <QDateTime>
+#include <QQmlComponent>
+#include <QQmlEngine>
 
 using namespace qml_ros_plugin;
 using namespace qml_ros_plugin::conversion;
@@ -103,6 +107,38 @@ TEST( MessageConversion, msgToMapTransformStamped )
   EXPECT_EQ( compound["transform"]["rotation"]["x"].value<double>(), msg.transform.rotation.x );
   EXPECT_EQ( compound["transform"]["rotation"]["y"].value<double>(), msg.transform.rotation.y );
   EXPECT_EQ( compound["transform"]["rotation"]["z"].value<double>(), msg.transform.rotation.z );
+}
+
+TEST( MessageConversion, msgToMapGoalID )
+{
+  BabelFish fish = BabelFishDispenser::getBabelFish();
+  actionlib_msgs::GoalID msg;
+  msg.id = "42";
+  msg.stamp = ros::Time( 1337 );
+  QVariantMap map = msgToMap( msg );
+  ASSERT_TRUE( map.contains( "id" ));
+  EXPECT_EQ( map["id"].toString().toStdString(), msg.id );
+  ASSERT_TRUE( map.contains( "stamp" ));
+  EXPECT_EQ( map["stamp"].toDateTime(), QDateTime::fromSecsSinceEpoch( 1337 ));
+}
+
+TEST( MessageConversion, msgToMapGoalStatus )
+{
+  BabelFish fish = BabelFishDispenser::getBabelFish();
+  actionlib_msgs::GoalStatus msg;
+  msg.goal_id.id = "42";
+  msg.goal_id.stamp = ros::Time( 1337 );
+  msg.text = "GoalText";
+  msg.status = actionlib_msgs::GoalStatus::ACTIVE;
+  QVariantMap map = msgToMap( msg );
+  ASSERT_TRUE( map.contains( "goal_id" ));
+  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["id"].toString().toStdString(), msg.goal_id.id );
+  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["stamp"].toDateTime(),
+             QDateTime::fromSecsSinceEpoch( 1337 ));
+  ASSERT_TRUE( map.contains( "text" ));
+  EXPECT_EQ( map["text"].toString().toStdString(), msg.text );
+  ASSERT_TRUE( map.contains( "status" ));
+  EXPECT_EQ( map["status"].toInt(), msg.status );
 }
 
 TEST( MessageConversion, msgToMapRBF )
@@ -332,6 +368,167 @@ TEST( MessageConversion, array )
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 }
 
+QObject *createModel( QQmlEngine *engine, const QByteArray &elements )
+{
+  QQmlComponent component( engine );
+  component.setData( "import QtQuick 2.0 ListModel {" + elements + "}", QUrl());
+  return component.create();
+}
+
+TEST( MessageConversion, qobjectConversion )
+{
+  ros_babel_fish::BabelFish fish = BabelFishDispenser::getBabelFish();
+  QQmlEngine engine;
+  QQmlComponent component( &engine );
+  component.setData( R"(
+import QtQuick 2.0
+
+QtObject {
+  property bool b: false
+  property int ui8: 42
+  property ListModel point_arr: ListModel {
+    ListElement { x: 1; y: 2; z: 3 }
+    ListElement { x: 3; y: 2; z: 3 }
+    ListElement { x: 1; y: 3.14; z: 1 }
+    ListElement { x: 10000; y: -2; z: -300 }
+  }
+}
+)", QUrl());
+  QObject *obj = component.create();
+  Message::Ptr msg = fish.createMessage( "ros_babel_fish_test_msgs/TestMessage" );
+  ASSERT_NE( obj, nullptr ) << component.errorString().toStdString();
+  fillMessage( *msg, QVariant::fromValue( obj ));
+
+  ros_babel_fish_test_msgs::TestMessage test_msg;
+  test_msg.b = false;
+  test_msg.ui8 = 42;
+  test_msg.point_arr.resize( 4 );
+  test_msg.point_arr[0].x = 1;
+  test_msg.point_arr[0].y = 2;
+  test_msg.point_arr[0].z = 3;
+  test_msg.point_arr[1].x = 3;
+  test_msg.point_arr[1].y = 2;
+  test_msg.point_arr[1].z = 3;
+  test_msg.point_arr[2].x = 1;
+  test_msg.point_arr[2].y = 3.14;
+  test_msg.point_arr[2].z = 1;;
+  test_msg.point_arr[3].x = 10000;
+  test_msg.point_arr[3].y = -2;
+  test_msg.point_arr[3].z = -300;
+  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_msg ));
+  delete obj;
+
+  component.setData( R"(
+import QtQuick 2.0
+
+QtObject {
+  property ListModel bools: ListModel {
+    ListElement { value: true }
+    ListElement { value: false }
+    ListElement { value: true }
+  }
+  property var uint8s: ListModel {
+    ListElement { value: 1 }
+    ListElement { value: 2 }
+    ListElement { value: 3 }
+    ListElement { value: 5 }
+  }
+  property var uint16s: ListModel {
+    ListElement { value: 13 }
+    ListElement { value: 42 }
+    ListElement { value: 1337 }
+  }
+  property var uint32s: ListModel {
+    ListElement { value: 1 }
+    ListElement { value: 3000 }
+    ListElement { value: 50000000 }
+  }
+  property var uint64s: ListModel {
+    ListElement { value: 5000000 }
+    ListElement { value: 500000000000 }
+  }
+  property var int8s: ListModel {
+    ListElement { value: 1 }
+    ListElement { value: -2 }
+    ListElement { value: 1 }
+    ListElement { value: -1 }
+    ListElement { value: 0 }
+    ListElement { value: -1 }
+  }
+  property var int16s: ListModel {
+    ListElement { value: 255 }
+    ListElement { value: -255 }
+  }
+  property var int32s: ListModel {
+    ListElement { value: 5000000 }
+    ListElement { value: -5000000 }
+  }
+  property var int64s: ListModel {
+    ListElement { value: 50000000000 }
+    ListElement { value: -5000000000 }
+  }
+  property var float32s: ListModel {
+    ListElement { value: 1.0 }
+    ListElement { value: 3.14 }
+  }
+  property var float64s: ListModel { ListElement { value: 2.7 } }
+  // Need to use the ms format for time here because javascript can not be used in ListElement properties
+  property var times: ListModel { ListElement { value: 13000 } }
+  property ListModel durations: ListModel {
+    ListElement { value: 42000 }
+    ListElement { value: 1337 }
+    ListElement { value: -2000 }
+    ListElement { value: 1 }
+    ListElement { value: -1 }
+    ListElement { value: 2 }
+    ListElement { value: -2 }
+    ListElement { value: 3 }
+    ListElement { value: -3 }
+    ListElement { value: -4 }
+    ListElement { value: 4 }
+    ListElement { value: 5 }
+    // One too many
+    ListElement { value: 1337 }
+  }
+  property ListModel strings: ListModel {
+    id: stringModel
+    ListElement { value: "This" }
+    ListElement { value: "is" }
+    ListElement { value: "a" }
+    ListElement { value: "test" }
+
+  }
+  Component.onCompleted: {
+    stringModel.append({ 'x': "An object", 'y': "that's not a string"})
+  }
+}
+)", QUrl());
+  obj = component.create();
+  msg = fish.createMessage( "ros_babel_fish_test_msgs/TestArray" );
+  ASSERT_NE( obj, nullptr ) << component.errorString().toStdString();
+  fillMessage( *msg, QVariant::fromValue( obj ));
+  ros_babel_fish_test_msgs::TestArray test_array;
+  test_array.bools = { true, false, true };
+  test_array.uint8s = { 1, 2, 3, 5 };
+  test_array.uint16s = { 13, 42, 1337 };
+  test_array.uint32s = { 1, 3000, 50000000 };
+  test_array.uint64s = { 5000000, 500000000000 };
+  test_array.int8s = { 1, -2, 1, -1, 0, -1 };
+  test_array.int16s = { 255, -255 };
+  test_array.int32s = { 5000000, -5000000 };
+  test_array.int64s = { 50000000000, -5000000000 };
+  test_array.float32s = { 1.0, 3.14 };
+  test_array.float64s = { 2.7 };
+  test_array.times = { ros::Time( 13 ) };
+  test_array.durations = { ros::Duration( 42 ), ros::Duration( 1.337 ), ros::Duration( -2 ), ros::Duration( 0.001 ),
+                           ros::Duration( -0.001 ), ros::Duration( 0.002 ), ros::Duration( -0.002 ),
+                           ros::Duration( 0.003 ), ros::Duration( -0.003 ), ros::Duration( -0.004 ),
+                           ros::Duration( 0.004 ), ros::Duration( 0.005 ) };
+  test_array.strings = { "This", "is", "a", "test" };
+  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
+  delete obj;
+}
+
 TEST( MessageConversion, timeConversion )
 {
   // It should always round down to prevent issues with look ups into the future
@@ -351,5 +548,6 @@ TEST( MessageConversion, timeConversion )
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
+  QCoreApplication app( argc, argv );
   return RUN_ALL_TESTS();
 }

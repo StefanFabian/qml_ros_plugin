@@ -6,7 +6,9 @@
 #include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/qml_ros_conversion.h"
 
+#include <QAbstractListModel>
 #include <QDateTime>
+#include <QMetaProperty>
 
 #include <ros_babel_fish/message_types.h>
 #include <ros/ros.h>
@@ -77,17 +79,6 @@ QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg )
   result.insert( "goal_id", QVariant::fromValue( msgToMap( msg.goal_id )));
   result.insert( "status", msg.status );
   result.insert( "text", QString::fromStdString( msg.text ));
-  return result;
-}
-
-QVariantMap msgToMap( const ros_babel_fish::BabelFishActionFeedback &msg, ros_babel_fish::BabelFish &fish )
-{
-  QVariantMap result;
-  result.insert( "header", QVariant::fromValue( msgToMap( msg.header )));
-  result.insert( "status", QVariant::fromValue( msgToMap( msg.status )));
-  BabelFishMessage::Ptr feedback_copy = boost::make_shared<BabelFishMessage>( msg.feedback );
-  TranslatedMessage::ConstPtr translated_feedback = fish.translateMessage( feedback_copy );
-  result.insert( "feedback", QVariant::fromValue( msgToMap( translated_feedback )));
   return result;
 }
 
@@ -449,7 +440,8 @@ ros::Duration getValue<ros::Duration>( const QVariant &variant )
 }
 
 template<typename T, typename ArrayType>
-bool fillArray( Message &msg, const ArrayType &list )
+typename std::enable_if<!std::is_same<ArrayType, QAbstractListModel>::value, bool>::type
+fillArray( Message &msg, const ArrayType &list )
 {
   auto &array = msg.as<ArrayMessage<T>>();
   size_t count = list.size();
@@ -473,6 +465,35 @@ bool fillArray( Message &msg, const ArrayType &list )
   }
   return no_error;
 }
+
+template<typename T, typename ArrayType>
+typename std::enable_if<std::is_same<ArrayType, QAbstractListModel>::value, bool>::type
+fillArray( Message &msg, const ArrayType &list )
+{
+  auto &array = msg.as<ArrayMessage<T>>();
+  size_t count = list.rowCount();
+  bool no_error = true;
+  if ( array.isFixedSize() && count > array.length())
+  {
+    count = array.length();
+    no_error = false;
+  }
+  for ( size_t i = 0; i < count; ++i )
+  {
+    QModelIndex index = list.index( i, 0 );
+    const QVariant &variant = list.data( index );
+    if ( !isCompatible<T>( variant ))
+    {
+      ROS_WARN( "Tried to fill array with incompatible value! Skipped. (Type: %s)", variant.typeName());
+      no_error = false;
+      continue;
+    }
+    if ( array.isFixedSize()) array.assign( i, getValue<T>( variant ));
+    else array.push_back( getValue<T>( variant ));
+  }
+  return no_error;
+}
+
 
 template<typename T>
 using limits = std::numeric_limits<T>;
@@ -642,17 +663,130 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const Array &list )
   return false;
 }
 
+template<>
+bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListModel &list )
+{
+  if ( msg.type() != MessageTypes::Array )
+  {
+    ROS_WARN( "Invalid value passed to fillMessage!" );
+    return false;
+  }
+  auto &array = msg.as<ArrayMessageBase>();
+  size_t count = list.rowCount();
+  if ( array.isFixedSize() && count > array.length())
+  {
+    ROS_WARN( "Too many values for fixed size array (%lu vs %lu)! Only using first %lu.", count, array.length(),
+              array.length());
+    count = array.length();
+  }
+  switch ( array.elementType())
+  {
+    case MessageTypes::None:
+      break;
+    case MessageTypes::Bool:
+      return fillArray<bool>( array, list );
+    case MessageTypes::UInt8:
+      return fillArray<uint8_t>( array, list );
+    case MessageTypes::UInt16:
+      return fillArray<uint16_t>( array, list );
+    case MessageTypes::UInt32:
+      return fillArray<uint32_t>( array, list );
+    case MessageTypes::UInt64:
+      return fillArray<uint64_t>( array, list );
+    case MessageTypes::Int8:
+      return fillArray<int8_t>( array, list );
+    case MessageTypes::Int16:
+      return fillArray<int16_t>( array, list );
+    case MessageTypes::Int32:
+      return fillArray<int32_t>( array, list );
+    case MessageTypes::Int64:
+      return fillArray<int64_t>( array, list );
+    case MessageTypes::Float32:
+      return fillArray<float>( array, list );
+    case MessageTypes::Float64:
+      return fillArray<double>( array, list );
+    case MessageTypes::Time:
+      return fillArray<ros::Time>( array, list );
+    case MessageTypes::Duration:
+      return fillArray<ros::Duration>( array, list );
+    case MessageTypes::String:
+    {
+      auto &array = msg.as<ArrayMessage<std::string>>();
+      bool no_error = true;
+      for ( size_t i = 0; i < count; ++i )
+      {
+        QModelIndex index = list.index( i, 0 );
+        const QVariant &variant = list.data( index );
+        if ( variant.type() != QVariant::String )
+        {
+          ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
+          no_error = false;
+          continue;
+        }
+        if ( array.isFixedSize()) array.assign( i, variant.toString().toStdString());
+        else array.push_back( variant.toString().toStdString());
+      }
+      return no_error;
+    }
+    case MessageTypes::Compound:
+    {
+      auto &array = msg.as<CompoundArrayMessage>();
+      bool no_error = true;
+      QHash<int, QByteArray> roleNames = list.roleNames();
+      if ( roleNames.empty()) return true;
+      std::vector<std::string> names;
+      {
+        int max_key = 0;
+        for ( auto key : roleNames.keys()) max_key = std::max( max_key, key );
+        names.resize( max_key + 1 );
+      }
+      // Collect keys
+      QHashIterator<int, QByteArray> it( roleNames );
+      while ( it.hasNext())
+      {
+        it.next();
+        names[it.key()] = it.value().data();
+      }
+      // Check that all keys are in message
+      const std::vector<std::string> &compound_names = array.elementTemplate()->compound.names;
+      for (auto &name : names)
+      {
+        const std::string &key = name;
+        if ( key.empty()) continue;
+        if ( std::find( compound_names.begin(), compound_names.end(), key ) == compound_names.end())
+        {
+          ROS_WARN_STREAM( "Message doesn't have field '" << key << "'!" );
+          no_error = false;
+          name = std::string();
+        }
+      }
+      for ( size_t i = 0; i < count; ++i )
+      {
+        QModelIndex index = list.index( i );
+        auto &child = array.isFixedSize() ? array[i] : array.appendEmpty();
+        auto &compound = child.as<CompoundMessage>();
+        for ( size_t j = 0; j < names.size(); ++j )
+        {
+          const std::string &key = names[j];
+          if ( key.empty()) continue;
+          no_error &= fillMessage( compound[key], index.data( j ));
+        }
+      }
+      return no_error;
+    }
+    case MessageTypes::Array:
+      ROS_ERROR_ONCE( "Arrays of arrays are not supported!" );
+      break;
+  }
+  return false;
+}
+
 bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant &value )
 {
-  if ( value.typeName() == QString( "QVariantMap" ))
+  if ( value.canConvert<QVariantMap>() && msg.type() == MessageTypes::Compound)
   {
-    if ( msg.type() != MessageTypes::Compound )
-    {
-      ROS_WARN( "Invalid value passed to fillMessage!" );
-      return false;
-    }
     auto &compound = msg.as<CompoundMessage>();
-    const QVariantMap &map = *reinterpret_cast<const QVariantMap *>(value.data());
+    const QVariantMap &map = value.value<QVariantMap>();
     bool no_error = true;
     for ( auto &key : map.keys())
     {
@@ -667,24 +801,45 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     }
     return no_error;
   }
-  else if ( value.typeName() == QString( "QVariantList" ))
+  else if ( value.canConvert<QVariantList>() && msg.type() == MessageTypes::Array)
   {
     const QVariantList &list = value.value<QVariantList>();
     return fillArrayFromVariant( msg, list );
   }
-  else if ( static_cast<QMetaType::Type>(value.type()) == QMetaType::QObjectStar ||
-            value.typeName() == QString( "qml_ros_plugin::Array*" ))
+  else if ( value.canConvert<QObject *>() )
   {
-    const Array *array = value.value<Array *>();
+    const auto *array = value.value<Array *>();
     if ( array != nullptr )
     {
       return fillArrayFromVariant( msg, *array );
+    }
+    const auto *list_model = value.value<QAbstractListModel *>();
+    if ( list_model != nullptr )
+    {
+      return fillArrayFromVariant( msg, *list_model );
+    }
+
+    if (msg.type() == MessageTypes::Compound)
+    {
+      const auto *obj = value.value<QObject *>();
+      const QMetaObject *metaObj = obj->metaObject();
+      auto &compound = msg.as<CompoundMessage>();
+      bool no_error = true;
+      for ( int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i)
+      {
+        QMetaProperty prop = metaObj->property(i);
+        std::string skey = prop.name();
+        // Skip keys that don't exist, we don't warn here because there will very likely be properties that don't exist.
+        if (!compound.containsKey(skey)) continue;
+        no_error &= fillMessage(fish, compound[skey], prop.read(obj));
+      }
+      return no_error;
     }
   }
 
   if ( msg.type() & (MessageTypes::Array | MessageTypes::Compound))
   {
-    ROS_WARN_STREAM( "Invalid type for array/compound message: " << value.typeName());
+    ROS_WARN_STREAM( "Invalid type for array/compound message: " << value.typeName() << " (" << value.type() << ")" );
     return false;
   }
   switch ((int) value.type())

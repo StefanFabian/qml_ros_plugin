@@ -44,8 +44,6 @@ QVariantMap msgToMap( const actionlib_msgs::GoalID &msg );
 
 QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg );
 
-QVariantMap msgToMap( const ros_babel_fish::BabelFishActionFeedback &msg, ros_babel_fish::BabelFish &fish );
-
 QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &msg );
 
 QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &storage, const ros_babel_fish::Message &msg );
