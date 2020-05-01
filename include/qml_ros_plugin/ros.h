@@ -61,7 +61,7 @@ public:
 
   void operator=( const RosQml & ) = delete;
 
-  bool isInitialized();
+  bool isInitialized() const;
 
   /*!
    * Initializes the ros node with the given name and the command line arguments passed from the command line.
@@ -148,8 +148,8 @@ private:
   void updateSpinner();
 
   QTimer timer_;
-  std::unique_ptr<ros::AsyncSpinner> spinner_;
   std::shared_ptr<ros::CallbackQueue> callback_queue_;
+  std::unique_ptr<ros::AsyncSpinner> spinner_;
   int threads_;
   bool initialized_;
 };

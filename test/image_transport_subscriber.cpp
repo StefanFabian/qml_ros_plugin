@@ -149,5 +149,8 @@ int main( int argc, char **argv )
   testing::InitGoogleTest( &argc, argv );
   QCoreApplication app( argc, argv );
   ros::init( argc, argv, "test_image_transport_subscriber" );
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  ros::shutdown();
+  ros::Duration(0.5).sleep();
+  return result;
 }

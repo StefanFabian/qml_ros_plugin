@@ -54,13 +54,18 @@ void ImageTransportSubscriber::onRosShutdown()
 
 void ImageTransportSubscriber::subscribe()
 {
-  bool was_subscribed = subscribed_;
-  if ( subscribed_ ) unsubscribe();
   // This makes sure we lazy subscribe and only subscribe if there is a surface to write to
   if ( surface_ == nullptr ) return;
   if ( !nh_->isReady()) return;
   if ( topic_.isEmpty()) return;
   if ( transport_ == nullptr ) return;
+  bool was_subscribed = subscribed_;
+  if ( subscribed_ )
+  {
+    blockSignals( true );
+    unsubscribe();
+    blockSignals( false );
+  }
   // TODO Transport hints
   image_transport::TransportHints transport_hints( default_transport_.toStdString());
   try

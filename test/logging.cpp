@@ -51,7 +51,8 @@ TEST( Logging, log )
   ASSERT_TRUE( wrapper->debug().isCallable());
   wrapper->debug().call( { QJSValue( "Debug Message" ) } );
   EXPECT_FALSE( waitFor( [ &log ]() { return !log.empty(); } )) << "Default level should not show debug messages.";
-  ASSERT_TRUE( wrapper->console().setLoggerLevel( wrapper->console().defaultName(), ros_console_levels::Debug ))
+  qml_ros_plugin::Console console = wrapper->console();
+  ASSERT_TRUE( console.setLoggerLevel( console.defaultName(), ros_console_levels::Debug ))
             << "Failed to set logging level.";
   waitFor( []() { return false; } );
 

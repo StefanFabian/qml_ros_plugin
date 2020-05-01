@@ -54,20 +54,21 @@ using namespace qml_ros_plugin;
 TEST( Package, package )
 {
   RosQmlSingletonWrapper wrapper;
-  QString path = wrapper.package().getPath( ROS_PACKAGE_NAME );
+  Package package = wrapper.package();
+  QString path = package.getPath( ROS_PACKAGE_NAME );
   ASSERT_FALSE( path.isEmpty());
   EXPECT_EQ( path.toStdString(), ros::package::getPath( ROS_PACKAGE_NAME ));
 
   char *oldrpp = getenv( "ROS_PACKAGE_PATH" );
   std::string package_path = path.toStdString() + "/test/test_packages";
   setenv( "ROS_PACKAGE_PATH", package_path.c_str(), 1 );
-  path = wrapper.package().getPath( ROS_PACKAGE_NAME );
+  path = package.getPath( ROS_PACKAGE_NAME );
   EXPECT_TRUE( path.isEmpty());
 
-  EXPECT_TRUE( listEquals( wrapper.package().getAll(),
+  EXPECT_TRUE( listEquals( package.getAll(),
                            std::vector<QString>{ "poor_people", "rich_people", "rick_astley", "world" } ));
 
-  QVariantMap plugins = wrapper.package().getPlugins( "world", "value" );
+  QVariantMap plugins = package.getPlugins( "world", "value" );
   std::map<QString, std::vector<QString>> expected_plugins = {{ "rich_people", { "Nothing but despair" }},
                                                               { "rick_astley", { "Never Gonna Give You Up" }}};
   for ( const auto &key : plugins.keys())
@@ -76,7 +77,7 @@ TEST( Package, package )
     EXPECT_TRUE( listEquals( plugins[key].toStringList(), expected_plugins[key] )) << key;
   }
 
-  plugins = wrapper.package().getPlugins( "world", "wars" );
+  plugins = package.getPlugins( "world", "wars" );
   expected_plugins = {{ "rich_people", { "true" }}};
 
   for ( const auto &key : plugins.keys())
@@ -85,11 +86,11 @@ TEST( Package, package )
     EXPECT_TRUE( listEquals( plugins[key].toStringList(), expected_plugins[key] )) << key;
   }
 
-  QString output = wrapper.package().command( "depends-on poor_people" );
+  QString output = package.command( "depends-on poor_people" );
   EXPECT_EQ( output.trimmed(), QString( "rich_people" ));
 
   setenv( "ROS_PACKAGE_PATH", (package_path + "/not_existing_subfolder").c_str(), 1 );
-  ASSERT_TRUE( wrapper.package().getAll().empty());
+  ASSERT_TRUE( package.getAll().empty());
 
   setenv( "ROS_PACKAGE_PATH", oldrpp, 1 );
 }

@@ -17,6 +17,7 @@
 
 #include <geometry_msgs/Pose.h>
 #include <roscpp_tutorials/TwoInts.h>
+#include <std_srvs/Empty.h>
 
 #include <QCoreApplication>
 #include <QJSEngine>
@@ -35,15 +36,20 @@ struct MessageStorage
   }
 };
 
+void processEvents()
+{
+  QCoreApplication::processEvents();
+  ros::spinOnce();
+  RosQml::getInstance().spinOnce();
+}
+
 //! @param wait_count Max time to wait in increments of 33 ms
 bool waitFor( const std::function<bool()> &pred, int wait_count = 10 )
 {
   while ( --wait_count > 0 )
   {
     if ( pred()) return true;
-    QCoreApplication::processEvents();
-    ros::spinOnce();
-    RosQml::getInstance().spinOnce();
+    processEvents();
     ros::Duration( 0.033 ).sleep();
   }
   return false;
@@ -227,7 +233,7 @@ TEST( Communication, queryTopics )
     EXPECT_TRUE( topics.contains( topic )) << topic.toStdString() << " is not in topics of type Pose";
   }
   QList<TopicInfo> topic_info = wrapper.queryTopicInfo();
-  for ( const QPair<QString, QString> &pair : QList<QPair<QString, QString>>{{ "/query_topics/pose1",    "geometry_msgs/Pose" },
+  for ( const QPair<QString, QString> &pair : QList<QPair<QString, QString>>{{ "/query_topics/pose1",   "geometry_msgs/Pose" },
                                                                              { "/query_topics/vector3", "geometry_msgs/Vector3" },
                                                                              { "/query_topics/point1",  "geometry_msgs/Point" },
                                                                              { "/query_topics/point2",  "geometry_msgs/Point" },
@@ -243,7 +249,8 @@ TEST( Communication, queryTopics )
       EXPECT_EQ( info.datatype(), pair.second );
       found = true;
     }
-    EXPECT_TRUE( found ) << "Did not find " << pair.first.toStdString() << " in topic types." << std::endl << "Topics:" << debug_topics;
+    EXPECT_TRUE( found ) << "Did not find " << pair.first.toStdString() << " in topic types." << std::endl << "Topics:"
+                         << debug_topics;
   }
 
   EXPECT_EQ( wrapper.queryTopicType( "/query_topics/point1" ), "geometry_msgs/Point" );
@@ -274,10 +281,108 @@ TEST( Communication, serviceCall )
                                                                            { "b", 3 }} );
   EXPECT_TRUE( service_called ) << "Service was not called!";
   ASSERT_EQ( result.type(), QVariant::Map )
-            << "Result was not world. Did the request fail? "
+            << "Result was not map. Did the request fail? "
             << (result.type() == QVariant::Bool && !result.toBool() ? "Yes" : "No");
   EXPECT_EQ( result.toMap()["sum"].toInt(), 4 )
           << "Contains 'sum'? " << (result.toMap().contains( "sum" ) ? "Yes" : "No");
+}
+
+TEST( Communication, serviceCallAsync )
+{
+  QJSEngine engine;
+  QJSValue service_js = engine.newQObject( new qml_ros_plugin::Service );
+  auto *service = dynamic_cast<qml_ros_plugin::Service *>(service_js.toQObject());
+  ASSERT_NE( service, nullptr );
+  ros::NodeHandle nh;
+  ros::CallbackQueue queue;
+  nh.setCallbackQueue( &queue );
+  ros::AsyncSpinner spinner( 1, &queue );
+  bool service_called = false;
+  bool returned = false;
+  ros::ServiceServer server = nh.advertiseService<roscpp_tutorials::TwoIntsRequest, roscpp_tutorials::TwoIntsResponse>(
+    "/service",
+    boost::function<bool( roscpp_tutorials::TwoIntsRequest &, roscpp_tutorials::TwoIntsResponse & )>(
+      [ & ]( roscpp_tutorials::TwoIntsRequest &req, roscpp_tutorials::TwoIntsResponse &resp )
+      {
+        service_called = true;
+        ros::Duration( 1 ).sleep();
+        resp.sum = req.a + req.b;
+        returned = true;
+        return true;
+      } ));
+  spinner.start();
+  QJSValue obj = engine.newObject();
+  QJSValue callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+    .call( { obj } );
+
+  service->callAsync( "/service", "roscpp_tutorials/TwoInts", {{ "a", 1 },
+                                                               { "b", 3 }}, callback );
+  ASSERT_TRUE( !returned );
+  waitFor( [ &returned ]() { return returned; }, 60 );
+  ASSERT_TRUE( returned );
+  processEvents();
+  ASSERT_TRUE( obj.hasProperty( "result" ));
+  QVariant result = obj.property( "result" ).toVariant();
+  EXPECT_TRUE( service_called ) << "Service was not called!";
+  ASSERT_EQ( result.type(), QVariant::Map )
+            << "Result was not map. Did the request fail? "
+            << (result.type() == QVariant::Bool && !result.toBool() ? "Yes" : "No") << std::endl
+            << "Typename: " << result.typeName();
+  EXPECT_EQ( result.toMap()["sum"].toInt(), 4 )
+          << "Contains 'sum'? " << (result.toMap().contains( "sum" ) ? "Yes" : "No");
+
+  service_called = false;
+  returned = false;
+  ros::ServiceServer server_false = nh.advertiseService<roscpp_tutorials::TwoIntsRequest, roscpp_tutorials::TwoIntsResponse>(
+    "/service_false",
+    boost::function<bool( roscpp_tutorials::TwoIntsRequest &, roscpp_tutorials::TwoIntsResponse & )>(
+      [ & ]( roscpp_tutorials::TwoIntsRequest &req, roscpp_tutorials::TwoIntsResponse &resp )
+      {
+        service_called = true;
+        returned = true;
+        return false;
+      } ));
+  obj = engine.newObject();
+  callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+    .call( { obj } );
+
+  service->callAsync( "/service_false", "roscpp_tutorials/TwoInts", {{ "a", 1 },
+                                                                     { "b", 3 }}, callback );
+  ASSERT_TRUE( !returned );
+  waitFor( [ &returned ]() { return returned; } );
+  ASSERT_TRUE( returned );
+  processEvents();
+  ASSERT_TRUE( obj.hasProperty( "result" ));
+  result = obj.property( "result" ).toVariant();
+  ASSERT_EQ( result.type(), QVariant::Bool ) << "Result was not bool. Typename: " << result.typeName();
+  EXPECT_FALSE( result.toBool() );
+
+  service_called = false;
+  returned = false;
+  ros::ServiceServer server_empty = nh.advertiseService<std_srvs::EmptyRequest , std_srvs::EmptyResponse>(
+    "/service_empty",
+    boost::function<bool( std_srvs::EmptyRequest &, std_srvs::EmptyResponse & )>(
+      [ & ]( std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &resp )
+      {
+        service_called = true;
+        returned = true;
+        return true;
+      } ));
+  obj = engine.newObject();
+  callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+    .call( { obj } );
+
+  service->callAsync( "/service_empty", "std_srvs/Empty", {}, callback );
+  ASSERT_TRUE( !returned );
+  waitFor( [ &returned ]() { return returned; } );
+  ASSERT_TRUE( returned );
+  processEvents();
+  ASSERT_TRUE( obj.hasProperty( "result" ));
+  result = obj.property( "result" ).toVariant();
+  ASSERT_EQ( result.type(), QVariant::Bool ) << "Result was not bool. Typename: " << result.typeName();
+  EXPECT_TRUE( result.toBool() );
+
+
 }
 
 class ActionClientCallback : public QObject

@@ -34,7 +34,7 @@ RosQml::RosQml() : threads_( 1 ), initialized_( false )
   timer_.start();
 }
 
-bool RosQml::isInitialized() { return initialized_; }
+bool RosQml::isInitialized() const { return initialized_; }
 
 void RosQml::init( const QString &name, quint32 options )
 {

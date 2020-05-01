@@ -90,7 +90,8 @@ target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimed
 if (CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   find_package(ros_babel_fish_test_msgs REQUIRED)
-  include_directories(${ros_babel_fish_test_msgs_INCLUDE_DIRS})
+  find_package(std_srvs REQUIRED)
+  include_directories(${ros_babel_fish_test_msgs_INCLUDE_DIRS} ${std_srvs_INCLUDE_DIRS})
 
   add_executable(${PROJECT_NAME}_test_action_server test/action_server.cpp)
   target_link_libraries(${PROJECT_NAME}_test_action_server ${PROJECT_NAME})
