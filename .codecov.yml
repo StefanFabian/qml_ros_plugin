@@ -10,3 +10,4 @@ ignore:
   - "docs"
   - "examples"
   - "test"
+  - "**/qml_ros_plugin.cpp"
