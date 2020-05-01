@@ -62,6 +62,7 @@
   <build_depend>qtbase5-dev</build_depend>
   <build_depend>qtdeclarative5-dev</build_depend>
   <build_depend>qtmultimedia5-dev</build_depend>
+  <test_depend>qml-module-qtquick2</test_depend>
   <test_depend>roscpp_tutorials</test_depend>
   <test_depend>rostest</test_depend>
   <test_depend>ros_babel_fish_test_msgs</test_depend>
