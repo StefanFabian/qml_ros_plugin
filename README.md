@@ -10,7 +10,9 @@ Connects QML user interfaces to the Robot Operating System (ROS).
 Please be aware that this loses some of the semantic information that the type of a message would normally provide.
 
 Currently, has support for the following:  
-**Note:** For full examples including ROS init calls and shutdown handling checkout the examples directory.
+Logging, Publisher, Subscriber, ImageTransportSubscriber, Service::call, ActionClient, TfTransform, ros::package and querying topics  
+
+**Note:** For full examples including ROS init calls and shutdown handling checkout the examples directory or the [documentation](https://qml-ros-plugin.readthedocs.io/en/latest/index.html).
 
 ### Logging
 Logging is now supported and correctly reports from which qml file and line the message came!
