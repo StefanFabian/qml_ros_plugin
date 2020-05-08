@@ -257,80 +257,80 @@ TEST( MessageConversion, array )
   ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
 
   // Remove element from end
-  auto int32s_array = map.toMap()["int32s"].value<Array *>();
-  ASSERT_FALSE( int32s_array->_inCache());
-  EXPECT_EQ( int32s_array->pop().toInt(), test_array.int32s[test_array.int32s.size() - 1] );
+  auto int32s_array = map.toMap()["int32s"].value<Array>();
+  ASSERT_FALSE( int32s_array._inCache());
+  EXPECT_EQ( int32s_array.pop().toInt(), test_array.int32s[test_array.int32s.size() - 1] );
   test_array.int32s.pop_back();
-  ASSERT_FALSE( int32s_array->_inCache());
+  ASSERT_FALSE( int32s_array._inCache());
 
   // Add an element to the back
   test_array.int32s.push_back( 420 );
-  int32s_array->push( 420ULL );
-  ASSERT_FALSE( int32s_array->_inCache());
+  int32s_array.push( 420ULL );
+  ASSERT_FALSE( int32s_array._inCache());
   // Replace an element
   test_array.int32s[4] -= 42;
-  int32s_array->spliceList( 4, 1, { int32s_array->at( 4 ).toInt() - 42 } );
-  ASSERT_FALSE( int32s_array->_inCache());
+  int32s_array.spliceList( 4, 1, { int32s_array.at( 4 ).toInt() - 42 } );
+  ASSERT_FALSE( int32s_array._inCache());
   // Add an element to the front (this will require a deep copy)
   test_array.uint32s.insert( test_array.uint32s.begin(), 1337 );
-  auto uint32_array = map.toMap()["uint32s"].value<Array *>();
-  uint32_array->unshift( 1337.f );
+  auto uint32_array = map.toMap()["uint32s"].value<Array>();
+  uint32_array.unshift( 1337.f );
   // Insert a compatible element at a random position
   test_array.int32s.insert( test_array.int32s.begin() + 6, 421337 );
-  int32s_array->spliceList( 6, 0, { 421337.0 } );
+  int32s_array.spliceList( 6, 0, { 421337.0 } );
   test_array.int32s.insert( test_array.int32s.begin() + 8, 43172 );
-  int32s_array->spliceList( 8, 0, { 43172LL } );
+  int32s_array.spliceList( 8, 0, { 43172LL } );
   // Remove an element from the end
-  EXPECT_EQ( int32s_array->shift().toInt(), test_array.int32s[0] );
+  EXPECT_EQ( int32s_array.shift().toInt(), test_array.int32s[0] );
   test_array.int32s.erase( test_array.int32s.begin());
 
   // Change array length
   test_array.uint32s.resize( 5 );
-  uint32_array->setLength( 5 );
+  uint32_array.setLength( 5 );
 
   // Remove multiple elements from the end and add some
   test_array.float32s.erase( test_array.float32s.begin() + 5, test_array.float32s.end());
   test_array.float32s.push_back( 42.0 );
   test_array.float32s.push_back( 13.37 );
-  map.toMap()["float32s"].value<Array *>()->spliceList( 5, 100000, { 42.0, 13.37 } );
+  map.toMap()["float32s"].value<Array>().spliceList( 5, 100000, { 42.0, 13.37 } );
 
   // All the different time and duration types
-  auto time_array = map.toMap()["times"].value<Array *>();
-  time_array->push( static_cast<uint8_t>(21));
+  auto time_array = map.toMap()["times"].value<Array>();
+  time_array.push( static_cast<uint8_t>(21));
   test_array.times.push_back( ros::Time( 0.021 ));
-  time_array->push( static_cast<uint16_t>(24));
+  time_array.push( static_cast<uint16_t>(24));
   test_array.times.push_back( ros::Time( 0.024 ));
-  time_array->push( static_cast<uint32_t>(27));
+  time_array.push( static_cast<uint32_t>(27));
   test_array.times.push_back( ros::Time( 0.027 ));
-  time_array->push( static_cast<qulonglong>(30));
+  time_array.push( static_cast<qulonglong>(30));
   test_array.times.push_back( ros::Time( 0.030 ));
-  time_array->push( static_cast<int8_t>(33));
+  time_array.push( static_cast<int8_t>(33));
   test_array.times.push_back( ros::Time( 0.033 ));
-  time_array->push( static_cast<int16_t>(36));
+  time_array.push( static_cast<int16_t>(36));
   test_array.times.push_back( ros::Time( 0.036 ));
-  time_array->push( static_cast<int32_t>(39));
+  time_array.push( static_cast<int32_t>(39));
   test_array.times.push_back( ros::Time( 0.039 ));
-  time_array->push( static_cast<qlonglong>(42));
+  time_array.push( static_cast<qlonglong>(42));
   test_array.times.push_back( ros::Time( 0.042 ));
-  time_array->push( 45.0 );
+  time_array.push( 45.0 );
   test_array.times.push_back( ros::Time( 0.045 ));
 
-  auto duration_array = map.toMap()["durations"].value<Array *>();
-  duration_array->spliceList( 0, 1, { static_cast<uint8_t>(21) } );
+  auto duration_array = map.toMap()["durations"].value<Array>();
+  duration_array.spliceList( 0, 1, { static_cast<uint8_t>(21) } );
   test_array.durations[0] = ros::Duration( 0.021 );
-  duration_array->spliceList( 1, 1, { static_cast<uint16_t>(24) } );
+  duration_array.spliceList( 1, 1, { static_cast<uint16_t>(24) } );
   test_array.durations[1] = ros::Duration( 0.024 );
-  duration_array->spliceList( 2, 1, { static_cast<uint32_t>(27) } );
+  duration_array.spliceList( 2, 1, { static_cast<uint32_t>(27) } );
   test_array.durations[2] = ros::Duration( 0.027 );
-  duration_array->spliceList( 3, 1, { static_cast<qulonglong>(30) } );
+  duration_array.spliceList( 3, 1, { static_cast<qulonglong>(30) } );
   test_array.durations[3] = ros::Duration( 0.030 );
-  duration_array->spliceList( 4, 1, { static_cast<int8_t>(33) } );
+  duration_array.spliceList( 4, 1, { static_cast<int8_t>(33) } );
   test_array.durations[4] = ros::Duration( 0.033 );
-  duration_array->spliceList( 5, 1, { static_cast<int16_t>(36) } );
+  duration_array.spliceList( 5, 1, { static_cast<int16_t>(36) } );
   test_array.durations[5] = ros::Duration( 0.036 );
-  duration_array->spliceList( 6, 1, { static_cast<int32_t>(39) } );
+  duration_array.spliceList( 6, 1, { static_cast<int32_t>(39) } );
   test_array.durations[6] = ros::Duration( 0.039 );
-  duration_array->spliceList( 7, 1, { static_cast<qlonglong>(42) } );
+  duration_array.spliceList( 7, 1, { static_cast<qlonglong>(42) } );
   test_array.durations[7] = ros::Duration( 0.042 );
 
   msg = fish.createMessage( "ros_babel_fish_test_msgs/TestArray" );
@@ -340,31 +340,42 @@ TEST( MessageConversion, array )
   translated = fish.translateMessage( bf_msg );
   map = msgToMap( translated );
   // Out of bounds access
-  EXPECT_FALSE( map.toMap()["uint32s"].value<Array *>()->at( 5 ).isValid());
+  EXPECT_FALSE( map.toMap()["uint32s"].value<Array>().at( 5 ).isValid());
 
   // Incompatible type
   QVariant broken_map = msgToMap( translated );
-  auto int32_array = broken_map.toMap()["int32s"].value<Array *>();
-  int32_array->push( 1337.42 );
+  auto int32_array = broken_map.toMap()["int32s"].value<Array>();
+  int32_array.push( 1337.42 );
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 
   broken_map = msgToMap( translated );
-  broken_map.toMap()["int32s"].value<Array *>()->push( QVariantList());
+  broken_map.toMap()["int32s"].value<Array>().push( QVariantList());
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 
   // Too long fixed array
   broken_map = msgToMap( translated );
-  broken_map.toMap()["durations"].value<Array *>()->push( 3456.0 );
+  broken_map.toMap()["durations"].value<Array>().push( 3456.0 );
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 
-  // Non string in string array
+  // Non string in string array but can be converted to string
   broken_map = msgToMap( translated );
-  broken_map.toMap()["strings"].value<Array *>()->spliceList( 3, 0, { 3456.0 } );
+  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { 3456.0 } );
+  EXPECT_TRUE( fillMessage( *msg, broken_map ));
+
+  // Non string in string array that cant be converted to string
+  broken_map = msgToMap( translated );
+  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( new QObject()) } );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map = msgToMap( translated );
+  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( QVariantList()) } );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map = msgToMap( translated );
+  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( QVariantMap()) } );
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 
   // Primitive in compound array
   broken_map = msgToMap( translated );
-  broken_map.toMap()["subarrays"].value<Array *>()->spliceList( 5, 0, { 3.141592 } );
+  broken_map.toMap()["subarrays"].value<Array>().spliceList( 5, 0, { 3.141592 } );
   EXPECT_FALSE( fillMessage( *msg, broken_map ));
 }
 

@@ -5,6 +5,7 @@
 #define QML_ROS_PLUGIN_ROS_H
 
 #include "qml_ros_plugin/console.h"
+#include "qml_ros_plugin/io.h"
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/package.h"
 #include "qml_ros_plugin/topic_info.h"
@@ -161,6 +162,7 @@ Q_OBJECT
   // @formatter:off
   Q_PROPERTY( qml_ros_plugin::Console console READ console CONSTANT )
   Q_PROPERTY( qml_ros_plugin::Package package READ package CONSTANT )
+  Q_PROPERTY( qml_ros_plugin::IO io READ io CONSTANT )
   Q_PROPERTY( QJSValue debug READ debug CONSTANT )
   Q_PROPERTY( QJSValue info READ info CONSTANT )
   Q_PROPERTY( QJSValue warn READ warn CONSTANT )
@@ -199,6 +201,8 @@ public:
   Console console() const;
 
   Package package() const;
+
+  IO io() const;
 
   /*!
    * Outputs a ROS debug message. The equivalent of calling ROS_DEBUG in C++.

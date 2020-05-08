@@ -213,6 +213,8 @@ Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().c
 
 Package RosQmlSingletonWrapper::package() const { return RosQml::getInstance().package(); }
 
+IO RosQmlSingletonWrapper::io() const { return {}; }
+
 QJSValue RosQmlSingletonWrapper::debug()
 {
   if ( debug_function_.isCallable()) return debug_function_;

@@ -98,7 +98,7 @@ TEST( Package, package )
 int main( int argc, char **argv )
 {
   testing::InitGoogleTest( &argc, argv );
-  ros::init( argc, argv, "test_logging" );
+  ros::init( argc, argv, "test_package" );
   QCoreApplication app( argc, argv );
   return RUN_ALL_TESTS();
 }

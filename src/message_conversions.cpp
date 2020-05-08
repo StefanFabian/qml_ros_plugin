@@ -101,7 +101,7 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
   }
   else if ( msg.type() == MessageTypes::Array )
   {
-    return QVariant::fromValue<QObject *>( new Array( storage, &msg.as<ArrayMessageBase>()));
+    return QVariant::fromValue( Array( storage, &msg.as<ArrayMessageBase>()));
   }
   switch ( msg.type())
   {
@@ -150,7 +150,7 @@ bool fillValue( Message &msg, T value, uint32_t types )
 {
   if ( !(msg.type() & types))
   {
-    ROS_WARN( "Tried to fill field with incompatible type!" );
+    ROS_WARN( "Tried to fill '%s' field with incompatible type!", typeid( T ).name());
     return false;
   }
   switch ( msg.type())
@@ -162,25 +162,25 @@ bool fillValue( Message &msg, T value, uint32_t types )
       msg.as<ValueMessage<uint8_t>>().setValue( static_cast<uint8_t>(value));
       break;
     case MessageTypes::UInt16:
-      msg.as<ValueMessage<uint16_t>>().setValue( static_cast<uint16_t >(value));
+      msg.as<ValueMessage<uint16_t>>().setValue( static_cast<uint16_t>(value));
       break;
     case MessageTypes::UInt32:
-      msg.as<ValueMessage<uint32_t>>().setValue( static_cast<uint32_t >(value));
+      msg.as<ValueMessage<uint32_t>>().setValue( static_cast<uint32_t>(value));
       break;
     case MessageTypes::UInt64:
-      msg.as<ValueMessage<uint64_t>>().setValue( static_cast<uint64_t >(value));
+      msg.as<ValueMessage<uint64_t>>().setValue( static_cast<uint64_t>(value));
       break;
     case MessageTypes::Int8:
-      msg.as<ValueMessage<int8_t>>().setValue( static_cast<int8_t >(value));
+      msg.as<ValueMessage<int8_t>>().setValue( static_cast<int8_t>(value));
       break;
     case MessageTypes::Int16:
-      msg.as<ValueMessage<int16_t>>().setValue( static_cast<int16_t >(value));
+      msg.as<ValueMessage<int16_t>>().setValue( static_cast<int16_t>(value));
       break;
     case MessageTypes::Int32:
-      msg.as<ValueMessage<int32_t>>().setValue( static_cast<int32_t >(value));
+      msg.as<ValueMessage<int32_t>>().setValue( static_cast<int32_t>(value));
       break;
     case MessageTypes::Int64:
-      msg.as<ValueMessage<int64_t>>().setValue( static_cast<int64_t >(value));
+      msg.as<ValueMessage<int64_t>>().setValue( static_cast<int64_t>(value));
       break;
     case MessageTypes::Float32:
       msg.as<ValueMessage<float>>().setValue( static_cast<float>(value));
@@ -210,7 +210,7 @@ bool fillValue( Message &msg, ros::Time value, uint32_t )
 {
   if ( msg.type() != MessageTypes::Time )
   {
-    ROS_WARN( "Tried to fill field with incompatible type!" );
+    ROS_WARN( "Tried to fill 'ros::Time' field with incompatible type!" );
     return false;
   }
   msg.as<ValueMessage<ros::Time>>().setValue( value );
@@ -222,7 +222,7 @@ bool fillValue( Message &msg, std::string value, uint32_t )
 {
   if ( msg.type() != MessageTypes::String )
   {
-    ROS_WARN( "Tried to fill field with incompatible type!" );
+    ROS_WARN( "Tried to fill 'std::string' field with incompatible type!" );
     return false;
   }
   auto &value_msg = msg.as<ValueMessage<std::string>>();
@@ -236,6 +236,9 @@ typename std::enable_if<std::is_signed<TVal>::value, bool>::type inBounds( TVal 
   typedef typename std::make_signed<TBounds>::type STBounds;
   typedef typename std::make_unsigned<TBounds>::type UTBounds;
   typedef typename std::make_unsigned<TVal>::type UTVal;
+  // val is in bounds of a signed target type if it is greater than the min of the signed type and either smaller than
+  // zero or smaller than its max. If val is greater or equal to zero, the val and max are casted to unsigned types to
+  // prevent compiler warnings if the TVal and TBounds are not both signed or both unsigned.
   return static_cast<STBounds>(std::numeric_limits<TBounds>::min()) <= val &&
          (val < 0 || static_cast<UTBounds>(val) <= static_cast<UTVal>(std::numeric_limits<TBounds>::max()));
 }
@@ -385,7 +388,8 @@ T getValue( const QVariant &variant )
     case QVariant::Double:
       return static_cast<T>(variant.toDouble());
     default:
-      ROS_WARN_STREAM( "Tried to get value from incompatible type! Type: " << variant.typeName());
+      ROS_WARN_STREAM(
+        "Tried to get " << typeid( T ).name() << " from incompatible type! Type: " << variant.typeName());
   }
   return T();
 }
@@ -410,7 +414,7 @@ ros::Time getValue<ros::Time>( const QVariant &variant )
     case QVariant::Date:
     case QVariant::Time:
     default:
-      ROS_WARN_STREAM( "Tried to get value from incompatible type! Type: " << variant.typeName());
+      ROS_WARN_STREAM( "Tried to get ros::Time from incompatible type! Type: " << variant.typeName());
       return {};
   }
 }
@@ -434,7 +438,7 @@ ros::Duration getValue<ros::Duration>( const QVariant &variant )
     case QVariant::Time:
     case QVariant::DateTime:
     default:
-      ROS_WARN_STREAM( "Tried to get value from incompatible type! Type: " << variant.typeName());
+      ROS_WARN_STREAM( "Tried to get ros::Duration from incompatible type! Type: " << variant.typeName());
       return {};
   }
 }
@@ -456,7 +460,8 @@ fillArray( Message &msg, const ArrayType &list )
     const QVariant &variant = list.at( i );
     if ( !isCompatible<T>( variant ))
     {
-      ROS_WARN( "Tried to fill array with incompatible value! Skipped. (Type: %s)", variant.typeName());
+      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)", typeid( T ).name(),
+                variant.typeName());
       no_error = false;
       continue;
     }
@@ -484,7 +489,8 @@ fillArray( Message &msg, const ArrayType &list )
     const QVariant &variant = list.data( index );
     if ( !isCompatible<T>( variant ))
     {
-      ROS_WARN( "Tried to fill array with incompatible value! Skipped. (Type: %s)", variant.typeName());
+      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)", typeid( T ).name(),
+                variant.typeName());
       no_error = false;
       continue;
     }
@@ -579,7 +585,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const Array &list )
 {
   if ( msg.type() != MessageTypes::Array )
   {
-    ROS_WARN( "Invalid value passed to fillMessage!" );
+    ROS_WARN( "Tried to fill array in non-array message field!" );
     return false;
   }
   auto &array = msg.as<ArrayMessageBase>();
@@ -749,7 +755,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListMode
       }
       // Check that all keys are in message
       const std::vector<std::string> &compound_names = array.elementTemplate()->compound.names;
-      for (auto &name : names)
+      for ( auto &name : names )
       {
         const std::string &key = name;
         if ( key.empty()) continue;
@@ -783,7 +789,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListMode
 
 bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant &value )
 {
-  if ( value.canConvert<QVariantMap>() && msg.type() == MessageTypes::Compound)
+  if ( value.canConvert<QVariantMap>() && msg.type() == MessageTypes::Compound )
   {
     auto &compound = msg.as<CompoundMessage>();
     const QVariantMap &map = value.value<QVariantMap>();
@@ -801,37 +807,36 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     }
     return no_error;
   }
-  else if ( value.canConvert<QVariantList>() && msg.type() == MessageTypes::Array)
+  else if ( value.canConvert<Array>() && msg.type() == MessageTypes::Array )
+  {
+    return fillArrayFromVariant( msg, value.value<Array>());
+  }
+  else if ( value.canConvert<QVariantList>() && msg.type() == MessageTypes::Array )
   {
     const QVariantList &list = value.value<QVariantList>();
     return fillArrayFromVariant( msg, list );
   }
-  else if ( value.canConvert<QObject *>() )
+  else if ( value.canConvert<QObject *>())
   {
-    const auto *array = value.value<Array *>();
-    if ( array != nullptr )
-    {
-      return fillArrayFromVariant( msg, *array );
-    }
     const auto *list_model = value.value<QAbstractListModel *>();
     if ( list_model != nullptr )
     {
       return fillArrayFromVariant( msg, *list_model );
     }
 
-    if (msg.type() == MessageTypes::Compound)
+    if ( msg.type() == MessageTypes::Compound )
     {
       const auto *obj = value.value<QObject *>();
       const QMetaObject *metaObj = obj->metaObject();
       auto &compound = msg.as<CompoundMessage>();
       bool no_error = true;
-      for ( int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i)
+      for ( int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i )
       {
-        QMetaProperty prop = metaObj->property(i);
+        QMetaProperty prop = metaObj->property( i );
         std::string skey = prop.name();
         // Skip keys that don't exist, we don't warn here because there will very likely be properties that don't exist.
-        if (!compound.containsKey(skey)) continue;
-        no_error &= fillMessage(fish, compound[skey], prop.read(obj));
+        if ( !compound.containsKey( skey )) continue;
+        no_error &= fillMessage( fish, compound[skey], prop.read( obj ));
       }
       return no_error;
     }

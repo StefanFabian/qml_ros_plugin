@@ -4,7 +4,6 @@
 #ifndef QML_ROS_PLUGIN_ARRAY_H
 #define QML_ROS_PLUGIN_ARRAY_H
 
-#include <QObject>
 #include <QVariant>
 
 #include <ros_babel_fish/messages/array_message.h>
@@ -16,21 +15,24 @@ namespace qml_ros_plugin
 /*!
  * @brief View on an array field of a message.
  * This allows access on array elements with lazy copy mechanism.
+ * Copies of an Array point to the same data and modifications of one array will be mirrored by the other.
  */
-class Array : public QObject
+class Array
 {
-Q_OBJECT
+Q_GADGET
   // @formatter:off
   //! The length of the array, i.e., the number of elements.
-  Q_PROPERTY( int length READ length WRITE setLength NOTIFY lengthChanged )
+  Q_PROPERTY( int length READ length WRITE setLength )
   // @formatter:on
 public:
+  Array();
+
   Array( ros_babel_fish::TranslatedMessage::ConstPtr translated_message,
          const ros_babel_fish::ArrayMessageBase *message );
 
 //  Array( const Array &other );
 
-  ~Array() override = default;
+  ~Array() = default;
 
   int length() const;
 
@@ -101,22 +103,27 @@ public:
 
   const ros_babel_fish::ArrayMessageBase *_message() const;
 
-signals:
-
-  void lengthChanged();
+  Q_INVOKABLE QVariantList toVariantList() const;
 
 private:
-  void enlargeCache( int size );
+  void enlargeCache( int size ) const;
 
-  void fillCache();
+  void fillCache() const;
 
-  ros_babel_fish::TranslatedMessage::ConstPtr translated_message_;
-  const ros_babel_fish::ArrayMessageBase *message_;
-  mutable QVariantList cache_;
-  bool all_in_cache_;
-  QList<bool> modified_;
-  int length_;
+  struct Data
+  {
+    QVariantList cache;
+    QList<bool> modified;
+    ros_babel_fish::TranslatedMessage::ConstPtr translated_message;
+    const ros_babel_fish::ArrayMessageBase *message = nullptr;
+    bool all_in_cache = true;
+    int length = 0;
+  };
+  // Copies of array share the data
+  std::shared_ptr<Data> p_;
 };
 } // qml_ros_plugin
+
+Q_DECLARE_METATYPE( qml_ros_plugin::Array )
 
 #endif // QML_ROS_PLUGIN_ARRAY_H

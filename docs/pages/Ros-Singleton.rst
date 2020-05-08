@@ -88,12 +88,33 @@ The package property provides a wrapper for ``ros::package``.
   // Get plugins for a package as a map [package_name -> [values]]
   var plugins = Ros.package.getPlugins("rviz", "plugin")
 
+Console
+-------
+The Ros singleton also provides access to the ``Ros`` logging functionality.
+See `Logging`:ref:.
+
+IO
+--
+You can also save and read data that can be serialized in the yaml format using:
+
+.. code-block:: qml
+
+  var obj = {"key": [1, 2, 3], "other": "value"}
+  if (!Ros.io.writeYaml("/home/user/file.yaml", obj))
+    Ros.error("Could not write file!")
+  // and read it back
+  obj = Ros.io.readYaml("/home/user/file.yaml")
+  if (!obj) Ros.error("Failed to load file!")
+
 API
 ---
 .. doxygenclass:: qml_ros_plugin::Package
   :members:
 
 .. doxygenclass:: qml_ros_plugin::TopicInfo
+  :members:
+
+.. doxygenclass:: qml_ros_plugin::IO
   :members:
 
 .. doxygenclass:: qml_ros_plugin::RosQmlSingletonWrapper

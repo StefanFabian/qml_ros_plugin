@@ -11,24 +11,33 @@ using namespace ros_babel_fish;
 namespace qml_ros_plugin
 {
 
+Array::Array()
+{
+  p_ = std::make_shared<Data>();
+}
+
 Array::Array( ros_babel_fish::TranslatedMessage::ConstPtr translated_message,
               const ros_babel_fish::ArrayMessageBase *message )
-  : translated_message_( std::move( translated_message )), message_( message )
-    , all_in_cache_( false ), length_( message == nullptr ? 0 : int( message->length())) { }
+{
+  p_ = std::make_shared<Data>();
+  p_->translated_message = std::move( translated_message );
+  p_->message = message;
+  p_->all_in_cache = false;
+  p_->length = message == nullptr ? 0 : int( message->length());
+}
 
 int Array::length() const
 {
-  return length_;
+  return p_->length;
 }
 
 void Array::setLength( int value )
 {
-  length_ = value;
-  for ( int i = modified_.length(); i > length_; --i )
-    modified_.pop_back();
-  for ( int i = cache_.length(); i > length_; --i )
-    cache_.pop_back();
-  emit lengthChanged();
+  p_->length = value;
+  for ( int i = p_->modified.length(); i > p_->length; --i )
+    p_->modified.pop_back();
+  for ( int i = p_->cache.length(); i > p_->length; --i )
+    p_->cache.pop_back();
 }
 
 namespace
@@ -64,6 +73,22 @@ QVariant getElement<std::string>( const ArrayMessageBase *array, int index )
     return QVariant::fromValue( QString());
   return QVariant::fromValue( QString::fromStdString( array->as<ArrayMessage<std::string>>()[index] ));
 }
+
+template<>
+QVariant getElement<uint8_t>( const ArrayMessageBase *array, int index )
+{
+  if ( static_cast<size_t>(index) >= array->length())
+    return QVariant::fromValue( 0U );
+  return QVariant( uint( array->as<ArrayMessage<uint8_t>>()[index] ));
+}
+
+template<>
+QVariant getElement<int8_t>( const ArrayMessageBase *array, int index )
+{
+  if ( static_cast<size_t>(index) >= array->length())
+    return QVariant::fromValue( 0U );
+  return QVariant( int( array->as<ArrayMessage<int8_t>>()[index] ));
+}
 }
 
 QVariant Array::at( int index ) const
@@ -72,138 +97,130 @@ QVariant Array::at( int index ) const
   {
     return QVariant();
   }
-  if ( cache_.size() > index && cache_[index].isValid())
-    return cache_[index];
-  switch ( message_->elementType())
+  if ( p_->cache.size() > index && p_->cache[index].isValid())
+    return p_->cache[index];
+  switch ( p_->message->elementType())
   {
     case MessageTypes::None:
       return QVariant();
     case MessageTypes::Bool:
-      return getElement<bool>( message_, index );
+      return getElement<bool>( p_->message, index );
     case MessageTypes::UInt8:
-      return getElement<uint8_t>( message_, index );
+      return getElement<uint8_t>( p_->message, index );
     case MessageTypes::UInt16:
-      return getElement<uint16_t>( message_, index );
+      return getElement<uint16_t>( p_->message, index );
     case MessageTypes::UInt32:
-      return getElement<uint32_t>( message_, index );
+      return getElement<uint32_t>( p_->message, index );
     case MessageTypes::UInt64:
-      return getElement<uint64_t>( message_, index );
+      return getElement<uint64_t>( p_->message, index );
     case MessageTypes::Int8:
-      return getElement<int8_t>( message_, index );
+      return getElement<int8_t>( p_->message, index );
     case MessageTypes::Int16:
-      return getElement<int16_t>( message_, index );
+      return getElement<int16_t>( p_->message, index );
     case MessageTypes::Int32:
-      return getElement<int32_t>( message_, index );
+      return getElement<int32_t>( p_->message, index );
     case MessageTypes::Int64:
-      return getElement<int64_t>( message_, index );
+      return getElement<int64_t>( p_->message, index );
     case MessageTypes::Float32:
-      return getElement<float>( message_, index );
+      return getElement<float>( p_->message, index );
     case MessageTypes::Float64:
-      return getElement<double>( message_, index );
+      return getElement<double>( p_->message, index );
     case MessageTypes::Time:
-      return getElement<ros::Time>( message_, index );
+      return getElement<ros::Time>( p_->message, index );
     case MessageTypes::Duration:
-      return getElement<ros::Duration>( message_, index );
+      return getElement<ros::Duration>( p_->message, index );
     case MessageTypes::String:
-      return getElement<std::string>( message_, index );
+      return getElement<std::string>( p_->message, index );
     default:
       break;
   }
-  if ( cache_.size() <= index )
+  if ( p_->cache.size() <= index )
   {
-    cache_.reserve( index + 1 );
-    for ( int i = cache_.size(); i <= index; ++i )
+    p_->cache.reserve( index + 1 );
+    for ( int i = p_->cache.size(); i <= index; ++i )
     {
-      cache_.push_back( QVariant());
+      p_->cache.push_back( QVariant());
     }
   }
-  if ( !cache_[index].isValid())
+  if ( !p_->cache[index].isValid())
   {
-    if ( static_cast<size_t>(index) < message_->length())
-      cache_[index] = msgToMap( translated_message_, message_->as<ArrayMessage<Message>>()[index] );
+    if ( static_cast<size_t>(index) < p_->message->length())
+      p_->cache[index] = msgToMap( p_->translated_message, p_->message->as<ArrayMessage<Message>>()[index] );
     else
-      cache_[index] = QVariantMap();
+      p_->cache[index] = QVariantMap();
   }
-  return cache_[index];
+  return p_->cache[index];
 }
 
 void Array::spliceList( int start, int delete_count, const QVariantList &items )
 {
-  int old_length = length_;
-  if ( start > length_ ) start = length_;
-  else if ( start < 0 ) start = length_ + start;
+  if ( start > p_->length ) start = p_->length;
+  else if ( start < 0 ) start = p_->length + start;
   if ( start < 0 ) start = 0;
   if ( start + delete_count >= length())
   {
     // cheap case where we can just remove the last elements and add the new items.
-    if ( !all_in_cache_ )
+    if ( !p_->all_in_cache )
     {
       enlargeCache( length());
-      for ( int i = modified_.length(); i > start; --i )
-        modified_.pop_back();
+      for ( int i = p_->modified.length(); i > start; --i )
+        p_->modified.pop_back();
     }
-    for ( int i = cache_.length(); i > start; --i )
-      cache_.pop_back();
+    for ( int i = p_->cache.length(); i > start; --i )
+      p_->cache.pop_back();
     for ( auto &item : items )
     {
-      if ( !all_in_cache_ ) modified_.push_back( true );
-      cache_.push_back( item );
+      if ( !p_->all_in_cache ) p_->modified.push_back( true );
+      p_->cache.push_back( item );
     }
-    length_ = cache_.size();
-    if ( length_ != old_length )
-      emit lengthChanged();
+    p_->length = p_->cache.size();
     return;
   }
   if ( delete_count == 1 && items.size() == 1 )
   {
     // this is a simple replace operation
-    if ( !all_in_cache_ )
+    if ( !p_->all_in_cache )
     {
       enlargeCache( start + 1 );
-      modified_[start] = true;
+      p_->modified[start] = true;
     }
-    cache_[start] = items[0];
+    p_->cache[start] = items[0];
     return;
   }
   // otherwise we have to copy the entire message
   fillCache();
-  for ( int i = 0; i < delete_count; ++i ) cache_.removeAt( start );
-  for ( int i = 0; i < items.size(); ++i ) cache_.insert( start + i, items[i] );
-  length_ = cache_.size();
-  if ( length_ != old_length )
-    emit lengthChanged();
+  for ( int i = 0; i < delete_count; ++i ) p_->cache.removeAt( start );
+  for ( int i = 0; i < items.size(); ++i ) p_->cache.insert( start + i, items[i] );
+  p_->length = p_->cache.size();
 }
 
 void Array::push( const QVariant &value )
 {
   enlargeCache( length());
-  cache_.append( value );
-  if ( !all_in_cache_ ) modified_.push_back( true );
-  ++length_;
-  emit lengthChanged();
+  p_->cache.append( value );
+  if ( !p_->all_in_cache ) p_->modified.push_back( true );
+  ++p_->length;
 }
 
 void Array::unshift( const QVariant &value )
 {
   fillCache();
-  cache_.prepend( value );
-  ++length_;
-  emit lengthChanged();
+  p_->cache.prepend( value );
+  ++p_->length;
 }
 
 QVariant Array::pop()
 {
   if ( length() == 0 ) return QVariant();
   QVariant result = at( length() - 1 ); // This automatically grows the cache if not a primitive type
-  if ( cache_.size() == length())
-    cache_.pop_back();
-  if ( !all_in_cache_ )
+  if ( p_->cache.size() == length())
+    p_->cache.pop_back();
+  if ( !p_->all_in_cache )
   {
-    if ( modified_.size() == length_ )
-      modified_.pop_back();
+    if ( p_->modified.size() == p_->length )
+      p_->modified.pop_back();
   }
-  --length_;
-  emit lengthChanged();
+  --p_->length;
   return result;
 }
 
@@ -212,55 +229,60 @@ QVariant Array::shift()
   if ( length() == 0 ) return QVariant();
   fillCache();
   QVariant result = at( 0 );
-  cache_.pop_front();
-  --length_;
-  emit lengthChanged();
+  p_->cache.pop_front();
+  --p_->length;
   return result;
 }
 
 bool Array::_isModified( int index ) const
 {
-  return all_in_cache_ || (index < modified_.size() && modified_[index]);
+  return p_->all_in_cache || (index < p_->modified.size() && p_->modified[index]);
 }
 
 const ros_babel_fish::ArrayMessageBase *Array::_message() const
 {
-  return message_;
+  return p_->message;
 }
 
-void Array::enlargeCache( int size )
+QVariantList Array::toVariantList() const
 {
-  if ( cache_.size() >= size ) return;
-  cache_.reserve( size );
-  for ( int i = cache_.size(); i < size; ++i )
+  fillCache();
+  return p_->cache;
+}
+
+void Array::enlargeCache( int size ) const
+{
+  if ( p_->cache.size() >= size ) return;
+  p_->cache.reserve( size );
+  for ( int i = p_->cache.size(); i < size; ++i )
   {
-    cache_.push_back( QVariant());
+    p_->cache.push_back( QVariant());
   }
-  for ( size_t i = modified_.size(); i < static_cast<uint>(size); ++i )
+  for ( size_t i = p_->modified.size(); i < static_cast<uint>(size); ++i )
   {
-    modified_.push_back( false );
+    p_->modified.push_back( false );
   }
 }
 
 bool Array::_inCache() const
 {
-  return all_in_cache_;
+  return p_->all_in_cache;
 }
 
-void Array::fillCache()
+void Array::fillCache() const
 {
-  if ( all_in_cache_ ) return;
-  cache_.reserve( length());
-  for ( int i = 0; i < length_; ++i )
+  if ( p_->all_in_cache ) return;
+  p_->cache.reserve( length());
+  for ( int i = 0; i < p_->length; ++i )
   {
-    if ((modified_.size() > i && modified_[i]) || (cache_.size() > i && cache_[i].isValid())) continue;
+    if ((p_->modified.size() > i && p_->modified[i]) || (p_->cache.size() > i && p_->cache[i].isValid())) continue;
     const QVariant &variant = at( i );
-    if ( cache_.size() <= i )
-      cache_.push_back( variant );
+    if ( p_->cache.size() <= i )
+      p_->cache.push_back( variant );
     else
-      cache_[i] = variant;
+      p_->cache[i] = variant;
   }
-  all_in_cache_ = true;
-  modified_.clear();
+  p_->all_in_cache = true;
+  p_->modified.clear();
 }
 } // qml_ros_plugin

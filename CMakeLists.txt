@@ -12,6 +12,9 @@ find_package(catkin REQUIRED actionlib roscpp image_transport ros_babel_fish tf2
 
 find_package(Qt5 COMPONENTS Core Multimedia Qml Quick REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(YAML_CPP yaml-cpp)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -21,7 +24,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 catkin_package(
   LIBRARIES qml_ros_plugin
   CATKIN_DEPENDS actionlib roscpp image_transport ros_babel_fish tf2_ros
-  DEPENDS Qt5Core Qt5Multimedia Qt5Qml
+  DEPENDS Qt5Core Qt5Multimedia Qt5Qml YAML_CPP
 )
 
 ###########
@@ -47,6 +50,7 @@ set(SOURCES
   include/qml_ros_plugin/goal_handle.h
   include/qml_ros_plugin/image_buffer.h
   include/qml_ros_plugin/image_transport_subscriber.h
+  include/qml_ros_plugin/io.h
   include/qml_ros_plugin/message_conversions.h
   include/qml_ros_plugin/node_handle.h
   include/qml_ros_plugin/package.h
@@ -67,6 +71,7 @@ set(SOURCES
   src/goal_handle.cpp
   src/image_buffer.cpp
   src/image_transport_subscriber.cpp
+  src/io.cpp
   src/message_conversions.cpp
   src/node_handle.cpp
   src/package.cpp
@@ -81,7 +86,7 @@ set(SOURCES
   src/time.cpp)
 
 add_library(qml_ros_plugin ${SOURCES})
-target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick)
+target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick ${YAML_CPP_LIBRARIES})
 
 #############
 ## Testing ##
@@ -128,6 +133,10 @@ if (CATKIN_ENABLE_TESTING)
   add_rostest_gtest(${PROJECT_NAME}_test_package test/test_package.test test/package.cpp)
   target_link_libraries(${PROJECT_NAME}_test_package ${PROJECT_NAME})
   set_target_properties(${PROJECT_NAME}_test_package PROPERTIES OUTPUT_NAME test_package PREFIX "")
+
+  add_rostest_gtest(${PROJECT_NAME}_test_io test/test_io.test test/io.cpp)
+  target_link_libraries(${PROJECT_NAME}_test_io ${PROJECT_NAME})
+  set_target_properties(${PROJECT_NAME}_test_io PROPERTIES OUTPUT_NAME test_io PREFIX "")
 endif ()
 
 # to run: catkin build --this --no-deps -DENABLE_COVERAGE_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -v --catkin-make-args qml_ros_plugin_coverage

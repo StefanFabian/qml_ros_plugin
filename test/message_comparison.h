@@ -58,7 +58,7 @@ template<typename ElementType>
   {
     return mapAndMessageEqualArray( map.toList(), msg, path, precision );
   }
-  return mapAndMessageEqualArray( *map.value<Array *>(), msg, path, precision );
+  return mapAndMessageEqualArray( map.value<Array>(), msg, path, precision );
 }
 
 template<typename ElementType, unsigned long N>
@@ -69,7 +69,7 @@ template<typename ElementType, unsigned long N>
   {
     return mapAndMessageEqualArray( map.toList(), msg, path, precision );
   }
-  return mapAndMessageEqualArray( *map.value<Array *>(), msg, path, precision );
+  return mapAndMessageEqualArray( map.value<Array>(), msg, path, precision );
 }
 
 template<>

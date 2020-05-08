@@ -336,7 +336,7 @@ TEST( Communication, serviceCallAsync )
   ros::ServiceServer server_false = nh.advertiseService<roscpp_tutorials::TwoIntsRequest, roscpp_tutorials::TwoIntsResponse>(
     "/service_false",
     boost::function<bool( roscpp_tutorials::TwoIntsRequest &, roscpp_tutorials::TwoIntsResponse & )>(
-      [ & ]( roscpp_tutorials::TwoIntsRequest &req, roscpp_tutorials::TwoIntsResponse &resp )
+      [ & ]( roscpp_tutorials::TwoIntsRequest &, roscpp_tutorials::TwoIntsResponse & )
       {
         service_called = true;
         returned = true;
@@ -362,7 +362,7 @@ TEST( Communication, serviceCallAsync )
   ros::ServiceServer server_empty = nh.advertiseService<std_srvs::EmptyRequest , std_srvs::EmptyResponse>(
     "/service_empty",
     boost::function<bool( std_srvs::EmptyRequest &, std_srvs::EmptyResponse & )>(
-      [ & ]( std_srvs::EmptyRequest &req, std_srvs::EmptyResponse &resp )
+      [ & ]( std_srvs::EmptyRequest &, std_srvs::EmptyResponse & )
       {
         service_called = true;
         returned = true;
