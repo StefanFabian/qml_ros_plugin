@@ -627,7 +627,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const Array &list )
       for ( size_t i = 0; i < count; ++i )
       {
         const QVariant &variant = list.at( i );
-        if ( variant.type() != QVariant::String )
+        if ( !variant.canConvert<QString>())
         {
           ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
           no_error = false;
