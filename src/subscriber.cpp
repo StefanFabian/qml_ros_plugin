@@ -102,33 +102,6 @@ void Subscriber::shutdown()
   is_subscribed_ = false;
 }
 
-//namespace
-//{
-//
-//// For debugging
-//void dumpMap( const QVariant &node, const QString &prefix = "" )
-//{
-//  if ( node.typeName() == QString( "QVariantMap" ))
-//  {
-//    const QVariantMap &map = *reinterpret_cast<const QVariantMap *>(node.data());
-//    for ( auto &key : map.keys())
-//    {
-//      std::cout << (prefix + key).toStdString() << ": " << map[key].typeName() << std::endl;
-//      dumpMap( map[key], prefix + "-" );
-//    }
-//  }
-//  else if ( node.typeName() == QString( "QVariantList" ))
-//  {
-//    const QVariantList &list = node.value<QVariantList>();
-//    for ( int i = 0; i < list.size(); ++i )
-//    {
-//      std::cout << prefix.toStdString() << " [" << i << "]:" << std::endl;
-//      dumpMap( list[i], prefix + "-" );
-//    }
-//  }
-//}
-//}
-
 void Subscriber::messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg )
 {
   TranslatedMessage::Ptr translated = babel_fish_.translateMessage( msg );

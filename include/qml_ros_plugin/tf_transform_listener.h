@@ -87,7 +87,7 @@ public:
 
 signals:
 
-  //! Emitted whenever a new transform arrived.
+  //! Emitted whenever a new transform arrived. Warning this signal is not throttled!
   void transformChanged();
 
 protected:

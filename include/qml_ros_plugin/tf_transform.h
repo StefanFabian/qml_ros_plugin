@@ -5,6 +5,7 @@
 #define QML_ROS_PLUGIN_TF_TRANSFORM_H
 
 #include <QObject>
+#include <QTimer>
 #include <QVariantMap>
 #include <memory>
 
@@ -31,11 +32,15 @@ Q_OBJECT
   //! The target frame of the tf transform, i.e., the frame to which the data should be transformed.
   Q_PROPERTY( QString targetFrame READ targetFrame WRITE setTargetFrame NOTIFY targetFrameChanged )
 
-  //! Whether this tf transform is active, i.e., receiving transform updates.
-  Q_PROPERTY( bool active READ active WRITE setActive NOTIFY activeChanged )
+  //! Whether this tf transform is enabled, i.e., receiving transform updates.
+  Q_PROPERTY( bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged )
+  //! Alias for enabled
+  Q_PROPERTY( bool active READ enabled WRITE setEnabled NOTIFY enabledChanged )
 
   //! The last received transform as a geometry_msgs/TransformStamped with an added boolean valid field and optional
   //! error fields. See TfTransformListener::lookUpTransform
+  Q_PROPERTY( QVariantMap transform READ message NOTIFY messageChanged )
+  //! An alias for transform.
   Q_PROPERTY( QVariantMap message READ message NOTIFY messageChanged )
 
   //! The translation part of the tf transform as a vector with x, y, z fields. Zero if no valid transform available (yet).
@@ -43,6 +48,10 @@ Q_OBJECT
 
   //! The rotation part of the tf transform as a quaternion with w, x, y, z fields. Identity if no valid transform available (yet).
   Q_PROPERTY( QVariant rotation READ rotation NOTIFY rotationChanged )
+
+  //! The maximum rate in Hz at which tf updates are processed and emitted as changed signals. Default: 60
+  //! Note: The rate can not exceed 1000. To disable rate limiting set to 0.
+  Q_PROPERTY( qreal rate READ rate WRITE setRate NOTIFY rateChanged )
 
   //! Whether the current transform, i.e., the fields message, translation and rotation are valid.
   Q_PROPERTY( bool valid READ valid NOTIFY validChanged )
@@ -60,17 +69,21 @@ public:
 
   void setTargetFrame( const QString &targetFrame );
 
-  bool active() const;
+  bool enabled() const;
 
-  void setActive( bool value );
+  void setEnabled( bool value );
 
-  const QVariantMap &message() const;
+  qreal rate() const;
 
-  const QVariant &translation() const;
+  void setRate( qreal value );
 
-  const QVariant &rotation() const;
+  const QVariantMap &message();
 
-  bool valid() const;
+  const QVariant &translation();
+
+  const QVariant &rotation();
+
+  bool valid();
 
 signals:
 
@@ -78,7 +91,9 @@ signals:
 
   void targetFrameChanged();
 
-  void activeChanged();
+  void enabledChanged();
+
+  void rateChanged();
 
   void messageChanged();
 
@@ -92,15 +107,20 @@ protected slots:
 
   void onTransformChanged();
 
+  void updateMessage();
+
 protected:
   void subscribe();
 
   void shutdown();
 
-  bool active_;
+  QTimer throttle_timer_;
+  QVariantMap message_;
   QString source_frame_;
   QString target_frame_;
-  QVariantMap message_;
+  std::chrono::system_clock::time_point last_transform_;
+  std::chrono::milliseconds throttle_time_;
+  bool enabled_;
 };
 } // qml_ros_plugin
 

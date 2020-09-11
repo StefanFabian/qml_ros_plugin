@@ -12,11 +12,13 @@ using namespace qml_ros_plugin::conversion;
 namespace qml_ros_plugin
 {
 
-TfTransform::TfTransform() : active_( true )
+TfTransform::TfTransform() : throttle_time_( 1000 / 60 ), enabled_( true )
 {
   geometry_msgs::TransformStamped transform;
   message_ = msgToMap( transform );
   message_.insert( "valid", false );
+  connect( &throttle_timer_, &QTimer::timeout, this, &TfTransform::updateMessage );
+  throttle_timer_.setSingleShot( true );
 }
 
 TfTransform::~TfTransform()
@@ -31,6 +33,7 @@ void TfTransform::setSourceFrame( const QString &value )
   source_frame_ = value;
   if ( source_frame_.isEmpty()) shutdown();
   else subscribe();
+
   emit sourceFrameChanged();
 }
 
@@ -41,63 +44,93 @@ void TfTransform::setTargetFrame( const QString &targetFrame )
   target_frame_ = targetFrame;
   if ( target_frame_.isEmpty()) shutdown();
   else subscribe();
+
   emit targetFrameChanged();
 }
 
-bool TfTransform::active() const { return active_; }
+bool TfTransform::enabled() const { return enabled_; }
 
-void TfTransform::setActive( bool value )
+void TfTransform::setEnabled( bool value )
 {
-  if ( active_ == value ) return;
-  active_ = value;
-  if ( active_ ) subscribe();
+  if ( enabled_ == value ) return;
+  enabled_ = value;
+  if ( enabled_ ) subscribe();
   else shutdown();
-  emit activeChanged();
+
+  emit enabledChanged();
 }
 
-const QVariantMap &TfTransform::message() const { return message_; }
+qreal TfTransform::rate() const
+{
+  if ( throttle_time_.count() == 0 ) return 0;
+  return 1000.0 / throttle_time_.count();
+}
 
-const QVariant &TfTransform::translation() const
+void TfTransform::setRate( qreal value )
+{
+  if ( value <= 0 ) throttle_time_ = std::chrono::milliseconds::zero();
+  throttle_time_ = std::chrono::milliseconds( int( 1000 / value )); // Rounding down as value is strictly positive
+
+  emit rateChanged();
+}
+
+const QVariantMap &TfTransform::message() { return message_; }
+
+const QVariant &TfTransform::translation()
 {
   const QVariantMap &transform = *static_cast<const QVariantMap *>(message_["transform"].data());
   return transform.find( "translation" ).value();
 }
 
-const QVariant &TfTransform::rotation() const
+const QVariant &TfTransform::rotation()
 {
   const QVariantMap &transform = *static_cast<const QVariantMap *>(message_["transform"].data());
   return transform.find( "rotation" ).value();
 }
 
-bool TfTransform::valid() const
+bool TfTransform::valid()
 {
   return message_.contains( "valid" ) && message_["valid"].toBool();
 }
 
 void TfTransform::onTransformChanged()
 {
-  bool wasValid = valid();
-  message_ = TfTransformListener::getInstance().lookUpTransform( target_frame_, source_frame_ );
-  if ( valid() != wasValid )
-    emit validChanged();
-  emit rotationChanged();
-  emit messageChanged();
-  emit translationChanged();
+  if ( !enabled_ ) return;
+  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+  if ( !throttle_timer_.isActive())
+  {
+    std::chrono::milliseconds delta_t = std::chrono::duration_cast<std::chrono::milliseconds>( now - last_transform_ );
+    if ( delta_t >= throttle_time_ )
+      updateMessage();
+    else
+      throttle_timer_.start( throttle_time_ - delta_t );
+  }
+  last_transform_ = now;
 }
 
 void TfTransform::subscribe()
 {
-  if ( source_frame_.isEmpty() || target_frame_.isEmpty() || !active_ ) return;
+  if ( source_frame_.isEmpty() || target_frame_.isEmpty() || !enabled_ ) return;
 
   QObject::connect( &TfTransformListener::getInstance(), &TfTransformListener::transformChanged,
                     this, &TfTransform::onTransformChanged );
   // Load transform
-  onTransformChanged();
+  if ( valid()) onTransformChanged();
 }
 
 void TfTransform::shutdown()
 {
   QObject::disconnect( &TfTransformListener::getInstance(), &TfTransformListener::transformChanged,
                        this, &TfTransform::onTransformChanged );
+}
+
+void TfTransform::updateMessage()
+{
+  bool was_valid = valid();
+  message_ = TfTransformListener::getInstance().lookUpTransform( target_frame_, source_frame_ );
+  if ( valid() != was_valid ) emit validChanged();
+  emit rotationChanged();
+  emit messageChanged();
+  emit translationChanged();
 }
 }

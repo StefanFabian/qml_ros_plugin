@@ -21,6 +21,7 @@
 
 #include <QCoreApplication>
 #include <QJSEngine>
+#include <QSignalSpy>
 #include <tf2_ros/transform_broadcaster.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
@@ -355,11 +356,11 @@ TEST( Communication, serviceCallAsync )
   ASSERT_TRUE( obj.hasProperty( "result" ));
   result = obj.property( "result" ).toVariant();
   ASSERT_EQ( result.type(), QVariant::Bool ) << "Result was not bool. Typename: " << result.typeName();
-  EXPECT_FALSE( result.toBool() );
+  EXPECT_FALSE( result.toBool());
 
   service_called = false;
   returned = false;
-  ros::ServiceServer server_empty = nh.advertiseService<std_srvs::EmptyRequest , std_srvs::EmptyResponse>(
+  ros::ServiceServer server_empty = nh.advertiseService<std_srvs::EmptyRequest, std_srvs::EmptyResponse>(
     "/service_empty",
     boost::function<bool( std_srvs::EmptyRequest &, std_srvs::EmptyResponse & )>(
       [ & ]( std_srvs::EmptyRequest &, std_srvs::EmptyResponse & )
@@ -380,9 +381,7 @@ TEST( Communication, serviceCallAsync )
   ASSERT_TRUE( obj.hasProperty( "result" ));
   result = obj.property( "result" ).toVariant();
   ASSERT_EQ( result.type(), QVariant::Bool ) << "Result was not bool. Typename: " << result.typeName();
-  EXPECT_TRUE( result.toBool() );
-
-
+  EXPECT_TRUE( result.toBool());
 }
 
 class ActionClientCallback : public QObject
@@ -526,7 +525,7 @@ TEST( Communication, tfTransform )
   transform_stamped.transform.rotation.y = 0.4821;
   transform_stamped.transform.rotation.z = -0.2281;
   tf2_ros::TransformBroadcaster broadcaster;
-  EXPECT_TRUE( transform.active());
+  EXPECT_TRUE( transform.enabled());
   ASSERT_TRUE( transform.message().contains( "valid" ));
   EXPECT_FALSE( transform.message()["valid"].toBool());
   EXPECT_FALSE( transform.valid());
@@ -551,21 +550,21 @@ TEST( Communication, tfTransform )
   EXPECT_DOUBLE_EQ( transform.rotation().toMap()["y"].toDouble(), 0.4821 );
   EXPECT_DOUBLE_EQ( transform.rotation().toMap()["z"].toDouble(), -0.2281 );
 
-  transform.setActive( false );
-  EXPECT_FALSE( transform.active());
+  transform.setEnabled( false );
+  EXPECT_FALSE( transform.enabled());
   QCoreApplication::processEvents();
   transform_stamped.header.stamp = ros::Time::now();
   transform_stamped.transform.translation.x = 3.14;
   broadcaster.sendTransform( transform_stamped );
   waitFor( []() { return false; } );
-  EXPECT_NE( transform.message()["transform"].toMap()["translation"].toMap()["x"].toDouble(), 3.14 )
-          << "Shouldn't have received that transform!";
+  EXPECT_DOUBLE_EQ( transform.message()["transform"].toMap()["translation"].toMap()["x"].toDouble(), 1 )
+          << "Shouldn't have received the \"x: 3.14\" transform!";
   QDateTime last_transform_datetime = QDateTime::currentDateTime();
   transform_stamped.header.stamp = ros::Time::now();
   transform_stamped.transform.translation.x = 0.577;
   broadcaster.sendTransform( transform_stamped );
-  transform.setActive( true );
-  EXPECT_TRUE( transform.active());
+  transform.setEnabled( true );
+  EXPECT_TRUE( transform.enabled());
   if ( !waitFor( [ & ]()
                  {
                    broadcaster.sendTransform( transform_stamped );
@@ -620,6 +619,43 @@ TEST( Communication, tfTransform )
   EXPECT_EQ( wrapper.lookUpTransform( "world", "politics" )["exception"].toString(),
              QString( "ConnectivityException" ));
   // Currently no idea how to test InvalidArgumentException since invalid quaternions get rejected when publishing already
+
+  /// ==============================================================================================
+  /// Test rate limiting
+  /// ==============================================================================================
+  transform.setRate( 30 );
+  EXPECT_NEAR( transform.rate(), 30, 3 );
+  QSignalSpy transform_changed_spy( &transform, SIGNAL( messageChanged()));
+  std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+  for ( int i = 0; i < 4000; ++i )
+  {
+    broadcaster.sendTransform( transform_stamped );
+    processEvents();
+    usleep( 100 );
+  }
+  auto length = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::system_clock::now() - start );
+  double sent_hz = 10000 * 1000.0 / length.count();
+  ASSERT_GE( sent_hz, 60 ) << "Your computer seems to be too slow to run this test.";
+  EXPECT_NEAR( transform_changed_spy.count() * 1000.0 / length.count(), 30, 3 )
+          << "Data was sent with " << std::fixed << std::setprecision( 2 ) << sent_hz << "Hz. "
+          << "Received " << transform_changed_spy.count() << " messages in " << length.count() << "ms.";
+
+  transform.setRate( 120 );
+  transform_changed_spy.clear();
+  start = std::chrono::system_clock::now();
+  for ( int i = 0; i < 4000; ++i )
+  {
+    broadcaster.sendTransform( transform_stamped );
+    processEvents();
+    usleep( 100 );
+  }
+  length = std::chrono::duration_cast<std::chrono::milliseconds>( std::chrono::system_clock::now() - start );
+  sent_hz = 10000 * 1000.0 / length.count();
+  ASSERT_GE( sent_hz, 200 ) << "Your computer seems to be too slow to run this test.";
+  EXPECT_NEAR( transform.rate(), 120, 12 );
+  EXPECT_NEAR( transform_changed_spy.count() * 1000.0 / length.count(), transform.rate(), 12 )
+          << "Data was sent with " << std::fixed << std::setprecision( 2 ) << sent_hz << "Hz. "
+          << "Received " << transform_changed_spy.count() << " messages in " << length.count() << "ms.";
 }
 
 int main( int argc, char **argv )

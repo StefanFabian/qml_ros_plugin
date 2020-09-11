@@ -98,7 +98,7 @@ QtObject {
   EXPECT_FALSE( content["b"].toBool());
   ASSERT_TRUE( content.contains( "ui8" ));
   bool ok = false;
-  EXPECT_EQ( content["ui8"].toULongLong( &ok ), 42 );
+  EXPECT_EQ( content["ui8"].toULongLong( &ok ), 42ULL );
   EXPECT_TRUE( ok );
   ASSERT_TRUE( content.contains( "point_arr" ));
   ASSERT_EQ( content["point_arr"].type(), QVariant::List );
