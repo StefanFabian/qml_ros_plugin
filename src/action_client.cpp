@@ -41,8 +41,23 @@ void ActionClient::onRosInitialized()
                      action_goal_type.c_str());
     return;
   }
-  client_ = std::make_shared<actionlib::ActionClient<BabelFishAction>>( nh_->nodeHandle(), description,
-                                                                        name_.toStdString());
+  try
+  {
+    client_ = std::make_shared<actionlib::ActionClient<BabelFishAction>>( nh_->nodeHandle(), description,
+                                                                          name_.toStdString());
+  }
+  catch ( BabelFishMessageException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what());
+    client_ = nullptr;
+    return;
+  }
+  catch ( BabelFishException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what());
+    client_ = nullptr;
+    return;
+  }
   connect_timer_.setInterval( 16 );
   connect( &connect_timer_, &QTimer::timeout, this, &ActionClient::checkServerConnected );
   connect_timer_.start();
@@ -60,7 +75,7 @@ bool ActionClient::isServerConnected() const
 
 void ActionClient::checkServerConnected()
 {
-  if ( !client_->isServerConnected()) return;
+  if ( !isServerConnected()) return;
   connect_timer_.stop();
   disconnect( &connect_timer_, &QTimer::timeout, this, &ActionClient::checkServerConnected );
   emit connectedChanged();
@@ -80,9 +95,20 @@ void ActionClient::invokeFeedbackCallback( QJSValue callback,
 {
   QJSEngine *engine = qjsEngine( this );
   QJSValue js_goal_handle = engine->newQObject( new GoalHandle( client_, handle ));
-  TranslatedMessage::ConstPtr translated_feedback = babel_fish_.translateMessage( feedback );
-  QJSValue js_feedback = engine->toScriptValue<QVariant>( msgToMap( translated_feedback ));
-  callback.call( { js_goal_handle, js_feedback } );
+  try
+  {
+    TranslatedMessage::ConstPtr translated_feedback = babel_fish_.translateMessage( feedback );
+    QJSValue js_feedback = engine->toScriptValue<QVariant>( msgToMap( translated_feedback ));
+    callback.call( { js_goal_handle, js_feedback } );
+  }
+  catch ( BabelFishMessageException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to translate Action feedback: %s", ex.what());
+  }
+  catch ( BabelFishException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to translate Action feedback: %s", ex.what());
+  }
 }
 
 QObject *ActionClient::sendGoal( const QVariantMap &goal, QJSValue transition_cb, QJSValue feedback_cb )
@@ -95,33 +121,45 @@ QObject *ActionClient::sendGoal( const QVariantMap &goal, QJSValue transition_cb
 
   std::string goal_type = action_type_.toStdString();
   goal_type = goal_type.substr( 0, goal_type.length() - strlen( "Action" )) + "Goal";
-  Message::Ptr message = babel_fish_.createMessage( goal_type );
-  if ( message == nullptr ) return nullptr;
-  if ( !fillMessage( *message, goal )) return nullptr;
-  BabelFishMessage::Ptr bf_message = babel_fish_.translateMessage( message );
-  auto goal_handle = client_->sendGoal(
-    *bf_message,
-    [ transition_cb, this ]( const actionlib::ActionClient<BabelFishAction>::GoalHandle &goal_handle ) mutable
-    {
-      if ( !transition_cb.isCallable()) return;
-      // Make sure this is called on the main thread, because the objects created in this method have to be on
-      // the same thread as QQmlEngine or there may be random crashes
-      QMetaObject::invokeMethod( this, "invokeTransitionCallback", Qt::AutoConnection,
-                                 Q_ARG( QJSValue, transition_cb ),
-                                 Q_ARG( actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle,
-                                        goal_handle ));
-    },
-    [ feedback_cb, this ]( const actionlib::ActionClient<BabelFishAction>::GoalHandle &goal_handle,
-                           const BabelFishMessage::ConstPtr &feedback ) mutable
-    {
-      if ( !feedback_cb.isCallable()) return;
-      QMetaObject::invokeMethod( this, "invokeFeedbackCallback", Qt::AutoConnection,
-                                 Q_ARG( QJSValue, feedback_cb ),
-                                 Q_ARG( actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle,
-                                        goal_handle ),
-                                 Q_ARG( ros_babel_fish::BabelFishMessage::ConstPtr, feedback ));
-    } );
-  return new GoalHandle( client_, goal_handle );
+  try
+  {
+    Message::Ptr message = babel_fish_.createMessage( goal_type );
+    if ( message == nullptr ) return nullptr;
+    if ( !fillMessage( *message, goal )) return nullptr;
+    BabelFishMessage::Ptr bf_message = babel_fish_.translateMessage( message );
+    auto goal_handle = client_->sendGoal(
+      *bf_message,
+      [ transition_cb, this ]( const actionlib::ActionClient<BabelFishAction>::GoalHandle &goal_handle ) mutable
+      {
+        if ( !transition_cb.isCallable()) return;
+        // Make sure this is called on the main thread, because the objects created in this method have to be on
+        // the same thread as QQmlEngine or there may be random crashes
+        QMetaObject::invokeMethod( this, "invokeTransitionCallback", Qt::AutoConnection,
+                                   Q_ARG( QJSValue, transition_cb ),
+                                   Q_ARG( actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle,
+                                          goal_handle ));
+      },
+      [ feedback_cb, this ]( const actionlib::ActionClient<BabelFishAction>::GoalHandle &goal_handle,
+                             const BabelFishMessage::ConstPtr &feedback ) mutable
+      {
+        if ( !feedback_cb.isCallable()) return;
+        QMetaObject::invokeMethod( this, "invokeFeedbackCallback", Qt::AutoConnection,
+                                   Q_ARG( QJSValue, feedback_cb ),
+                                   Q_ARG( actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle,
+                                          goal_handle ),
+                                   Q_ARG( ros_babel_fish::BabelFishMessage::ConstPtr, feedback ));
+      } );
+    return new GoalHandle( client_, goal_handle );
+  }
+  catch ( BabelFishMessageException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to send Action goal: %s", ex.what());
+  }
+  catch ( BabelFishException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to send Action goal: %s", ex.what());
+  }
+  return nullptr;
 }
 
 void ActionClient::cancelAllGoals()

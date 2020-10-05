@@ -46,12 +46,24 @@ unsigned int Publisher::getNumSubscribers() { return publisher_.getNumSubscriber
 bool Publisher::publish( const QVariantMap &msg )
 {
   if ( !is_advertised_ ) return false;
-  Message::Ptr message = babel_fish_.createMessage( type_.toStdString());
-  if ( message == nullptr ) return false;
-  if ( !fillMessage( *message, msg )) return false;
-  BabelFishMessage::Ptr bf_message = babel_fish_.translateMessage( message );
-  publisher_.publish( bf_message );
-  return true;
+  try
+  {
+    Message::Ptr message = babel_fish_.createMessage( type_.toStdString());
+    if ( message == nullptr ) return false;
+    if ( !fillMessage( *message, msg )) return false;
+    BabelFishMessage::Ptr bf_message = babel_fish_.translateMessage( message );
+    publisher_.publish( bf_message );
+    return true;
+  }
+  catch ( BabelFishMessageException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to publish message: %s", ex.what());
+  }
+  catch ( BabelFishException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to publish message: %s", ex.what());
+  }
+  return false;
 }
 
 void Publisher::onNodeHandleReady()
@@ -66,12 +78,23 @@ void Publisher::advertise()
   if ( type_.isEmpty()) return;
   if ( topic_.isEmpty()) return;
   if ( queue_size_ == 0 ) return;
-  is_advertised_ = true;
-  ros::SubscriberStatusCallback connected_cb = boost::bind( &Publisher::onSubscriberConnected, this, _1 );
-  ros::SubscriberStatusCallback disconnected_cb = boost::bind( &Publisher::onSubscriberDisconnected, this, _1 );
-  publisher_ = babel_fish_.advertise( nh_->nodeHandle(), std_type_, topic_.toStdString(), queue_size_, is_latched_,
-                                      connected_cb, disconnected_cb );
-  emit advertised();
+  try
+  {
+    ros::SubscriberStatusCallback connected_cb = boost::bind( &Publisher::onSubscriberConnected, this, _1 );
+    ros::SubscriberStatusCallback disconnected_cb = boost::bind( &Publisher::onSubscriberDisconnected, this, _1 );
+    publisher_ = babel_fish_.advertise( nh_->nodeHandle(), std_type_, topic_.toStdString(), queue_size_, is_latched_,
+                                        connected_cb, disconnected_cb );
+    is_advertised_ = true;
+    emit advertised();
+  }
+  catch ( BabelFishMessageException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to create publisher: %s", ex.what());
+  }
+  catch ( BabelFishException &ex )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to create publisher: %s", ex.what());
+  }
 }
 
 void Publisher::onSubscriberConnected( const ros::SingleSubscriberPublisher & )
