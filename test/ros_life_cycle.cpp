@@ -37,6 +37,8 @@ TEST( RosLifeCycle, testLifeCycle )
   qml_ros_plugin::WallTime wall_time;
   qml_ros_plugin::Time time;
   qml_ros_plugin::NodeHandle::Ptr qml_nh = std::make_shared<qml_ros_plugin::NodeHandle>( "test_ns" );
+  EXPECT_FALSE( ros_wrapper.isInitialized());
+  EXPECT_FALSE( RosQml::getInstance().isInitialized());
   EXPECT_FALSE( qml_ros_plugin::TfTransformListener::getInstance().isInitialized());
   EXPECT_EQ(
     qml_ros_plugin::TfTransformListener::getInstance().lookUpTransform( "frame2", "frame1" )["exception"].toString(),
@@ -72,6 +74,8 @@ TEST( RosLifeCycle, testLifeCycle )
     ros::Duration( 0.05 ).sleep();
   }
   ASSERT_TRUE( ros::isInitialized());
+  EXPECT_TRUE( ros_wrapper.isInitialized());
+  EXPECT_TRUE( RosQml::getInstance().isInitialized());
   EXPECT_TRUE( ros_wrapper.ok());
   EXPECT_TRUE( qml_ros_plugin::TfTransformListener::getInstance().isInitialized());
   EXPECT_TRUE( time.isInitialized());

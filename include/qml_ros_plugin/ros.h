@@ -62,6 +62,10 @@ public:
 
   void operator=( const RosQml & ) = delete;
 
+  /*!
+   * Checks whether ROS is initialized.
+   * @return True if ROS is initialized, false otherwise.
+   */
   bool isInitialized() const;
 
   /*!
@@ -173,6 +177,9 @@ public:
   RosQmlSingletonWrapper();
 
   ~RosQmlSingletonWrapper() override;
+
+  //! @copydoc RosQml::isInitialized
+  Q_INVOKABLE bool isInitialized() const;
 
   //! @copydoc RosQml::init(const QString &, quint32)
   Q_INVOKABLE void init( const QString &name, quint32 options = 0 );

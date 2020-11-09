@@ -181,6 +181,11 @@ RosQmlSingletonWrapper::RosQmlSingletonWrapper()
 
 RosQmlSingletonWrapper::~RosQmlSingletonWrapper() = default;
 
+bool RosQmlSingletonWrapper::isInitialized() const
+{
+  return RosQml::getInstance().isInitialized();
+}
+
 void RosQmlSingletonWrapper::init( const QString &name, quint32 options )
 {
   RosQml::getInstance().init( name, options );

@@ -23,6 +23,7 @@ C++ entry, you can also do it in QML, e.g., in the ``onCompleted`` handler:
     Ros.init("node_name")
   }
 
+You can also conditionally initialize by checking if it was already initialized using ``Ros.isInitialized``.
 As described in the API documentation for `init`_, you can pass either just the
 node name or additionally use provided command line args instead of the command
 line args provided to your executable. In both cases, you can also pass the
