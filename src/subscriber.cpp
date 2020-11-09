@@ -75,7 +75,7 @@ const QVariant &Subscriber::message() const { return message_; }
 
 const QString &Subscriber::messageType() const { return message_type_; }
 
-unsigned int Subscriber::getNumPublishers() { return subscriber_.getNumPublishers(); }
+unsigned int Subscriber::getNumPublishers() { return is_subscribed_ ? subscriber_.getNumPublishers() : 0; }
 
 void Subscriber::onRosInitialized()
 {

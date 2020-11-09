@@ -94,7 +94,7 @@ signals:
    * Emitted whenever a new message was received.
    * @param message The received message.
    */
-  void newMessage( const QVariant &message );
+  void newMessage( QVariant message );
 
 protected slots:
 
