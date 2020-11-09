@@ -48,6 +48,8 @@ QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &msg );
 
 QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &storage, const ros_babel_fish::Message &msg );
 
+QVariant msgToMap( const ros_babel_fish::Message &msg );
+
 bool fillMessage( ros_babel_fish::Message &msg, const QVariant &value );
 
 bool fillMessage( ros_babel_fish::BabelFish &fish, ros_babel_fish::Message &msg, const QVariant &value );

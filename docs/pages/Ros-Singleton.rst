@@ -76,6 +76,22 @@ Example:
     if (Ros.queryTopicType(topics[i]) == "sensor_msgs/Image") cameraTopics.push(topics[i])
   }
 
+Create Empty Message
+--------------------
+You can also create empty messages and service requests as javascript objects using the ``Ros`` singleton.
+
+.. code-block:: qml
+  var message = Ros.createEmptyMessage("geometry_msgs/Point")
+  // This creates an empty instance of the mssage, we can override the fields
+  message.x = 1; message.y = 2; message.z = 1
+  // However, note that we do not call custom message constructors, hence, if the message has different default values
+  // they will not be set here. This is a rarely known feature and not used often in ROS 1, though.
+
+  // Same can be done with service requests
+  var serviceRequest = Ros.createEmptyServiceRequest("std_srvs/SetBool")
+  // This creates an empty instance of the service request with all members set to their default, we can override the fields
+  serviceRequest.data = true
+
 Package API
 -----------
 The package property provides a wrapper for ``ros::package``.

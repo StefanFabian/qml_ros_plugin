@@ -122,6 +122,24 @@ public:
    */
   QString queryTopicType( const QString &name ) const;
 
+  /*!
+   * Creates an empty message for the given message type, e.g., "geometry_msgs/Point".
+   * If the message type is known, an empty message with all members set to their default is returned.
+   * If the message type is not found on the current machine, a warning message is printed and null is returned.
+   * @param datatype The message datatype.
+   * @return A message with all members set to their default.
+   */
+  QVariant createEmptyMessage( const QString &datatype ) const;
+
+  /*!
+   * Creates an empty service request for the given service type, e.g., "std_srvs/SetBool".
+   * If the service type is known, an empty request is returned with all members of the request message set to their
+   * default values.
+   * If the service type is not found on the current machine, a warning message is printed and null is returned.
+   * @param datatype The service datatype. NOT the request datatype.
+   * @return A request message with all members set to their default.
+   */
+  QVariant createEmptyServiceRequest( const QString &datatype ) const;
 
   Console console() const;
 
@@ -204,6 +222,12 @@ public:
 
   //! @copydoc RosQml::queryTopicType
   Q_INVOKABLE QString queryTopicType( const QString &name ) const;
+
+  //! @copydoc RosQml::createEmptyMessage
+  Q_INVOKABLE QVariant createEmptyMessage( const QString &datatype ) const;
+
+  //! @copydoc RosQml::createEmptyServiceRequest
+  Q_INVOKABLE QVariant createEmptyServiceRequest( const QString &datatype ) const;
 
   Console console() const;
 

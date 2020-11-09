@@ -144,6 +144,150 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
 
 namespace
 {
+template<typename T>
+QVariantList msgToList( const ArrayMessageBase &array )
+{
+  QVariantList result;
+  result.reserve( array.length());
+  auto &typed_array = array.as<ArrayMessage<T>>();
+  for ( size_t i = 0; i < array.length(); ++i )
+  {
+    result.append( QVariant::fromValue( typed_array[i] ));
+  }
+  return result;
+}
+
+template<>
+QVariantList msgToList<ros::Duration>( const ArrayMessageBase &array )
+{
+  QVariantList result;
+  result.reserve( array.length());
+  auto &typed_array = array.as<ArrayMessage<ros::Duration>>();
+  for ( size_t i = 0; i < array.length(); ++i )
+  {
+    result.append( QVariant::fromValue( rosToQmlDuration( typed_array[i] )));
+  }
+  return result;
+}
+
+template<>
+QVariantList msgToList<ros::Time>( const ArrayMessageBase &array )
+{
+  QVariantList result;
+  result.reserve( array.length());
+  auto &typed_array = array.as<ArrayMessage<ros::Time>>();
+  for ( size_t i = 0; i < array.length(); ++i )
+  {
+    result.append( QVariant::fromValue( rosToQmlTime( typed_array[i] )));
+  }
+  return result;
+}
+
+template<>
+QVariantList msgToList<std::string>( const ArrayMessageBase &array )
+{
+  QVariantList result;
+  result.reserve( array.length());
+  auto &typed_array = array.as<ArrayMessage<std::string>>();
+  for ( size_t i = 0; i < array.length(); ++i )
+  {
+    result.append( QVariant::fromValue( QString::fromStdString( typed_array[i] )));
+  }
+  return result;
+}
+}
+
+QVariant msgToMap( const Message &msg )
+{
+  if ( msg.type() == MessageTypes::Compound )
+  {
+    QVariantMap result;
+    const auto &compound = msg.as<CompoundMessage>();
+    for ( size_t i = 0; i < compound.keys().size(); ++i )
+    {
+      result.insert( QString::fromStdString( compound.keys()[i] ), msgToMap( *compound.values()[i] ));
+    }
+    return result;
+  }
+  else if ( msg.type() == MessageTypes::Array )
+  {
+    auto &arr = msg.as<ArrayMessageBase>();
+    switch ( arr.elementType())
+    {
+      case MessageTypes::Bool:
+        return msgToList<bool>( arr );
+      case MessageTypes::UInt8:
+        return msgToList<uint8_t>( arr );
+      case MessageTypes::UInt16:
+        return msgToList<uint16_t>( arr );
+      case MessageTypes::UInt32:
+        return msgToList<uint32_t>( arr );
+      case MessageTypes::UInt64:
+        return msgToList<uint64_t>( arr );
+      case MessageTypes::Int8:
+        return msgToList<int8_t>( arr );
+      case MessageTypes::Int16:
+        return msgToList<int16_t>( arr );
+      case MessageTypes::Int32:
+        return msgToList<int32_t>( arr );
+      case MessageTypes::Int64:
+        return msgToList<int64_t>( arr );
+      case MessageTypes::Float32:
+        return msgToList<float>( arr );
+      case MessageTypes::Float64:
+        return msgToList<double>( arr );
+      case MessageTypes::Time:
+        return msgToList<ros::Time>( arr );
+      case MessageTypes::Duration:
+        return msgToList<ros::Duration>( arr );
+      case MessageTypes::String:
+        return msgToList<std::string>( arr );
+      case MessageTypes::None:
+      default:
+        return QVariantList();
+    }
+  }
+  switch ( msg.type())
+  {
+    case MessageTypes::Bool:
+      return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue());
+    case MessageTypes::UInt8:
+      return QVariant::fromValue( msg.as<ValueMessage<uint8_t>>().getValue());
+    case MessageTypes::UInt16:
+      return QVariant::fromValue( msg.as<ValueMessage<uint16_t>>().getValue());
+    case MessageTypes::UInt32:
+      return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue());
+    case MessageTypes::UInt64:
+      return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue());
+    case MessageTypes::Int8:
+      return QVariant::fromValue( msg.as<ValueMessage<int8_t>>().getValue());
+    case MessageTypes::Int16:
+      return QVariant::fromValue( msg.as<ValueMessage<int16_t>>().getValue());
+    case MessageTypes::Int32:
+      return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue());
+    case MessageTypes::Int64:
+      return QVariant::fromValue( msg.as<ValueMessage<int64_t>>().getValue());
+    case MessageTypes::Float32:
+      return QVariant::fromValue( msg.as<ValueMessage<float>>().getValue());
+    case MessageTypes::Float64:
+      return QVariant::fromValue( msg.as<ValueMessage<double>>().getValue());
+    case MessageTypes::String:
+      return QVariant::fromValue( QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue()));
+    case MessageTypes::Time:
+    {
+      return QVariant::fromValue( rosToQmlTime( msg.value<ros::Time>()));
+    }
+    case MessageTypes::Duration:
+      return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
+    default:
+      ROS_WARN( "Unknown type '%d' while processing message!", msg.type());
+      break;
+  }
+  return QVariant();
+}
+
+namespace
+{
 
 template<typename T>
 bool fillValue( Message &msg, T value, uint32_t types )

@@ -2,6 +2,8 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/action_client.h"
+#include "qml_ros_plugin/babel_fish_dispenser.h"
+#include "qml_ros_plugin/message_conversions.h"
 #include "qml_ros_plugin/ros.h"
 #include "qml_ros_plugin/publisher.h"
 #include "qml_ros_plugin/subscriber.h"
@@ -117,6 +119,46 @@ QString RosQml::queryTopicType( const QString &name ) const
   return {};
 }
 
+QVariant RosQml::createEmptyMessage( const QString &datatype ) const
+{
+  try
+  {
+    auto message = BabelFishDispenser::getBabelFish().createMessage( datatype.toStdString());
+    return conversion::msgToMap( *message );
+  }
+  catch ( ros_babel_fish::BabelFishMessageException &ex )
+  {
+    ROS_WARN_NAMED( "qml_ros_plugin", "Failed to create empty message for datatype '%s': %s",
+                    datatype.toStdString().c_str(), ex.what());
+  }
+  catch ( ros_babel_fish::BabelFishException &ex )
+  {
+    ROS_WARN_NAMED( "qml_ros_plugin", "Failed to create empty message for datatype '%s': %s",
+                    datatype.toStdString().c_str(), ex.what());
+  }
+  return QVariant();
+}
+
+QVariant RosQml::createEmptyServiceRequest( const QString &datatype ) const
+{
+  try
+  {
+    auto message = BabelFishDispenser::getBabelFish().createServiceRequest( datatype.toStdString());
+    return conversion::msgToMap( *message );
+  }
+  catch ( ros_babel_fish::BabelFishMessageException &ex )
+  {
+    ROS_WARN_NAMED( "qml_ros_plugin", "Failed to create empty service request for datatype '%s': %s",
+                    datatype.toStdString().c_str(), ex.what());
+  }
+  catch ( ros_babel_fish::BabelFishException &ex )
+  {
+    ROS_WARN_NAMED( "qml_ros_plugin", "Failed to create empty service request for datatype '%s': %s",
+                    datatype.toStdString().c_str(), ex.what());
+  }
+  return QVariant();
+}
+
 void RosQml::checkInitialized()
 {
   if ( !ros::isInitialized()) return;
@@ -212,6 +254,16 @@ QList<TopicInfo> RosQmlSingletonWrapper::queryTopicInfo() const { return RosQml:
 QString RosQmlSingletonWrapper::queryTopicType( const QString &name ) const
 {
   return RosQml::getInstance().queryTopicType( name );
+}
+
+QVariant RosQmlSingletonWrapper::createEmptyMessage( const QString &datatype ) const
+{
+  return RosQml::getInstance().createEmptyMessage( datatype );
+}
+
+QVariant RosQmlSingletonWrapper::createEmptyServiceRequest( const QString &datatype ) const
+{
+  return RosQml::getInstance().createEmptyServiceRequest( datatype );
 }
 
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
