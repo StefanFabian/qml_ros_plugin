@@ -234,6 +234,12 @@ QVariant Array::shift()
   return result;
 }
 
+QVariantList Array::toArray()
+{
+  fillCache();
+  return p_->cache;
+}
+
 bool Array::_isModified( int index ) const
 {
   return p_->all_in_cache || (index < p_->modified.size() && p_->modified[index]);

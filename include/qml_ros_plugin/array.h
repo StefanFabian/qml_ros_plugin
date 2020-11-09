@@ -96,6 +96,13 @@ public:
    */
   Q_INVOKABLE QVariant shift();
 
+  /*!
+   * Converts the array to a QVariantList which can be used in place of a JS array in QML.
+   * This method performs a deep copy of the message array on the first call.
+   * @return The array as a QVariantList.
+   */
+  Q_INVOKABLE QVariantList toArray();
+
   /* Internal functions */
   bool _isModified( int index ) const;
 
