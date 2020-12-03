@@ -24,7 +24,7 @@ class ActionClient : public QObjectRos
 Q_OBJECT
   // @formatter:off
   //! True if the ActionClient is connected to the ActionServer, false otherwise.
-  Q_PROPERTY( QString connected READ isServerConnected NOTIFY connectedChanged )
+  Q_PROPERTY( bool connected READ isServerConnected NOTIFY connectedChanged )
   // @formatter:on
 public:
   ActionClient( NodeHandle::Ptr nh, const QString &action_type, const QString &name );

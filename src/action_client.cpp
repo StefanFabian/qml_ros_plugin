@@ -19,7 +19,7 @@ namespace qml_ros_plugin
 ActionClient::ActionClient( NodeHandle::Ptr nh, const QString &action_type, const QString &name )
 {
   babel_fish_ = BabelFishDispenser::getBabelFish();
-  nh_ = nh;
+  nh_ = std::move( nh );
   action_type_ = action_type;
   name_ = name;
 }
