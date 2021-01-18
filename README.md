@@ -165,6 +165,8 @@ cd {REPO}
 mkdir build
 cd build
 cmake ..
+# Replace 8 with the number of (virtual) cores on your machine
+make -j8
 sudo make install
 ```
 
