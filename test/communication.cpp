@@ -313,7 +313,8 @@ TEST( Communication, serviceCallAsync )
       } ));
   spinner.start();
   QJSValue obj = engine.newObject();
-  QJSValue callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+  // Check that callback is called using a watcher object that will hold the passed response
+  QJSValue callback = engine.evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
     .call( { obj } );
 
   service->callAsync( "/service", "roscpp_tutorials/TwoInts", {{ "a", 1 },
@@ -344,7 +345,7 @@ TEST( Communication, serviceCallAsync )
         return false;
       } ));
   obj = engine.newObject();
-  callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+  callback = engine.evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
     .call( { obj } );
 
   service->callAsync( "/service_false", "roscpp_tutorials/TwoInts", {{ "a", 1 },
@@ -370,7 +371,7 @@ TEST( Communication, serviceCallAsync )
         return true;
       } ));
   obj = engine.newObject();
-  callback = engine.evaluate( "function (watcher) { return function (resp) { watcher.result = resp; }; }" )
+  callback = engine.evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
     .call( { obj } );
 
   service->callAsync( "/service_empty", "std_srvs/Empty", {}, callback );
@@ -388,9 +389,9 @@ class ActionClientCallback : public QObject
 {
 Q_OBJECT
 public:
-  Q_INVOKABLE void feedbackCalled( int feedback ) { this->feedback = feedback; }
+  Q_INVOKABLE void feedbackCalled( int fb ) { this->feedback = fb; }
 
-  Q_INVOKABLE void transitionCalled( int state ) { this->state = state; }
+  Q_INVOKABLE void transitionCalled( int s ) { this->state = s; }
 
   int feedback = -1;
   int state = -1;
@@ -401,7 +402,7 @@ TEST( Communication, actionClient )
   RosQml::getInstance().setThreads( 8 ); // Enable spinner for this test
   NodeHandle::Ptr node_handle = std::make_shared<NodeHandle>();
   QJSEngine engine;
-  ActionClient *client_ptr = new ActionClient( node_handle, "ros_babel_fish_test_msgs/SimpleTestAction", "action" );
+  auto *client_ptr = new ActionClient( node_handle, "ros_babel_fish_test_msgs/SimpleTestAction", "action" );
   engine.newQObject( client_ptr );
   ActionClient &client = *client_ptr;
   EXPECT_FALSE( client.isServerConnected());
@@ -537,6 +538,7 @@ TEST( Communication, tfTransform )
   EXPECT_EQ( transform.targetFrame(), QString( "world" )) << transform.targetFrame().toStdString();
   if ( !waitFor( [ & ]()
                  {
+                   transform_stamped.header.stamp = ros::Time::now();
                    broadcaster.sendTransform( transform_stamped );
                    return transform.valid();
                  } ))
@@ -567,6 +569,7 @@ TEST( Communication, tfTransform )
   EXPECT_TRUE( transform.enabled());
   if ( !waitFor( [ & ]()
                  {
+                   transform_stamped.header.stamp = ros::Time::now();
                    broadcaster.sendTransform( transform_stamped );
                    return std::abs( transform.translation().toMap()["x"].toDouble() - 0.577 ) < 1E-4;
                  } ))
@@ -629,6 +632,7 @@ TEST( Communication, tfTransform )
   std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
   for ( int i = 0; i < 4000; ++i )
   {
+    transform_stamped.header.stamp = ros::Time::now();
     broadcaster.sendTransform( transform_stamped );
     processEvents();
     usleep( 100 );
@@ -645,6 +649,7 @@ TEST( Communication, tfTransform )
   start = std::chrono::system_clock::now();
   for ( int i = 0; i < 4000; ++i )
   {
+    transform_stamped.header.stamp = ros::Time::now();
     broadcaster.sendTransform( transform_stamped );
     processEvents();
     usleep( 100 );
