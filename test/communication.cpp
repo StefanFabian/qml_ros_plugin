@@ -441,8 +441,10 @@ TEST( Communication, actionClient )
   ASSERT_NE( handle, nullptr );
   EXPECT_NE( handle->commState(), action_comm_states::DONE );
   EXPECT_TRUE( waitFor( [ &handle ]() { return handle->commState() == action_comm_states::ACTIVE; } ));
+  RosQml::getInstance().setThreads( 0 ); // Temporarily disable spinner to avoid race condition
   handle->cancel();
   EXPECT_EQ( handle->commState(), action_comm_states::WAITING_FOR_CANCEL_ACK );
+  RosQml::getInstance().setThreads( 8 );
   EXPECT_TRUE( waitFor( [ &handle ]() { return handle->commState() == action_comm_states::DONE; } ));
   terminal_state = handle->terminalState();
   EXPECT_EQ( handle->terminalState().state(), action_terminal_states::PREEMPTED );
