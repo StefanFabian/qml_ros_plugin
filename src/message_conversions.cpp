@@ -665,11 +665,11 @@ uint32_t getCompatibleTypes( uint val )
 {
   uint32_t compatible_types = MessageTypes::UInt32 | MessageTypes::UInt64 | MessageTypes::Int64 |
                               MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( val <= limits<int8_t>::max()) compatible_types |= MessageTypes::Int8;
-  if ( val <= limits<uint8_t>::max()) compatible_types |= MessageTypes::UInt8;
-  if ( val <= limits<int16_t>::max()) compatible_types |= MessageTypes::Int16;
-  if ( val <= limits<uint16_t>::max()) compatible_types |= MessageTypes::UInt16;
-  if ( val <= limits<int32_t>::max()) compatible_types |= MessageTypes::Int32;
+  if ( val <= static_cast<uint>(limits<int8_t>::max())) compatible_types |= MessageTypes::Int8;
+  if ( val <= static_cast<uint>(limits<uint8_t>::max())) compatible_types |= MessageTypes::UInt8;
+  if ( val <= static_cast<uint>(limits<int16_t>::max())) compatible_types |= MessageTypes::Int16;
+  if ( val <= static_cast<uint>(limits<uint16_t>::max())) compatible_types |= MessageTypes::UInt16;
+  if ( val <= static_cast<uint>(limits<int32_t>::max())) compatible_types |= MessageTypes::Int32;
   return compatible_types;
 }
 
@@ -690,13 +690,13 @@ uint32_t getCompatibleTypes( qulonglong val )
 {
   uint32_t compatible_types =
     MessageTypes::UInt64 | MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( val <= limits<int8_t>::max()) compatible_types |= MessageTypes::Int8;
-  if ( val <= limits<uint8_t>::max()) compatible_types |= MessageTypes::UInt8;
-  if ( val <= limits<int16_t>::max()) compatible_types |= MessageTypes::Int16;
-  if ( val <= limits<uint16_t>::max()) compatible_types |= MessageTypes::UInt16;
-  if ( val <= limits<int32_t>::max()) compatible_types |= MessageTypes::Int32;
-  if ( val <= limits<uint32_t>::max()) compatible_types |= MessageTypes::UInt32;
-  if ( val <= limits<int64_t>::max()) compatible_types |= MessageTypes::Int64;
+  if ( val <= static_cast<qulonglong>(limits<int8_t>::max())) compatible_types |= MessageTypes::Int8;
+  if ( val <= static_cast<qulonglong>(limits<uint8_t>::max())) compatible_types |= MessageTypes::UInt8;
+  if ( val <= static_cast<qulonglong>(limits<int16_t>::max())) compatible_types |= MessageTypes::Int16;
+  if ( val <= static_cast<qulonglong>(limits<uint16_t>::max())) compatible_types |= MessageTypes::UInt16;
+  if ( val <= static_cast<qulonglong>(limits<int32_t>::max())) compatible_types |= MessageTypes::Int32;
+  if ( val <= static_cast<qulonglong>(limits<uint32_t>::max())) compatible_types |= MessageTypes::UInt32;
+  if ( val <= static_cast<qulonglong>(limits<int64_t>::max())) compatible_types |= MessageTypes::Int64;
   return compatible_types;
 }
 
