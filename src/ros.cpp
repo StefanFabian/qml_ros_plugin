@@ -367,7 +367,7 @@ QJSValue RosQmlSingletonWrapper::createLogFunction( ros_console_levels::RosConso
   auto engine = qjsEngine( this );
   if ( !engine ) return {};
   // This function extracts the file, method and number which called the log function in order to accurately report it.
-  QJSValue func = engine->evaluate( R"js(function (__ros_instance) {
+  QJSValue func = engine->evaluate( R"js((function (__ros_instance) {
   return (function (msg, name) {
     var stack = new Error().stack.split('\n');
     if (stack && stack.length >= 2) {
@@ -385,7 +385,7 @@ QJSValue RosQmlSingletonWrapper::createLogFunction( ros_console_levels::RosConso
     }
     __ros_instance.logInternal()js" + QString::number( level ) + R"js(, method, file, Number(line), msg, name);
   });
-})js" );
+}))js" );
   return func.call( { engine->newQObject( this ) } );
 }
 } // qml_ros_plugin
