@@ -6,7 +6,7 @@ import Ros 1.0
 
 ApplicationWindow {
   id: page
-  width: 620
+  width: 1200
   height: 400
 
   // This connection makes sure the application exits if this ROS node is requested to shutdown
@@ -15,29 +15,31 @@ ApplicationWindow {
     onShutdown: Qt.quit()
   }
 
-  ColumnLayout {
+  property var time: Time.now()
+  property var wallTime: WallTime.now()
+
+  GridLayout {
     anchors.fill: parent
     anchors.margins: 12
+    columns: 2
 
-    Text {
-      id: timeText
-      text: "Time: " + Time.now()
-    }
+    Text {      text: "Time"    }
+    Text {      text: "WallTime"    }
 
-    Text {
-      
-    }
+    Text { text: "sec: " + page.time.sec }
+    Text { text: "sec: " + page.wallTime.sec }
 
-    Text {
-      id: wallTimeText
-      text: "WallTime: " + WallTime.now()
-    }
+    Text { text: "nsec: " + page.time.nsec }
+    Text { text: "nsec: " + page.wallTime.nsec }
+
+    Text { text: "Date: " + page.time.toJSDate() }
+    Text { text: "Date: " + page.wallTime.toJSDate() }
 
     Button {
       text: "Update"
       onClicked: {
-        timeText.text = "Time: " + Time.now()
-        wallTimeText.text = "WallTime: " + WallTime.now()
+        page.time = Time.now()
+        page.wallTime = WallTime.now()
       }
     }
   }

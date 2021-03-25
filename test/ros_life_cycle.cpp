@@ -34,18 +34,18 @@ TEST( RosLifeCycle, testLifeCycle )
   int argc = 0;
   QCoreApplication app( argc, nullptr );
   qml_ros_plugin::RosQmlSingletonWrapper ros_wrapper;
-  qml_ros_plugin::WallTime wall_time;
-  qml_ros_plugin::Time time;
+  qml_ros_plugin::WallTimeSingleton wall_time;
+  qml_ros_plugin::TimeSingleton time;
+  qml_ros_plugin::TfTransformListenerWrapper tf_wrapper;
   qml_ros_plugin::NodeHandle::Ptr qml_nh = std::make_shared<qml_ros_plugin::NodeHandle>( "test_ns" );
   EXPECT_FALSE( ros_wrapper.isInitialized());
   EXPECT_FALSE( RosQml::getInstance().isInitialized());
   EXPECT_FALSE( qml_ros_plugin::TfTransformListener::getInstance().isInitialized());
   EXPECT_EQ(
-    qml_ros_plugin::TfTransformListener::getInstance().lookUpTransform( "frame2", "frame1" )["exception"].toString(),
+    tf_wrapper.lookUpTransform( "frame2", "frame1" )["exception"].toString(),
     QString( "Uninitialized" ));
   EXPECT_EQ(
-    qml_ros_plugin::TfTransformListener::getInstance().lookUpTransform( "frame2", QDateTime(), "frame1", QDateTime(),
-                                                                        "frame1" )["exception"].toString(),
+    tf_wrapper.lookUpTransform( "frame2", QDateTime(), "frame1", QDateTime(),                                                                        "frame1" )["exception"].toString(),
     QString( "Uninitialized" ));
   auto publisher_before_init = dynamic_cast<qml_ros_plugin::Publisher *>(qml_nh->advertise( "geometry_msgs/PoseStamped",
                                                                                             "/pose_stamped", 10 ));
@@ -54,12 +54,10 @@ TEST( RosLifeCycle, testLifeCycle )
   QCoreApplication::processEvents();
   EXPECT_FALSE( time.isInitialized());
   EXPECT_FALSE( time.isValid());
-  EXPECT_TRUE( wall_time.now().isValid());
   EXPECT_FALSE( qml_nh->isInitialized());
   EXPECT_FALSE( qml_nh->isReady());
   EXPECT_FALSE( publisher_before_init->isAdvertised());
   QCoreApplication::processEvents();
-  EXPECT_FALSE( time.now().isValid());
   EXPECT_FALSE( mock_ros.initialized );
 
   // Initialize ROS
@@ -85,14 +83,13 @@ TEST( RosLifeCycle, testLifeCycle )
   QCoreApplication::processEvents();
 
   EXPECT_TRUE( time.isValid());
-  EXPECT_TRUE( time.now().isValid());
+  EXPECT_TRUE( time.now().value<Time>().toJSDate().isValid());
   EXPECT_TRUE( qml_nh->isReady());
   EXPECT_TRUE( publisher_before_init->isAdvertised());
   auto publisher_after_init = dynamic_cast<qml_ros_plugin::Publisher *>(qml_nh->advertise( "geometry_msgs/PoseStamped",
                                                                                            "/pose_stamped2", 10 ));
   EXPECT_TRUE( publisher_after_init->isAdvertised());
   QCoreApplication::processEvents();
-  EXPECT_EQ( time.now().type(), QVariant::DateTime );
   EXPECT_EQ( qml_nh->nodeHandle().getNamespace(), "/test_ns" );
   EXPECT_EQ( qml_nh->ns(), QString( "/test_ns" ));
   EXPECT_TRUE( mock_ros.initialized );

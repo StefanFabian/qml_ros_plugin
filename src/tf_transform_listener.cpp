@@ -51,19 +51,19 @@ void TfTransformListener::onTransformChanged()
 }
 
 QVariant TfTransformListener::canTransform( const QString &target_frame, const QString &source_frame,
-                                            const QDateTime &time, double timeout ) const
+                                            const ros::Time &time, double timeout ) const
 {
   if ( !isInitialized()) return QString( "Uninitialized" );
   std::string error;
   bool result;
   if ( timeout <= 0.0000001 )
   {
-    result = state_->buffer.canTransform( target_frame.toStdString(), source_frame.toStdString(), qmlToRosTime( time ),
+    result = state_->buffer.canTransform( target_frame.toStdString(), source_frame.toStdString(), time,
                                           &error );
   }
   else
   {
-    result = state_->buffer.canTransform( target_frame.toStdString(), source_frame.toStdString(), qmlToRosTime( time ),
+    result = state_->buffer.canTransform( target_frame.toStdString(), source_frame.toStdString(), time,
                                           qmlToRosDuration( timeout ), &error );
   }
   if ( result ) return true;
@@ -71,8 +71,8 @@ QVariant TfTransformListener::canTransform( const QString &target_frame, const Q
   return QString::fromStdString( error );
 }
 
-QVariant TfTransformListener::canTransform( const QString &target_frame, const QDateTime &target_time,
-                                            const QString &source_frame, const QDateTime &source_time,
+QVariant TfTransformListener::canTransform( const QString &target_frame, const ros::Time &target_time,
+                                            const QString &source_frame, const ros::Time &source_time,
                                             const QString &fixed_frame, double timeout ) const
 {
   if ( !isInitialized()) return QString( "Uninitialized" );
@@ -80,14 +80,14 @@ QVariant TfTransformListener::canTransform( const QString &target_frame, const Q
   bool result;
   if ( timeout <= 0.0000001 )
   {
-    result = state_->buffer.canTransform( target_frame.toStdString(), qmlToRosTime( target_time ),
-                                          source_frame.toStdString(), qmlToRosTime( source_time ),
+    result = state_->buffer.canTransform( target_frame.toStdString(), target_time,
+                                          source_frame.toStdString(), source_time,
                                           fixed_frame.toStdString(), &error );
   }
   else
   {
-    result = state_->buffer.canTransform( target_frame.toStdString(), qmlToRosTime( target_time ),
-                                          source_frame.toStdString(), qmlToRosTime( source_time ),
+    result = state_->buffer.canTransform( target_frame.toStdString(), target_time,
+                                          source_frame.toStdString(), source_time,
                                           fixed_frame.toStdString(), qmlToRosDuration( timeout ), &error );
   }
   if ( result ) return true;
@@ -96,7 +96,7 @@ QVariant TfTransformListener::canTransform( const QString &target_frame, const Q
 }
 
 QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, const QString &source_frame,
-                                                  const QDateTime &time, double timeout )
+                                                  const ros::Time &time, double timeout )
 {
   geometry_msgs::TransformStamped transform;
   if ( !isInitialized())
@@ -111,13 +111,12 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
   {
     if ( timeout <= 1E-6 )
     {
-      transform = state_->buffer.lookupTransform( target_frame.toStdString(), source_frame.toStdString(),
-                                                  qmlToRosTime( time ));
+      transform = state_->buffer.lookupTransform( target_frame.toStdString(), source_frame.toStdString(), time );
     }
     else
     {
       transform = state_->buffer.lookupTransform( target_frame.toStdString(), source_frame.toStdString(),
-                                                  qmlToRosTime( time ), qmlToRosDuration( timeout ));
+                                                  time, qmlToRosDuration( timeout ));
     }
     QVariantMap result = msgToMap( transform );
     result.insert( "valid", true );
@@ -157,8 +156,8 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
   }
 }
 
-QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, const QDateTime &target_time,
-                                                  const QString &source_frame, const QDateTime &source_time,
+QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, const ros::Time &target_time,
+                                                  const QString &source_frame, const ros::Time &source_time,
                                                   const QString &fixed_frame, double timeout )
 {
   geometry_msgs::TransformStamped transform;
@@ -174,14 +173,14 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
   {
     if ( timeout <= 0.0000001 )
     {
-      transform = state_->buffer.lookupTransform( target_frame.toStdString(), qmlToRosTime( target_time ),
-                                                  source_frame.toStdString(), qmlToRosTime( source_time ),
+      transform = state_->buffer.lookupTransform( target_frame.toStdString(), target_time,
+                                                  source_frame.toStdString(), source_time,
                                                   fixed_frame.toStdString());
     }
     else
     {
-      transform = state_->buffer.lookupTransform( target_frame.toStdString(), qmlToRosTime( target_time ),
-                                                  source_frame.toStdString(), qmlToRosTime( source_time ),
+      transform = state_->buffer.lookupTransform( target_frame.toStdString(), target_time,
+                                                  source_frame.toStdString(), source_time,
                                                   fixed_frame.toStdString(), qmlToRosDuration( timeout ));
     }
     QVariantMap result = msgToMap( transform );
@@ -231,28 +230,61 @@ TfTransformListenerWrapper::TfTransformListenerWrapper()
 QVariantMap TfTransformListenerWrapper::lookUpTransform( const QString &target_frame, const QString &source_frame,
                                                          const QDateTime &time, double timeout )
 {
-  return TfTransformListener::getInstance().lookUpTransform( target_frame, source_frame, time, timeout );
+  return TfTransformListener::getInstance().lookUpTransform( target_frame, source_frame,
+                                                             qmlToRosTime( time ), timeout );
+}
+
+QVariantMap TfTransformListenerWrapper::lookUpTransform( const QString &target_frame, const QString &source_frame,
+                                                         const Time &time, double timeout )
+{
+  return TfTransformListener::getInstance().lookUpTransform( target_frame, source_frame, time.getRosTime(), timeout );
 }
 
 QVariantMap TfTransformListenerWrapper::lookUpTransform( const QString &target_frame, const QDateTime &target_time,
                                                          const QString &source_frame, const QDateTime &source_time,
                                                          const QString &fixed_frame, double timeout )
 {
-  return TfTransformListener::getInstance().lookUpTransform( target_frame, target_time, source_frame,
-                                                             source_time, fixed_frame, timeout );
+  return TfTransformListener::getInstance().lookUpTransform( target_frame, qmlToRosTime( target_time ),
+                                                             source_frame, qmlToRosTime( source_time ),
+                                                             fixed_frame, timeout );
+}
+
+QVariantMap TfTransformListenerWrapper::lookUpTransform( const QString &target_frame, const Time &target_time,
+                                                         const QString &source_frame, const Time &source_time,
+                                                         const QString &fixed_frame, double timeout )
+{
+  return TfTransformListener::getInstance().lookUpTransform( target_frame, target_time.getRosTime(),
+                                                             source_frame, source_time.getRosTime(),
+                                                             fixed_frame, timeout );
 }
 
 QVariant TfTransformListenerWrapper::canTransform( const QString &target_frame, const QString &source_frame,
                                                    const QDateTime &time, double timeout ) const
 {
-  return TfTransformListener::getInstance().canTransform( target_frame, source_frame, time, timeout );
+  return TfTransformListener::getInstance().canTransform( target_frame, source_frame, qmlToRosTime( time ), timeout );
+}
+
+QVariant TfTransformListenerWrapper::canTransform( const QString &target_frame, const QString &source_frame,
+                                                   const Time &time, double timeout ) const
+{
+  return TfTransformListener::getInstance().canTransform( target_frame, source_frame, time.getRosTime(), timeout );
 }
 
 QVariant TfTransformListenerWrapper::canTransform( const QString &target_frame, const QDateTime &target_time,
                                                    const QString &source_frame, const QDateTime &source_time,
                                                    const QString &fixed_frame, double timeout ) const
 {
-  return TfTransformListener::getInstance().canTransform( target_frame, target_time, source_frame, source_time,
+  return TfTransformListener::getInstance().canTransform( target_frame, qmlToRosTime( target_time ),
+                                                          source_frame, qmlToRosTime( source_time ),
+                                                          fixed_frame, timeout );
+}
+
+QVariant TfTransformListenerWrapper::canTransform( const QString &target_frame, const Time &target_time,
+                                                   const QString &source_frame, const Time &source_time,
+                                                   const QString &fixed_frame, double timeout ) const
+{
+  return TfTransformListener::getInstance().canTransform( target_frame, target_time.getRosTime(),
+                                                          source_frame, source_time.getRosTime(),
                                                           fixed_frame, timeout );
 }
 }

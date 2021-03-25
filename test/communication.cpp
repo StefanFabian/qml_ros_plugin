@@ -590,8 +590,8 @@ TEST( Communication, tfTransform )
   EXPECT_TRUE( can_transform.toBool());
 
   EXPECT_TRUE( mapAndMessageEqual( wrapper.lookUpTransform( "world", "base", QDateTime(), 500 ), transform_stamped ));
-  QVariantMap lookup_result = wrapper.lookUpTransform( "world", rosToQmlTime( transform_stamped.header.stamp ),
-                                                       "base", rosToQmlTime( transform_stamped.header.stamp ),
+  QVariantMap lookup_result = wrapper.lookUpTransform( "world", Time( transform_stamped.header.stamp ),
+                                                       "base", Time( transform_stamped.header.stamp ),
                                                        "world" );
   ASSERT_TRUE( lookup_result["valid"].toBool())
             << lookup_result["exception"].toString().toStdString() << std::endl

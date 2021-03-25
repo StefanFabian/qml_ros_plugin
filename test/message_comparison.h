@@ -9,6 +9,7 @@
 
 #include <qml_ros_plugin/array.h>
 #include <qml_ros_plugin/qml_ros_conversion.h>
+#include <qml_ros_plugin/time.h>
 
 #include <geometry_msgs/TransformStamped.h>
 #include <ros_babel_fish/message_types.h>
@@ -85,13 +86,12 @@ mapAndMessageEqual( const QVariant &map, std::string msg, const std::string &pat
 
 template<>
 ::testing::AssertionResult
-mapAndMessageEqual( const QVariant &map, ros::Time msg, const std::string &path, double )
+mapAndMessageEqual( const QVariant &map, ros::Time msg, const std::string &path, double precision)
 {
-  qint64 msec_since_epoch = msg.sec * 1000L + msg.nsec / 1000000;
-  if ( map.toDateTime() == QDateTime::fromMSecsSinceEpoch( msec_since_epoch )) return ::testing::AssertionSuccess();
+  if ( std::abs(map.value<Time>().toSec() - msg.toSec()) <= precision ) return ::testing::AssertionSuccess();
   return ::testing::AssertionFailure() << "Map at " << path << " differed!" << std::endl
-                                       << "Map: " << map.toDateTime().toMSecsSinceEpoch() << std::endl
-                                       << "Message: " << msec_since_epoch;
+                                       << "Map: " << map.value<Time>().getRosTime() << std::endl
+                                       << "Message: " << msg;
 }
 
 template<>
@@ -108,17 +108,17 @@ mapAndMessageEqual( const QVariant &map, ros::Duration msg, const std::string &p
 
 template<>
 ::testing::AssertionResult
-mapAndMessageEqual( const QVariant &map, std_msgs::Header msg, const std::string &path, double )
+mapAndMessageEqual( const QVariant &map, std_msgs::Header msg, const std::string &path, double precision )
 {
   if ( map.toMap()["frame_id"].toString().toStdString() != msg.frame_id )
     return ::testing::AssertionFailure() << "Map at " << path << ".frame_id differed!" << std::endl
                                          << "Map: " << map.toMap()["frame_id"].toString().toStdString() << std::endl
                                          << "Message: " << msg.frame_id;
-  if ( map.toMap()["stamp"].toDateTime() != rosToQmlTime( msg.stamp ))
+  if ( std::abs( map.toMap()["stamp"].value<Time>().toSec() - msg.stamp.toSec()) > precision )
     return ::testing::AssertionFailure() << "Map at " << path << ".stamp differed!" << std::endl
-                                         << "Map: " << map.toMap()["stamp"].toDateTime().toMSecsSinceEpoch()
+                                         << "Map: " << map.toMap()["stamp"].value<Time>().toSec()
                                          << std::endl
-                                         << "Message: " << msg.stamp.toSec() * 1000;
+                                         << "Message: " << msg.stamp.toSec();
   return ::testing::AssertionSuccess();
 }
 
@@ -155,12 +155,13 @@ mapAndMessageEqual( const QVariant &map, TestMessage msg, const std::string &pat
                                          << map.toHash()["header"].toHash()["frame_id"].toString().toStdString()
                                          << std::endl
                                          << "Message: " << msg.header.frame_id;
-  if ( map.toHash()["header"].toHash()["stamp"].toDateTime() != rosToQmlTime( msg.header.stamp ))
+  if ( std::abs( map.toHash()["header"].toHash()["stamp"].value<Time>().toSec() - msg.header.stamp.toSec()) >
+       precision )
     return ::testing::AssertionFailure() << "Map at " << path << ".header.stamp differed!" << std::endl
                                          << "Map: "
-                                         << map.toHash()["header"].toHash()["stamp"].toDateTime().toMSecsSinceEpoch()
+                                         << map.toHash()["header"].toHash()["stamp"].value<Time>().toSec()
                                          << std::endl
-                                         << "Message: " << msg.header.stamp.toSec() * 1000;
+                                         << "Message: " << msg.header.stamp.toSec();
   ::testing::AssertionResult result = ::testing::AssertionSuccess();
   if ( !(result = mapAndMessageEqual( map.toHash()["b"], msg.b, path + ".b", precision )))return result;
   if ( !(result = mapAndMessageEqual( map.toHash()["ui8"], msg.ui8, path + ".ui8", precision )))return result;
@@ -307,7 +308,7 @@ template<>
                                          << std::endl
                                          << "Map: " << compound["header"]["frame_id"].value<std::string>() << std::endl
                                          << "Message: " << msg.header.frame_id;
-  if ( compound["header"]["stamp"].value<ros::Time>() != msg.header.stamp )
+  if ( std::abs( compound["header"]["stamp"].value<ros::Time>().toSec() - msg.header.stamp.toSec()) > precision )
     return ::testing::AssertionFailure() << "Retranslated message differed at " << path << ".header.frame_id!"
                                          << std::endl
                                          << "Map: " << compound["header"]["stamp"].value<ros::Time>() << std::endl

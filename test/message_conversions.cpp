@@ -42,7 +42,7 @@ TEST( MessageConversion, msgToMapHeader )
   EXPECT_EQ( map["seq"].toUInt( &ok ), msg.seq );
   EXPECT_TRUE( ok );
   ASSERT_TRUE( map.contains( "stamp" ));
-  EXPECT_EQ( map["stamp"].toDateTime(), QDateTime::fromMSecsSinceEpoch( 1336 ));
+  EXPECT_EQ( map["stamp"].value<Time>().getRosTime(), msg.stamp );
   Message::Ptr bf_msg = fish.createMessage( "std_msgs/Header" );
   EXPECT_TRUE( fillMessage( *bf_msg, map ));
   auto &compound = bf_msg->as<CompoundMessage>();
@@ -51,9 +51,7 @@ TEST( MessageConversion, msgToMapHeader )
   ASSERT_TRUE( compound.containsKey( "seq" ));
   EXPECT_EQ( compound["seq"].value<uint32_t>(), msg.seq );
   ASSERT_TRUE( compound.containsKey( "stamp" ));
-  // A rounding is expected for the time since QML can not represent time more fine-grained than milliseconds
-  // It is always rounded down to prevent issues with look ups into the future etc.
-  EXPECT_EQ( compound["stamp"].value<ros::Time>(), ros::Time( 1, 336 * 1000 * 1000 ));
+  EXPECT_EQ( compound["stamp"].value<ros::Time>(), msg.stamp );
 }
 
 TEST( MessageConversion, msgToMapTransformStamped )
@@ -76,7 +74,7 @@ TEST( MessageConversion, msgToMapTransformStamped )
   bool ok = false;
   EXPECT_EQ( map["header"].toHash()["seq"].toUInt( &ok ), msg.header.seq );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["header"].toHash()["stamp"].toDateTime(), QDateTime::fromSecsSinceEpoch( 42 ));
+  EXPECT_EQ( map["header"].toHash()["stamp"].value<Time>().getRosTime(), ros::Time( 42 ));
   EXPECT_EQ( map["child_frame_id"].toString().toStdString(), msg.child_frame_id );
   EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["x"].toDouble( &ok ), msg.transform.translation.x );
   EXPECT_TRUE( ok );
@@ -119,7 +117,7 @@ TEST( MessageConversion, msgToMapGoalID )
   ASSERT_TRUE( map.contains( "id" ));
   EXPECT_EQ( map["id"].toString().toStdString(), msg.id );
   ASSERT_TRUE( map.contains( "stamp" ));
-  EXPECT_EQ( map["stamp"].toDateTime(), QDateTime::fromSecsSinceEpoch( 1337 ));
+  EXPECT_EQ( map["stamp"].value<Time>().getRosTime(), msg.stamp );
 }
 
 TEST( MessageConversion, msgToMapGoalStatus )
@@ -133,7 +131,7 @@ TEST( MessageConversion, msgToMapGoalStatus )
   QVariantMap map = msgToMap( msg );
   ASSERT_TRUE( map.contains( "goal_id" ));
   EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["id"].toString().toStdString(), msg.goal_id.id );
-  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["stamp"].toDateTime(),
+  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["stamp"].value<Time>().toJSDate(),
              QDateTime::fromSecsSinceEpoch( 1337 ));
   ASSERT_TRUE( map.contains( "text" ));
   EXPECT_EQ( map["text"].toString().toStdString(), msg.text );

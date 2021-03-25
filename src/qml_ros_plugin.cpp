@@ -39,6 +39,8 @@ public:
     qmlRegisterType<Console>();
     qmlRegisterType<IO>();
     qmlRegisterType<Package>();
+    qmlRegisterType<Time>();
+    qmlRegisterType<WallTime>();
     qmlRegisterUncreatableMetaObject( ros_init_options::staticMetaObject, "Ros", 1, 0, "RosInitOptions",
                                       "Error: Can not create enum object." );
     qmlRegisterUncreatableMetaObject( ros_console_levels::staticMetaObject, "Ros", 1, 0, "RosConsoleLevels",
@@ -73,20 +75,20 @@ public:
                                                             return new TfTransformListenerWrapper;
                                                           } );
     qmlRegisterType<TfTransform>( "Ros", 1, 0, "TfTransform" );
-    qmlRegisterSingletonType<Time>( "Ros", 1, 0, "Time",
-                                    []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
-                                    {
-                                      Q_UNUSED( engine );
-                                      Q_UNUSED( scriptEngine );
-                                      return new Time();
-                                    } );
-    qmlRegisterSingletonType<WallTime>( "Ros", 1, 0, "WallTime",
-                                        []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
-                                        {
-                                          Q_UNUSED( engine );
-                                          Q_UNUSED( scriptEngine );
-                                          return new WallTime();
-                                        } );
+    qmlRegisterSingletonType<TimeSingleton>( "Ros", 1, 0, "Time",
+                                             []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
+                                             {
+                                               Q_UNUSED( engine );
+                                               Q_UNUSED( scriptEngine );
+                                               return new TimeSingleton();
+                                             } );
+    qmlRegisterSingletonType<WallTimeSingleton>( "Ros", 1, 0, "WallTime",
+                                                 []( QQmlEngine *engine, QJSEngine *scriptEngine ) -> QObject *
+                                                 {
+                                                   Q_UNUSED( engine );
+                                                   Q_UNUSED( scriptEngine );
+                                                   return new WallTimeSingleton();
+                                                 } );
 
     // Image transport
     qmlRegisterType<ImageTransportSubscriber>( "Ros", 1, 0, "ImageTransportSubscriber" );

@@ -23,6 +23,8 @@
 #ifndef QVARIANT_YAML_CONVERSION_H
 #define QVARIANT_YAML_CONVERSION_H
 
+#include "qml_ros_plugin/time.h"
+
 #include <QAbstractListModel>
 #include <QDateTime>
 #include <QMetaProperty>
@@ -31,6 +33,28 @@
 
 namespace YAML
 {
+template<>
+struct convert<qml_ros_plugin::Time>
+{
+  static Node encode( const qml_ros_plugin::Time &time )
+  {
+    YAML::Node result;
+    result["sec"] = time.getRosTime().sec;
+    result["nsec"] = time.getRosTime().nsec;
+    return result;
+  }
+
+  static bool decode( const Node &node, qml_ros_plugin::Time &out )
+  {
+    if ( !node.IsMap()) return false;
+    uint32_t sec, nsec;
+    sec = node["sec"].as<uint32_t>();
+    nsec = node["nsec"].as<uint32_t>();
+    out = qml_ros_plugin::Time( ros::Time( sec, nsec ));
+    return true;
+  }
+};
+
 template<>
 struct convert<QVariantMap>
 {
@@ -122,7 +146,7 @@ struct convert<QVariant>
   static Node encode( const QVariant &variant )
   {
     YAML::Node result;
-    if (variant.type() == QVariant::UserType && variant.userType() == qMetaTypeId<QJSValue>())
+    if ( variant.type() == QVariant::UserType && variant.userType() == qMetaTypeId<QJSValue>())
     {
       // Need to unwrap QJSValue because it can be cast to both QVariantList and QVariantMap but will be empty if it is
       // not the contained type.
@@ -139,6 +163,11 @@ struct convert<QVariant>
     {
       const auto &map = variant.value<QVariantMap>();
       result = map;
+      return result;
+    }
+    else if ( variant.canConvert<qml_ros_plugin::Time>())
+    {
+      result = variant.value<qml_ros_plugin::Time>();
       return result;
     }
     else if ( variant.canConvert<QDateTime>() && variant.value<QDateTime>().isValid())
@@ -229,6 +258,14 @@ struct convert<QVariant>
       }
       case YAML::NodeType::Map:
       {
+        try
+        {
+          if ( node.size() == 2 && node["sec"].IsDefined() && node["nsec"].IsDefined())
+          {
+            out = QVariant::fromValue( node.as<qml_ros_plugin::Time>());
+            return true;
+          }
+        } catch ( YAML::BadConversion & ) { }
         out = node.as<QVariantMap>();
         return true;
       }

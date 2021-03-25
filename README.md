@@ -155,9 +155,6 @@ Item {
 This component can be used to watch a transform. Whenever the transform changes, the message and the properties of the
 TfTransform change and the changes are propagated by QML.
 
-### Known Limitations
-The QDateTime object used to map ros::Time does not support microsecond accuracy, hence, information about microseconds and nanoseconds is lost.
-
 ### Installation
 Clone this repo and its dependencies into your workspace.
 ```bash
@@ -174,7 +171,9 @@ sudo make install
 * [ros_babel_fish](https://github.com/StefanFabian/ros_babel_fish)
 
 ### Documentation
-You can find the documentation on [readthedocs.io](https://qml-ros-plugin.readthedocs.io/en/latest/index.html) or build it yourself.
+You can find the documentation on [readthedocs.io](https://qml-ros-plugin.readthedocs.io/en/latest/index.html).
+
+Alternatively, you can follow the steps below to build it yourself.
 #### Dependencies
 * Doxygen
 * Sphinx

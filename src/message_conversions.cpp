@@ -5,6 +5,7 @@
 #include "qml_ros_plugin/array.h"
 #include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/qml_ros_conversion.h"
+#include "qml_ros_plugin/time.h"
 
 #include <QAbstractListModel>
 #include <QDateTime>
@@ -24,7 +25,7 @@ QVariantMap msgToMap( const std_msgs::Header &msg )
 {
   QVariantMap result;
   result.insert( "frame_id", QString::fromStdString( msg.frame_id ));
-  result.insert( "stamp", rosToQmlTime( msg.stamp ));
+  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp )));
   result.insert( "seq", msg.seq );
   return result;
 }
@@ -69,7 +70,7 @@ QVariantMap msgToMap( const actionlib_msgs::GoalID &msg )
 {
   QVariantMap result;
   result.insert( "id", QString::fromStdString( msg.id ));
-  result.insert( "stamp", rosToQmlTime( msg.stamp ));
+  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp )));
   return result;
 }
 
@@ -131,7 +132,7 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
       return QVariant::fromValue( QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue()));
     case MessageTypes::Time:
     {
-      return QVariant::fromValue( rosToQmlTime( msg.value<ros::Time>()));
+      return QVariant::fromValue( Time( msg.value<ros::Time>()));
     }
     case MessageTypes::Duration:
       return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
@@ -178,7 +179,7 @@ QVariantList msgToList<ros::Time>( const ArrayMessageBase &array )
   auto &typed_array = array.as<ArrayMessage<ros::Time>>();
   for ( size_t i = 0; i < array.length(); ++i )
   {
-    result.append( QVariant::fromValue( rosToQmlTime( typed_array[i] )));
+    result.append( QVariant::fromValue( Time( typed_array[i] )));
   }
   return result;
 }
@@ -275,7 +276,7 @@ QVariant msgToMap( const Message &msg )
       return QVariant::fromValue( QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue()));
     case MessageTypes::Time:
     {
-      return QVariant::fromValue( rosToQmlTime( msg.value<ros::Time>()));
+      return QVariant::fromValue( Time( msg.value<ros::Time>()));
     }
     case MessageTypes::Duration:
       return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
@@ -490,7 +491,8 @@ bool isCompatible<ros::Time>( const QVariant &variant )
 {
   return variant.type() == QVariant::Double || variant.type() == QVariant::UInt || variant.type() == QVariant::Int ||
          variant.type() == QVariant::ULongLong || variant.type() == QVariant::LongLong ||
-         variant.type() == QVariant::DateTime;
+         variant.type() == QVariant::DateTime || variant.typeName() == std::string( "qml_ros_plugin::Time" ) ||
+         variant.typeName() == std::string( "qml_ros_plugin::WallTime" );
 }
 
 template<>
@@ -558,6 +560,12 @@ ros::Time getValue<ros::Time>( const QVariant &variant )
     case QVariant::Date:
     case QVariant::Time:
     default:
+      if ( variant.canConvert<Time>()) return variant.value<Time>().getRosTime();
+      if ( variant.canConvert<WallTime>())
+      {
+        ros::WallTime wall_time = variant.value<WallTime>().getRosTime();
+        return { wall_time.sec, wall_time.nsec };
+      }
       ROS_WARN_STREAM( "Tried to get ros::Time from incompatible type! Type: " << variant.typeName());
       return {};
   }
@@ -1039,6 +1047,15 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     case QVariant::Time:
     case QVariant::Char:
     default:
+      if ( value.canConvert<Time>())
+      {
+        return fillValue<ros::Time>( msg, value.value<Time>().getRosTime(), MessageTypes::Time );
+      }
+      if ( value.canConvert<WallTime>())
+      {
+        ros::WallTime wall_time = value.value<WallTime>().getRosTime();
+        return fillValue<ros::Time>( msg, ros::Time( wall_time.sec, wall_time.nsec ), MessageTypes::Time );
+      }
       ROS_WARN( "Unsupported QVariant type '%s' encountered while filling message!", value.typeName());
       break;
   }

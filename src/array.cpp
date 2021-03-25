@@ -4,6 +4,7 @@
 #include "qml_ros_plugin/array.h"
 #include "qml_ros_plugin/message_conversions.h"
 #include "qml_ros_plugin/qml_ros_conversion.h"
+#include "qml_ros_plugin/time.h"
 
 using namespace qml_ros_plugin::conversion;
 using namespace ros_babel_fish;
@@ -63,7 +64,7 @@ QVariant getElement<ros::Time>( const ArrayMessageBase *array, int index )
 {
   if ( static_cast<size_t>(index) >= array->length())
     return QVariant::fromValue( QDateTime::fromMSecsSinceEpoch( 0 ));
-  return QVariant::fromValue( rosToQmlTime( array->as<ArrayMessage<ros::Time>>()[index] ));
+  return QVariant::fromValue( Time( array->as<ArrayMessage<ros::Time>>()[index] ));
 }
 
 template<>
