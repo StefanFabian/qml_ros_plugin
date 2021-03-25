@@ -24,7 +24,7 @@ C++ entry, you can also do it in QML, e.g., in the ``onCompleted`` handler:
   }
 
 You can also conditionally initialize by checking if it was already initialized using ``Ros.isInitialized``.
-As described in the API documentation for `init`_, you can pass either just the
+As described in the API documentation for :cpp:func:`Ros.init <qml_ros_plugin::RosQmlSingletonWrapper::init>`, you can pass either just the
 node name or additionally use provided command line args instead of the command
 line args provided to your executable. In both cases, you can also pass the
 following ``RosInitOptions`` options:
@@ -81,6 +81,7 @@ Create Empty Message
 You can also create empty messages and service requests as javascript objects using the ``Ros`` singleton.
 
 .. code-block:: qml
+
   var message = Ros.createEmptyMessage("geometry_msgs/Point")
   // This creates an empty instance of the mssage, we can override the fields
   message.x = 1; message.y = 2; message.z = 1

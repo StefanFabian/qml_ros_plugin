@@ -48,8 +48,3 @@ Publisher
 =========
 .. doxygenclass:: qml_ros_plugin::Publisher
   :members:
-
-SingleSubscriberPublisher
-=========================
-.. doxygenclass:: qml_ros_plugin::SingleSubscriberPublisher
-  :members:

@@ -28,7 +28,7 @@ else:
 # -- Project information -----------------------------------------------------
 
 project = 'QML ROS Plugin'
-copyright = '2019, Stefan Fabian'
+copyright = '2019-2021, Stefan Fabian'
 author = 'Stefan Fabian'
 
 
@@ -46,7 +46,7 @@ extensions = [
 todo_include_todos = True
 
 # Breathe Configuration
-breathe_projects = { "project" : os.path.abspath("xml") }
+breathe_projects = {"project": os.path.abspath("xml")}
 breathe_default_project = "project"
 
 # If true, current module path is prepended to all description unit titles
@@ -67,7 +67,7 @@ exclude_patterns = []
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Tell sphinx what the primary language being documented is.
 primary_domain = 'cpp'
