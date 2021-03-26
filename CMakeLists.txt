@@ -47,6 +47,7 @@ set(SOURCES
   include/qml_ros_plugin/console.h
   include/qml_ros_plugin/goal_handle.h
   include/qml_ros_plugin/image_buffer.h
+  include/qml_ros_plugin/image_transport_manager.h
   include/qml_ros_plugin/image_transport_subscriber.h
   include/qml_ros_plugin/io.h
   include/qml_ros_plugin/message_conversions.h
@@ -68,6 +69,7 @@ set(SOURCES
   src/console.cpp
   src/goal_handle.cpp
   src/image_buffer.cpp
+  src/image_transport_manager.cpp
   src/image_transport_subscriber.cpp
   src/io.cpp
   src/message_conversions.cpp

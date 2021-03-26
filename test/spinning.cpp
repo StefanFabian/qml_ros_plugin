@@ -44,12 +44,12 @@ TEST( Spinning, testSpinning )
   ASSERT_TRUE( subscriber->message().isValid());
   EXPECT_EQ( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 1.12 );
 
-  qml_ros_plugin::RosQml::getInstance().setThreads( 0 ); // Disable async spinner
+  ros_wrapper.setThreads( 0 ); // Disable async spinner
   pose_msg.position.y = 2.34;
   pub.publish( pose_msg );
   processSomeEvents(100);
   EXPECT_NE( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 2.34 ) << "Shouldn't have received that yet!";
-  qml_ros_plugin::RosQml::getInstance().spinOnce();
+  ros_wrapper.spinOnce();
   processSomeEvents();
   EXPECT_EQ( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 2.34 );
 }

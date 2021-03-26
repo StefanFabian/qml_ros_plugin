@@ -8,6 +8,7 @@
 #include <qml_ros_plugin/babel_fish_dispenser.h>
 #include <qml_ros_plugin/message_conversions.h>
 #include <qml_ros_plugin/qml_ros_conversion.h>
+#include <qml_ros_plugin/ros.h>
 
 #include <QAbstractListModel>
 #include <QCoreApplication>
@@ -25,6 +26,26 @@ TEST( MessageConversion, babelFishDispenser )
   BabelFish fish1 = BabelFishDispenser::getBabelFish();
   BabelFish fish2 = BabelFishDispenser::getBabelFish();
   EXPECT_EQ( fish1.descriptionProvider().get(), fish2.descriptionProvider().get());
+}
+
+TEST( MessageConversion, emptyMessage )
+{
+  RosQmlSingletonWrapper ros;
+  {
+    QVariant map = ros.createEmptyMessage( "geometry_msgs/PoseStamped" );
+    geometry_msgs::PoseStamped msg;
+    EXPECT_TRUE( mapAndMessageEqual( map, msg ));
+  }
+  {
+    QVariant map = ros.createEmptyMessage( "ros_babel_fish_test_msgs/TestMessage" );
+    ros_babel_fish_test_msgs::TestMessage msg;
+    EXPECT_TRUE( mapAndMessageEqual( map, msg ));
+  }
+  {
+    QVariant map = ros.createEmptyServiceRequest( "roscpp_tutorials/TwoInts" );
+    roscpp_tutorials::TwoIntsRequest req;
+    EXPECT_TRUE( mapAndMessageEqual( map, req ));
+  }
 }
 
 TEST( MessageConversion, msgToMapHeader )
@@ -254,6 +275,8 @@ TEST( MessageConversion, array )
   EXPECT_TRUE( fillMessage( *msg, map ));
   ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
 
+  EXPECT_FALSE( map.toHash()["float32s"].value<Array>()._isModified( 0 ));
+
   // Remove element from end
   auto int32s_array = map.toMap()["int32s"].value<Array>();
   ASSERT_FALSE( int32s_array._inCache());
@@ -278,9 +301,16 @@ TEST( MessageConversion, array )
   int32s_array.spliceList( 6, 0, { 421337.0 } );
   test_array.int32s.insert( test_array.int32s.begin() + 8, 43172 );
   int32s_array.spliceList( 8, 0, { 43172LL } );
-  // Remove an element from the end
+  // Remove an element from the beginning
   EXPECT_EQ( int32s_array.shift().toInt(), test_array.int32s[0] );
   test_array.int32s.erase( test_array.int32s.begin());
+  // Remove an element from the end
+  int32s_array.setLength( int32s_array.length() - 1 );
+  test_array.int32s.pop_back();
+  EXPECT_TRUE( mapAndMessageEqual( map, test_array ));
+  // Obtain array as QML compatible type which should fill the cache
+  EXPECT_TRUE( mapAndMessageEqual( int32s_array.toArray(), test_array.int32s ));
+  ASSERT_TRUE( int32s_array._inCache());
 
   // Change array length
   test_array.uint32s.resize( 5 );
@@ -540,6 +570,8 @@ QtObject {
 
 TEST( MessageConversion, timeConversion )
 {
+  qml_ros_plugin::WallTimeSingleton wall_time;
+  qml_ros_plugin::TimeSingleton time;
   // It should always round down to prevent issues with look ups into the future
   EXPECT_EQ( ros::Time( 13, 1000000 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 1500000 ))));
   EXPECT_EQ( ros::Time( 13, 0 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 900000 ))));
@@ -552,6 +584,17 @@ TEST( MessageConversion, timeConversion )
   EXPECT_DOUBLE_EQ( rosToQmlDuration( ros::Duration( -1337, -42 )), -1337000.000042 );
   EXPECT_EQ( qmlToRosDuration( 2020 ), ros::Duration( 2, 20000000 ));
   EXPECT_EQ( qmlToRosDuration( -1337.000420 ), ros::Duration( -1, -337000420 ));
+
+  // Create custom time objects
+  EXPECT_EQ( time.create( 2.0 ).value<Time>().getRosTime(), ros::Time( 2.0 ));
+  EXPECT_EQ( time.create( 13, 37 ).value<Time>().getRosTime(), ros::Time( 13, 37 ));
+  EXPECT_EQ( wall_time.create( 2.0 ).value<WallTime>().getRosTime(), ros::WallTime( 2.0 ));
+  EXPECT_EQ( wall_time.create( 13, 37 ).value<WallTime>().getRosTime(), ros::WallTime( 13, 37 ));
+  ros::WallTime now = ros::WallTime::now();
+  WallTime then = wall_time.now().value<WallTime>();
+  EXPECT_GE( then.getRosTime(), now );
+  now = ros::WallTime::now();
+  EXPECT_LE( then.getRosTime(), now );
 }
 
 int main( int argc, char **argv )

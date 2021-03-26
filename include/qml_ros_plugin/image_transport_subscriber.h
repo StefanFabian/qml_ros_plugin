@@ -18,12 +18,12 @@
 namespace qml_ros_plugin
 {
 
-class ImageBuffer;
+class ImageTransportSubscriptionHandle;
 
 class ImageTransportSubscriber : public QObjectRos
 {
 Q_OBJECT
-  //! @formatter:off
+  // @formatter:off
   //! Interface for QML. This is the surface the images are passed to.
   Q_PROPERTY(QAbstractVideoSurface *videoSurface READ videoSurface WRITE setVideoSurface)
   //! The image base topic (without image_raw etc.). This value may change once the subscriber is connected and private
@@ -36,7 +36,10 @@ Q_OBJECT
   //! The timeout when no image is received until a blank frame is served. Set to 0 to disable and always show last frame.
   //! Default is 3000 ms.
   Q_PROPERTY(int timeout READ timeout WRITE setTimeout NOTIFY timeoutChanged)
-  //! @formatter:on
+  //! The update rate to throttle image receiving in images per second. Set to 0 to disable throttling.
+  //! Default is 0 (disabled).
+  Q_PROPERTY(double throttleRate READ throttleRate WRITE setThrottleRate NOTIFY throttleRateChanged)
+  // @formatter:on
 public:
 
   ImageTransportSubscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size );
@@ -61,6 +64,10 @@ public:
 
   void setTimeout( int value );
 
+  double throttleRate() const;
+
+  void setThrottleRate( double value );
+
 signals:
 
   void topicChanged();
@@ -71,35 +78,33 @@ signals:
 
   void timeoutChanged();
 
+  void throttleRateChanged();
+
 private slots:
 
   void onNodeHandleReady();
 
+  void onNoImageTimeout();
+
+  void presentFrame( const QVideoFrame &frame );
+
 private:
-  void imageCallback( const sensor_msgs::ImageConstPtr &img );
-
-  Q_INVOKABLE void processImage();
-
   void onRosShutdown() override;
 
-  void subscribe();
+  void initSubscriber();
 
-  void unsubscribe();
+  void shutdownSubscriber();
 
   QTimer no_image_timer_;
   QVideoSurfaceFormat format_;
   QString topic_;
   QString default_transport_;
-  std::shared_ptr<ros::CallbackQueue> background_queue_;
   NodeHandle::Ptr nh_;
-  image_transport::Subscriber subscriber_;
-  std::mutex image_lock_;
-  sensor_msgs::ImageConstPtr last_image_ = nullptr;
-  ImageBuffer *buffer_ = nullptr;
-  std::unique_ptr<image_transport::ImageTransport> transport_;
+  std::shared_ptr<ImageTransportSubscriptionHandle> subscription_;
   QAbstractVideoSurface *surface_ = nullptr;
   ros::Time last_frame_timestamp_;
   quint32 queue_size_;
+  int throttle_interval_ = 0;
   int timeout_ = 3000;
   bool subscribed_ = false;
 };

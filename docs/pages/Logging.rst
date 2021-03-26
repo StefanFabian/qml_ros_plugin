@@ -18,13 +18,13 @@ To log a message you can use one of the following methods ``debug``, ``info``, `
 
 This will produce the following output:
 
-::
+:: code-block:: bash
 
   [ INFO] [1583062360.048922959]: Button clicked.
 
 and publish the following on ``/rosout`` (unless ``NoRosout`` was specified in the ``RosInitOptions``).
 
-::
+:: code-block:: bash
 
   header:
     seq: 1

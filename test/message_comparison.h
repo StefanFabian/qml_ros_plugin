@@ -11,13 +11,16 @@
 #include <qml_ros_plugin/qml_ros_conversion.h>
 #include <qml_ros_plugin/time.h>
 
+#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <ros_babel_fish/message_types.h>
 #include <ros_babel_fish_test_msgs/TestArray.h>
 #include <ros_babel_fish_test_msgs/TestMessage.h>
+#include <roscpp_tutorials/TwoIntsRequest.h>
 
 #include <QDateTime>
 #include <QVariant>
+#include <roscpp_tutorials/TwoIntsRequest.h>
 
 using namespace qml_ros_plugin;
 using namespace ros_babel_fish;
@@ -124,29 +127,6 @@ mapAndMessageEqual( const QVariant &map, std_msgs::Header msg, const std::string
 
 template<>
 ::testing::AssertionResult
-mapAndMessageEqual( const QVariant &map, geometry_msgs::Point msg, const std::string &path, double precision )
-{
-  bool ok;
-  if ( std::abs( map.toHash()["x"].toDouble( &ok ) - msg.x ) > precision )
-    return ::testing::AssertionFailure() << "Map at " << path << ".x differed!" << std::endl
-                                         << "Map: " << map.toHash()["x"].toDouble() << std::endl
-                                         << "Message: " << msg.x;
-  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".x not ok!";
-  if ( std::abs( map.toHash()["y"].toDouble( &ok ) - msg.y ) > precision )
-    return ::testing::AssertionFailure() << "Map at " << path << ".y differed!" << std::endl
-                                         << "Map: " << map.toHash()["y"].toDouble() << std::endl
-                                         << "Message: " << msg.y;
-  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".y not ok!";
-  if ( std::abs( map.toHash()["z"].toDouble( &ok ) - msg.z ) > precision )
-    return ::testing::AssertionFailure() << "Map at " << path << ".z differed!" << std::endl
-                                         << "Map: " << map.toHash()["z"].toDouble() << std::endl
-                                         << "Message: " << msg.z;
-  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".z not ok!";
-  return ::testing::AssertionSuccess();
-}
-
-template<>
-::testing::AssertionResult
 mapAndMessageEqual( const QVariant &map, TestMessage msg, const std::string &path, double precision )
 {
   if ( map.toHash()["header"].toHash()["frame_id"].toString().toStdString() != msg.header.frame_id )
@@ -224,6 +204,29 @@ mapAndMessageEqual( const QVariant &map, const TestSubArray &msg, const std::str
 }
 
 template<>
+::testing::AssertionResult
+mapAndMessageEqual( const QVariant &map, geometry_msgs::Point msg, const std::string &path, double precision )
+{
+  bool ok;
+  if ( std::abs( map.toHash()["x"].toDouble( &ok ) - msg.x ) > precision )
+    return ::testing::AssertionFailure() << "Map at " << path << ".x differed!" << std::endl
+                                         << "Map: " << map.toHash()["x"].toDouble() << std::endl
+                                         << "Message: " << msg.x;
+  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".x not ok!";
+  if ( std::abs( map.toHash()["y"].toDouble( &ok ) - msg.y ) > precision )
+    return ::testing::AssertionFailure() << "Map at " << path << ".y differed!" << std::endl
+                                         << "Map: " << map.toHash()["y"].toDouble() << std::endl
+                                         << "Message: " << msg.y;
+  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".y not ok!";
+  if ( std::abs( map.toHash()["z"].toDouble( &ok ) - msg.z ) > precision )
+    return ::testing::AssertionFailure() << "Map at " << path << ".z differed!" << std::endl
+                                         << "Map: " << map.toHash()["z"].toDouble() << std::endl
+                                         << "Message: " << msg.z;
+  if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".z not ok!";
+  return ::testing::AssertionSuccess();
+}
+
+template<>
 ::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const geometry_msgs::Vector3 msg,
                                                const std::string &path, double precision )
 {
@@ -272,6 +275,28 @@ template<>
                                          << "Message: " << msg.z;
   if ( !ok ) return ::testing::AssertionFailure() << "Double cast at " << path << ".z not ok!";
   return ::testing::AssertionSuccess();
+}
+
+template<>
+::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const geometry_msgs::Pose msg,
+                                               const std::string &path, double precision )
+{
+  bool ok;
+  ::testing::AssertionResult result = ::testing::AssertionSuccess();
+  if ( !(result = mapAndMessageEqual( map.toHash()["position"], msg.position, path + ".position", precision )))
+    return result;
+  return mapAndMessageEqual( map.toHash()["orientation"], msg.orientation, path + ".orientation", precision );
+}
+
+template<>
+::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const geometry_msgs::PoseStamped msg,
+                                               const std::string &path, double precision )
+{
+  bool ok;
+  ::testing::AssertionResult result = ::testing::AssertionSuccess();
+  if ( !(result = mapAndMessageEqual( map.toHash()["header"], msg.header, path + ".strings", precision )))
+    return result;
+  return mapAndMessageEqual( map.toHash()["pose"], msg.pose, path + ".pose", precision );
 }
 
 template<>
@@ -391,6 +416,24 @@ template<>
                                            << "Map: " << list[i]["z"].value<double>() << std::endl
                                            << "Message: " << msg.point_arr[i].z;
   }
+  return ::testing::AssertionSuccess();
+}
+
+template<>
+::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const roscpp_tutorials::TwoIntsRequest msg,
+                                               const std::string &path, double precision )
+{
+  bool ok;
+  if ( map.toHash()["a"].toLongLong( &ok ) != msg.a )
+    return ::testing::AssertionFailure() << "Map at " << path << ".a differed!" << std::endl
+                                         << "Map: " << map.toHash()["a"].toLongLong() << std::endl
+                                         << "Message: " << msg.a;
+  if ( !ok ) return ::testing::AssertionFailure() << "Long cast at " << path << ".a not ok!";
+  if ( map.toHash()["b"].toLongLong( &ok ) != msg.b )
+    return ::testing::AssertionFailure() << "Map at " << path << ".b differed!" << std::endl
+                                         << "Map: " << map.toHash()["b"].toLongLong() << std::endl
+                                         << "Message: " << msg.b;
+  if ( !ok ) return ::testing::AssertionFailure() << "Long cast at " << path << ".b not ok!";
   return ::testing::AssertionSuccess();
 }
 

@@ -70,6 +70,10 @@ The stream is exposed to QML as a `QObject` with a `QAbstractVideoSurface` based
 (see [QML VideoOutput docs](https://doc.qt.io/qt-5/qml-qtmultimedia-videooutput.html#source-prop)) and can be used
 directly as source for the `VideoOutput` control.
 
+**New:** Multiple ImageTransportSubscribers for the same topic now share a subscription to ensure the image is converted
+to a QML compatible format only once. Additionally, a throttleRate property was introduced to throttle the camera rate by
+subscribing for one frame and shutting down again at the given rate (see documentation).
+
 Usage example:
 ```qml
 import QtMultimedia 5.4
@@ -82,6 +86,7 @@ Item {
   ImageTransportSubscriber {
     id: imageSubscriber
     topic: "/front_rgb_cam"
+    throttleRate: 0.2 // 1 frame every 5 seconds
   }
 
   VideoOutput {

@@ -34,7 +34,6 @@ TEST( RosLifeCycle, testLifeCycle )
   int argc = 0;
   QCoreApplication app( argc, nullptr );
   qml_ros_plugin::RosQmlSingletonWrapper ros_wrapper;
-  qml_ros_plugin::WallTimeSingleton wall_time;
   qml_ros_plugin::TimeSingleton time;
   qml_ros_plugin::TfTransformListenerWrapper tf_wrapper;
   qml_ros_plugin::NodeHandle::Ptr qml_nh = std::make_shared<qml_ros_plugin::NodeHandle>( "test_ns" );
@@ -45,7 +44,7 @@ TEST( RosLifeCycle, testLifeCycle )
     tf_wrapper.lookUpTransform( "frame2", "frame1" )["exception"].toString(),
     QString( "Uninitialized" ));
   EXPECT_EQ(
-    tf_wrapper.lookUpTransform( "frame2", QDateTime(), "frame1", QDateTime(),                                                                        "frame1" )["exception"].toString(),
+    tf_wrapper.lookUpTransform( "frame2", QDateTime(), "frame1", QDateTime(), "frame1" )["exception"].toString(),
     QString( "Uninitialized" ));
   auto publisher_before_init = dynamic_cast<qml_ros_plugin::Publisher *>(qml_nh->advertise( "geometry_msgs/PoseStamped",
                                                                                             "/pose_stamped", 10 ));

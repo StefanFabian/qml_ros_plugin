@@ -3,6 +3,7 @@
 
 #include "qml_ros_plugin/image_transport_subscriber.h"
 #include "qml_ros_plugin/image_buffer.h"
+#include "qml_ros_plugin/image_transport_manager.h"
 #include "qml_ros_plugin/ros.h"
 
 namespace qml_ros_plugin
@@ -12,16 +13,16 @@ ImageTransportSubscriber::ImageTransportSubscriber( NodeHandle::Ptr nh, QString 
   : topic_( std::move( topic )), default_transport_( "compressed" ), nh_( std::move( nh )), queue_size_( queue_size )
 {
   no_image_timer_.setSingleShot( true );
-  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
+  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::onNoImageTimeout, Qt::AutoConnection );
   connect( nh_.get(), &NodeHandle::ready, this, &ImageTransportSubscriber::onNodeHandleReady );
-  subscribe();
+  initSubscriber();
 }
 
 ImageTransportSubscriber::ImageTransportSubscriber()
   : default_transport_( "compressed" ), nh_( std::make_shared<NodeHandle>()), queue_size_( 1 )
 {
   no_image_timer_.setSingleShot( true );
-  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::processImage, Qt::AutoConnection );
+  connect( &no_image_timer_, &QTimer::timeout, this, &ImageTransportSubscriber::onNoImageTimeout, Qt::AutoConnection );
   connect( nh_.get(), &NodeHandle::ready, this, &ImageTransportSubscriber::onNodeHandleReady );
 }
 
@@ -33,65 +34,68 @@ void ImageTransportSubscriber::setVideoSurface( QAbstractVideoSurface *surface )
 
   bool subscribed = subscribed_;
   blockSignals( true );
-  unsubscribe();
+  shutdownSubscriber();
   surface_ = surface;
-  subscribe();
+  initSubscriber();
   blockSignals( false );
   if ( subscribed != subscribed_ ) emit subscribedChanged();
 }
 
 void ImageTransportSubscriber::onNodeHandleReady()
 {
-  transport_.reset( new image_transport::ImageTransport( nh_->nodeHandle()));
-  subscribe();
+  initSubscriber();
 }
 
 void ImageTransportSubscriber::onRosShutdown()
 {
-  unsubscribe();
-  transport_.reset();
+  shutdownSubscriber();
 }
 
-void ImageTransportSubscriber::subscribe()
+void ImageTransportSubscriber::initSubscriber()
 {
   // This makes sure we lazy subscribe and only subscribe if there is a surface to write to
   if ( surface_ == nullptr ) return;
   if ( !nh_->isReady()) return;
   if ( topic_.isEmpty()) return;
-  if ( transport_ == nullptr ) return;
   bool was_subscribed = subscribed_;
   if ( subscribed_ )
   {
     blockSignals( true );
-    unsubscribe();
+    shutdownSubscriber();
     blockSignals( false );
   }
   // TODO Transport hints
   image_transport::TransportHints transport_hints( default_transport_.toStdString());
-  try
-  {
-    subscriber_ = transport_->subscribe( topic_.toStdString(), queue_size_, &ImageTransportSubscriber::imageCallback,
-                                         this, transport_hints );
-    ROS_DEBUG_NAMED( "qml_ros_plugin", "Subscribed to '%s' with transport '%s'.", topic_.toStdString().c_str(),
-                     transport_hints.getTransport().c_str());
-  }
-  catch ( image_transport::TransportLoadException &ex )
-  {
-    ROS_ERROR_NAMED( "qml_ros_plugin", "Could not subscribe to image topic: %s", ex.what());
-    return;
-  }
-  subscribed_ = true;
+  subscription_ = ImageTransportManager::getInstance().subscribe( nh_, topic_, queue_size_, transport_hints,
+                                                                  std::bind( &ImageTransportSubscriber::presentFrame,
+                                                                             this, std::placeholders::_1 ),
+                                                                  surface_, throttle_interval_ );
+  subscribed_ = subscription_ != nullptr;
   if ( !was_subscribed ) emit subscribedChanged();
 }
 
-void ImageTransportSubscriber::unsubscribe()
+void ImageTransportSubscriber::shutdownSubscriber()
 {
   if ( !subscribed_ ) return;
-  subscriber_.shutdown();
+  subscription_.reset();
   if ( surface_ != nullptr && surface_->isActive())
     surface_->stop();
   subscribed_ = false;
   emit subscribedChanged();
+}
+
+void ImageTransportSubscriber::onNoImageTimeout()
+{
+  if ( !surface_->isActive()) return;
+  int elapsed_time_milliseconds = static_cast<int>((ros::Time::now() - last_frame_timestamp_).toNSec() / 1000000);
+
+  if ( timeout_ == 0 ) return;
+  if ( elapsed_time_milliseconds < timeout_ )
+  {
+    no_image_timer_.start( timeout_ - elapsed_time_milliseconds );
+    return;
+  }
+  surface_->present( QVideoFrame());
 }
 
 namespace
@@ -116,72 +120,44 @@ const char *videoSurfaceErrorToString( QAbstractVideoSurface::Error error )
 }
 }
 
-void ImageTransportSubscriber::imageCallback( const sensor_msgs::ImageConstPtr &img )
+void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
 {
-  if ( surface_ == nullptr ) return;
-  auto buffer = new ImageBuffer( img, surface_->supportedPixelFormats());
-  {
-    std::lock_guard<std::mutex> lock( image_lock_ );
-    last_image_ = img;
-    buffer_ = buffer;
-  }
-  QMetaObject::invokeMethod( this, "processImage", Qt::AutoConnection );
-}
-
-void ImageTransportSubscriber::processImage()
-{
-  if ( surface_ == nullptr ) return;
-  std::lock_guard<std::mutex> lock( image_lock_ );
-  // Show blank image after {timeout} seconds
-  ros::Time now = ros::Time::now();
-  if ( buffer_ == nullptr )
-  {
-    int elapsed_time_ = static_cast<int>((now - last_frame_timestamp_).toNSec() / 1000000);
-
-    if ( timeout_ == 0 ) return;
-    if ( elapsed_time_ < timeout_ )
-    {
-      no_image_timer_.start( timeout_ - elapsed_time_ );
-      return;
-    }
-    surface_->present( QVideoFrame());
-    return;
-  }
-  last_frame_timestamp_ = now;
-  if ( timeout_ != 0 )
-    no_image_timer_.start( timeout_ );
 
   const QVideoSurfaceFormat &surface_format = surface_->surfaceFormat();
-  if ( surface_format.frameWidth() != int( last_image_->width ) ||
-       surface_format.frameHeight() != int( last_image_->height ) || surface_format.pixelFormat() != buffer_->format())
+  if ( surface_format.frameWidth() != frame.width() || surface_format.frameHeight() != frame.height() ||
+       surface_format.pixelFormat() != frame.pixelFormat())
   {
-    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer_->format());
+    format_ = QVideoSurfaceFormat( frame.size(), frame.pixelFormat());
     surface_->stop();
   }
   if ( !surface_->isActive())
   {
-    format_ = QVideoSurfaceFormat( QSize( last_image_->width, last_image_->height ), buffer_->format());
+    format_ = QVideoSurfaceFormat( frame.size(), frame.pixelFormat());
     if ( format_.pixelFormat() == QVideoFrame::Format_Invalid )
     {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Could not find compatible format for video surface." );
-      unsubscribe();
+      shutdownSubscriber();
       return;
     }
     if ( !surface_->start( format_ ))
     {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to start video surface: %s",
                        videoSurfaceErrorToString( surface_->error()));
-      unsubscribe();
+      shutdownSubscriber();
       return;
     }
   }
-  surface_->present( QVideoFrame( buffer_, QSize( last_image_->width, last_image_->height ), buffer_->format()));
-  buffer_ = nullptr;
+  surface_->present( frame );
+  last_frame_timestamp_ = ros::Time::now();
+  if ( timeout_ != 0 )
+  {
+    no_image_timer_.start( throttle_interval_ + timeout_ );
+  }
 }
 
 QString ImageTransportSubscriber::topic() const
 {
-  if ( subscribed_ ) return QString::fromStdString( subscriber_.getTopic());
+  if ( subscription_ ) return QString::fromStdString( subscription_->getTopic());
   return topic_;
 }
 
@@ -209,5 +185,20 @@ void ImageTransportSubscriber::setTimeout( int value )
 {
   timeout_ = value;
   emit timeoutChanged();
+}
+
+double ImageTransportSubscriber::throttleRate() const
+{
+  return 1000.0 / throttle_interval_;
+}
+
+void ImageTransportSubscriber::setThrottleRate( double value )
+{
+  throttle_interval_ = value == 0 ? 0 : static_cast<int>(1000 / value);
+  if ( subscription_ )
+  {
+    subscription_->updateThrottleInterval( throttle_interval_ );
+  }
+  emit throttleRateChanged();
 }
 }
