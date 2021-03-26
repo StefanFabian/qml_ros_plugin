@@ -31,7 +31,7 @@ class ImageTransportManager
   ImageTransportManager();
 
   struct SubscriptionManager;
-  struct Subscription;
+  class Subscription;
 public:
 
   static ImageTransportManager &getInstance();

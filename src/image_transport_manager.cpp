@@ -6,6 +6,7 @@
 #include "qml_ros_plugin/image_buffer.h"
 
 #include <QTimer>
+#include <mutex>
 
 namespace qml_ros_plugin
 {
@@ -21,8 +22,10 @@ struct ImageTransportManager::SubscriptionManager
   std::unique_ptr<image_transport::ImageTransport> transport;
 };
 
-struct ImageTransportManager::Subscription : public QObject
+class ImageTransportManager::Subscription : public QObject
 {
+Q_OBJECT
+public:
   ImageTransportManager *manager = nullptr;
   std::shared_ptr<SubscriptionManager> subscription_manager;
   std::string topic;
@@ -60,7 +63,7 @@ struct ImageTransportManager::Subscription : public QObject
     }
   }
 
-  void restartTimer()
+  Q_INVOKABLE void restartTimer()
   {
     int interval = getThrottleInterval();
     int timeout = interval == 0 ? 0 : manager->getLoadBalancedTimeout( interval );
@@ -116,7 +119,7 @@ private:
     if ( interval != 0 && interval > camera_base_interval_ )
     {
       subscriber_.shutdown();
-      QMetaObject::invokeMethod( this, &Subscription::restartTimer, Qt::AutoConnection );
+      QMetaObject::invokeMethod( this, "restartTimer", Qt::AutoConnection );
       throttled_ = true;
     }
     QList<QVideoFrame::PixelFormat> formats;
@@ -143,10 +146,10 @@ private:
       last_buffer_ = buffer;
     }
     // Deliver frames on UI thread
-    QMetaObject::invokeMethod( this, &Subscription::imageDelivery, Qt::AutoConnection );
+    QMetaObject::invokeMethod( this, "imageDelivery", Qt::AutoConnection );
   }
 
-  void imageDelivery()
+  Q_INVOKABLE void imageDelivery()
   {
     ImageBuffer *buffer;
     sensor_msgs::ImageConstPtr image;
@@ -347,3 +350,5 @@ void ImageTransportManagerSingletonWrapper::setLoadBalancingEnabled( bool value 
   ImageTransportManager::getInstance().setLoadBalancingEnabled( value );
 }
 }
+
+#include "image_transport_manager.moc"
