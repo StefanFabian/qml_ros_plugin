@@ -21,6 +21,7 @@ void processSomeEvents( int n = 10, int sleep_duration_us = 5000 )
     usleep( sleep_duration_us );
     QCoreApplication::processEvents();
     ros::spinOnce();
+    RosQml::getInstance().spinOnce();
   }
 }
 
@@ -141,6 +142,7 @@ TEST( ImageTransportSubscriber, testWrongFormat )
   mock_surface.stop();
   processSomeEvents();
 
+  EXPECT_FALSE( mock_surface.last_frame.isValid());
   EXPECT_FALSE( subscriber.subscribed());
 }
 

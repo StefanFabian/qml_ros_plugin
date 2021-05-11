@@ -281,7 +281,6 @@ template<>
 ::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const geometry_msgs::Pose msg,
                                                const std::string &path, double precision )
 {
-  bool ok;
   ::testing::AssertionResult result = ::testing::AssertionSuccess();
   if ( !(result = mapAndMessageEqual( map.toHash()["position"], msg.position, path + ".position", precision )))
     return result;
@@ -292,7 +291,6 @@ template<>
 ::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const geometry_msgs::PoseStamped msg,
                                                const std::string &path, double precision )
 {
-  bool ok;
   ::testing::AssertionResult result = ::testing::AssertionSuccess();
   if ( !(result = mapAndMessageEqual( map.toHash()["header"], msg.header, path + ".strings", precision )))
     return result;
@@ -421,7 +419,7 @@ template<>
 
 template<>
 ::testing::AssertionResult mapAndMessageEqual( const QVariant &map, const roscpp_tutorials::TwoIntsRequest msg,
-                                               const std::string &path, double precision )
+                                               const std::string &path, double )
 {
   bool ok;
   if ( map.toHash()["a"].toLongLong( &ok ) != msg.a )
