@@ -151,6 +151,12 @@ public:
    */
   std::shared_ptr<ros::CallbackQueue> callbackQueue();
 
+  //! Increases the spin counter and if it was 0, starts spinning.
+  void startSpinning();
+
+  //! Decreases the spin counter and if it gets to 0, stops spinning.
+  void stopSpinning();
+
 signals:
 
   //! Emitted once when ROS was initialized.
@@ -174,6 +180,7 @@ private:
   std::shared_ptr<ros::CallbackQueue> callback_queue_;
   std::unique_ptr<ros::AsyncSpinner> spinner_;
   int threads_;
+  std::atomic<int> count_start_spinning_;
   bool initialized_;
 };
 

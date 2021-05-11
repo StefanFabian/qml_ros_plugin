@@ -22,7 +22,7 @@ struct ImageTransportManager::SubscriptionManager
   std::unique_ptr<image_transport::ImageTransport> transport;
 };
 
-class ImageTransportManager::Subscription : public QObject
+class ImageTransportManager::Subscription final : public QObject
 {
 Q_OBJECT
 public:
@@ -36,6 +36,11 @@ public:
   Subscription()
   {
     QObject::connect( &throttle_timer, &QTimer::timeout, this, &ImageTransportManager::Subscription::subscribe );
+  }
+
+  ~Subscription() final
+  {
+    throttle_timer.stop();
   }
 
   int getThrottleInterval()
@@ -52,7 +57,7 @@ public:
   void updateTimer()
   {
     int min_interval = getThrottleInterval();
-    if ( min_interval == 0 )
+    if ( min_interval <= 0 )
     {
       throttle_timer.stop();
       if ( !subscriber_ ) subscribe();
@@ -67,7 +72,7 @@ public:
   {
     int interval = getThrottleInterval();
     int timeout = interval == 0 ? 0 : manager->getLoadBalancedTimeout( interval );
-    if ( timeout == 0 ) subscribe();
+    if ( timeout <= 0 ) subscribe();
     else throttle_timer.start( timeout );
   }
 
@@ -293,11 +298,12 @@ ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtop
 int ImageTransportManager::getLoadBalancedTimeout( int desired_throttle_interval )
 {
   if ( !load_balancing_enabled_ ) return desired_throttle_interval;
+  std::lock_guard<std::mutex> load_balancing_lock( load_balancer_mutex_ );
   long now = std::chrono::duration_cast<std::chrono::milliseconds>(
     std::chrono::system_clock::now().time_since_epoch()).count();
   long timeout = now + desired_throttle_interval;
-  long largest_gap = 0;
-  size_t ind_largest_gap = timeouts_.empty() ? 0 : timeouts_[0] - now;
+  long largest_gap = timeouts_.empty() ? 0 : timeouts_[0] - now;
+  size_t ind_largest_gap = 0;
   // Very unsophisticated method. We just find the largest gap before the desired interval and insert the timeout in the middle
   for ( size_t i = 1; i < timeouts_.size(); ++i )
   {

@@ -199,16 +199,35 @@ void RosQml::updateSpinner()
     return;
   }
   spinner_.reset( new ros::AsyncSpinner( threads_, callback_queue_.get()));
-  spinner_->start();
+  if ( count_start_spinning_ > 0 ) spinner_->start();
 }
 
 Console RosQml::console() const { return {}; }
 
 Package RosQml::package() const { return {}; }
 
-std::shared_ptr<ros::CallbackQueue> RosQml::callbackQueue()
+std::shared_ptr<ros::CallbackQueue> RosQml::callbackQueue() { return callback_queue_; }
+
+void RosQml::startSpinning()
 {
-  return callback_queue_;
+  if ( count_start_spinning_++ == 0 )
+  {
+    if ( spinner_ ) spinner_->start();
+  }
+}
+
+void RosQml::stopSpinning()
+{
+  int count = --count_start_spinning_;
+  if ( count == 0 )
+  {
+    if ( spinner_ ) spinner_->stop();
+  }
+  else if ( count < 0 )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Stop spinning was called more often than start spinning! This is a bug!" );
+    count_start_spinning_ += -count;
+  }
 }
 
 /***************************************************************************************************/
@@ -219,9 +238,13 @@ RosQmlSingletonWrapper::RosQmlSingletonWrapper()
 {
   connect( &RosQml::getInstance(), &RosQml::initialized, this, &RosQmlSingletonWrapper::initialized );
   connect( &RosQml::getInstance(), &RosQml::shutdown, this, &RosQmlSingletonWrapper::shutdown );
+  RosQml::getInstance().startSpinning();
 }
 
-RosQmlSingletonWrapper::~RosQmlSingletonWrapper() = default;
+RosQmlSingletonWrapper::~RosQmlSingletonWrapper()
+{
+  RosQml::getInstance().stopSpinning();
+}
 
 bool RosQmlSingletonWrapper::isInitialized() const
 {

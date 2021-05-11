@@ -9,6 +9,7 @@
 
 #include <image_transport/image_transport.h>
 #include <QAbstractVideoSurface>
+#include <mutex>
 
 namespace qml_ros_plugin
 {
@@ -67,6 +68,7 @@ private:
 
   std::map<std::string, std::shared_ptr<SubscriptionManager>> subscriptions_;
   std::vector<long> timeouts_;
+  std::mutex load_balancer_mutex_;
   bool load_balancing_enabled_ = true;
 
   friend class ImageTransportSubscriptionHandle;
