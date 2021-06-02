@@ -86,6 +86,11 @@ public:
                                const QString &source_frame, const ros::Time &source_time,
                                const QString &fixed_frame, double timeout = 0 );
 
+  void registerWrapper();
+
+  //! If the count of wrappers gets to zero, the resources of this singleton will be freed.
+  void unregisterWrapper();
+
 signals:
 
   //! Emitted whenever a new transform arrived. Warning this signal is not throttled!
@@ -100,6 +105,7 @@ protected:
 
   struct State;
   std::unique_ptr<State> state_;
+  std::atomic<int> wrapper_count_;
 };
 
 /*!
@@ -110,6 +116,8 @@ class TfTransformListenerWrapper : public QObject
 Q_OBJECT
 public:
   TfTransformListenerWrapper();
+
+  ~TfTransformListenerWrapper() override;
 
   //! @copydoc TfTransformListener::canTransform(const QString &, const QString &, ros::Time, double)
   Q_INVOKABLE QVariant canTransform( const QString &target_frame, const QString &source_frame,

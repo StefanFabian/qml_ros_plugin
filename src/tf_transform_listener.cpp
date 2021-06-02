@@ -36,6 +36,7 @@ TfTransformListener::~TfTransformListener() = default;
 
 void TfTransformListener::onRosInitialized()
 {
+  if ( wrapper_count_ == 0 ) return;
   state_.reset( new State());
   state_->buffer._addTransformsChangedListener( boost::bind( &TfTransformListener::onTransformChanged, this ));
 }
@@ -54,6 +55,7 @@ QVariant TfTransformListener::canTransform( const QString &target_frame, const Q
                                             const ros::Time &time, double timeout ) const
 {
   if ( !isInitialized()) return QString( "Uninitialized" );
+  if ( state_ == nullptr ) return QString( "Invalid state" );
   std::string error;
   bool result;
   if ( timeout <= 0.0000001 )
@@ -76,6 +78,7 @@ QVariant TfTransformListener::canTransform( const QString &target_frame, const r
                                             const QString &fixed_frame, double timeout ) const
 {
   if ( !isInitialized()) return QString( "Uninitialized" );
+  if ( state_ == nullptr ) return QString( "Invalid state" );
   std::string error;
   bool result;
   if ( timeout <= 0.0000001 )
@@ -105,6 +108,14 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
     result.insert( "valid", false );
     result.insert( "exception", "Uninitialized" );
     result.insert( "message", "ROS node is not yet initialized!" );
+    return result;
+  }
+  if ( state_ == nullptr )
+  {
+    QVariantMap result = msgToMap( transform );
+    result.insert( "valid", false );
+    result.insert( "exception", "Invalid state" );
+    result.insert( "message", "TfTransformListener was not set up or already destructed!" );
     return result;
   }
   try
@@ -169,6 +180,14 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
     result.insert( "message", "ROS node is not yet initialized!" );
     return result;
   }
+  if ( state_ == nullptr )
+  {
+    QVariantMap result = msgToMap( transform );
+    result.insert( "valid", false );
+    result.insert( "exception", "Invalid state" );
+    result.insert( "message", "TfTransformListener was not set up or already destructed!" );
+    return result;
+  }
   try
   {
     if ( timeout <= 0.0000001 )
@@ -221,10 +240,39 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
   }
 }
 
+void TfTransformListener::registerWrapper()
+{
+  if ( wrapper_count_++ == 0 && isInitialized())
+  {
+    state_.reset( new State());
+    state_->buffer._addTransformsChangedListener( boost::bind( &TfTransformListener::onTransformChanged, this ));
+  }
+}
+
+void TfTransformListener::unregisterWrapper()
+{
+  int count = --wrapper_count_;
+  if ( count == 0 )
+  {
+    state_.reset();
+  }
+  else if ( count < 0 )
+  {
+    ROS_ERROR_NAMED( "qml_ros_plugin", "Unregister wrapper was called more often than registerWrapper for TfTransformListener! This is a bug!" );
+    wrapper_count_ += -count;
+  }
+}
+
 TfTransformListenerWrapper::TfTransformListenerWrapper()
 {
   QObject::connect( &TfTransformListener::getInstance(), &TfTransformListener::transformChanged,
                     this, &TfTransformListenerWrapper::transformChanged );
+  TfTransformListener::getInstance().registerWrapper();
+}
+
+TfTransformListenerWrapper::~TfTransformListenerWrapper()
+{
+  TfTransformListener::getInstance().unregisterWrapper();
 }
 
 QVariantMap TfTransformListenerWrapper::lookUpTransform( const QString &target_frame, const QString &source_frame,
