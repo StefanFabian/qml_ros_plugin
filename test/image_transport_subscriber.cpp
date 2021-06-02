@@ -153,6 +153,6 @@ int main( int argc, char **argv )
   ros::init( argc, argv, "test_image_transport_subscriber" );
   int result = RUN_ALL_TESTS();
   ros::shutdown();
-  ros::Duration(0.5).sleep();
+  ros::Duration( 0.5 ).sleep();
   return result;
 }

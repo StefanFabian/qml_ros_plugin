@@ -33,6 +33,7 @@ class ImageTransportManager
 
   struct SubscriptionManager;
   class Subscription;
+  class LoadBalancer;
 public:
 
   static ImageTransportManager &getInstance();
@@ -64,12 +65,8 @@ public:
              int throttle_interval = 0 );
 
 private:
-  int getLoadBalancedTimeout( int desired_throttle_interval );
-
   std::map<std::string, std::shared_ptr<SubscriptionManager>> subscriptions_;
-  std::vector<long> timeouts_;
-  std::mutex load_balancer_mutex_;
-  bool load_balancing_enabled_ = true;
+  std::unique_ptr<LoadBalancer> load_balancer_;
 
   friend class ImageTransportSubscriptionHandle;
 };
@@ -80,11 +77,11 @@ public:
 
   ~ImageTransportSubscriptionHandle();
 
-  //! The interval the subscription waits between receiving images.
+  //! The interval in ms the subscription waits between receiving images.
   int throttleInterval() const { return throttle_interval; }
 
-  //! Set the interval the subscription may wait between images.
-  //! The images may still arrive at a higher rate if other subscriptions_ request it.
+  //! Set the interval in ms the subscription may wait between images.
+  //! The images may still arrive at a higher rate if other subscriptions request it.
   void updateThrottleInterval( int interval );
 
   std::string getTopic();

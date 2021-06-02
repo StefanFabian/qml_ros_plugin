@@ -7,6 +7,7 @@
 
 #include <QTimer>
 #include <mutex>
+#include <thread>
 
 namespace qml_ros_plugin
 {
@@ -15,11 +16,81 @@ struct ImageTransportManager::SubscriptionManager
 {
   explicit SubscriptionManager( const ros::NodeHandle &nh )
   {
-    transport.reset( new image_transport::ImageTransport( nh ));
+    transport = std::make_unique<image_transport::ImageTransport>( nh );
   }
 
   std::vector<std::shared_ptr<Subscription>> subscriptions;
   std::unique_ptr<image_transport::ImageTransport> transport;
+};
+
+class ImageTransportManager::LoadBalancer : public QObject
+{
+Q_OBJECT
+public:
+  LoadBalancer()
+  {
+    connect( &timer_, &QTimer::timeout, this, &ImageTransportManager::LoadBalancer::onTimeout );
+  }
+
+  void setEnabled( bool value )
+  {
+    load_balancing_enabled_ = value;
+  }
+
+  void notifyImageReceived( ImageTransportManager::Subscription *subscription );
+
+  void registerThrottledSubscription( ImageTransportManager::Subscription *subscription );
+
+  void unregister( ImageTransportManager::Subscription *subscription );
+
+private slots:
+
+  void onTimeout()
+  {
+    // Triggers subscription for all expired timeouts and restarts the timer unless no more timeouts are active
+    std::lock_guard<std::mutex> lock( mutex_ );
+    using namespace std::chrono;
+    size_t i = 0;
+    long now = duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch()).count();
+    std::vector<ImageTransportManager::Subscription *> ready;
+    for ( ; i < timeouts_.size(); ++i )
+    {
+      if ( timeouts_[i].first > now + 50 ) break; // Trigger all subscriptions that would be ready in the next 50 ms
+      ready.push_back( timeouts_[i].second );
+    }
+    for ( auto &sub : ready ) triggerSubscription( sub );
+    if ( timeouts_.empty()) return;
+    int msec = static_cast<int>(timeouts_[0].first - now);
+    QMetaObject::invokeMethod( this, "startTimer", Qt::AutoConnection, Q_ARG( int, msec ));
+  }
+
+private:
+
+  Q_INVOKABLE void startTimer( int msec )
+  {
+    timer_.start( msec );
+  }
+
+  void startTimerIfNotActive()
+  {
+    if ( timer_.isActive() || timeouts_.empty()) return;
+    using namespace std::chrono;
+    long now = duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch()).count();
+    long msec = static_cast<int>( timeouts_[0].first - now);
+    if ( msec > 0 ) QMetaObject::invokeMethod( this, "startTimer", Qt::AutoConnection, Q_ARG( int, msec ));
+    else onTimeout();
+  }
+
+  void triggerSubscription( ImageTransportManager::Subscription *subscription );
+
+  void insertTimeout( long desired_throttle_interval, ImageTransportManager::Subscription *subscription );
+
+  QTimer timer_;
+  std::set<ImageTransportManager::Subscription *> waiting_subscriptions_;
+  std::vector<ImageTransportManager::Subscription *> new_subscriptions_;
+  std::vector<std::pair<long, ImageTransportManager::Subscription *>> timeouts_;
+  std::mutex mutex_;
+  bool load_balancing_enabled_ = true;
 };
 
 class ImageTransportManager::Subscription final : public QObject
@@ -31,19 +102,13 @@ public:
   std::string topic;
   quint32 queue_size = 0;
   image_transport::TransportHints hints;
-  QTimer throttle_timer;
-
-  Subscription()
-  {
-    QObject::connect( &throttle_timer, &QTimer::timeout, this, &ImageTransportManager::Subscription::subscribe );
-  }
 
   ~Subscription() final
   {
-    throttle_timer.stop();
+    if ( throttled_ ) manager->load_balancer_->unregister( this );
   }
 
-  int getThrottleInterval()
+  int getThrottleInterval() const
   {
     return std::accumulate( subscription_handles_.begin(), subscription_handles_.end(), std::numeric_limits<int>::max(),
                             []( int current, const std::weak_ptr<ImageTransportSubscriptionHandle> &sub_weak )
@@ -54,32 +119,35 @@ public:
                             } );
   }
 
-  void updateTimer()
+  void updateThrottling()
   {
     int min_interval = getThrottleInterval();
     if ( min_interval <= 0 )
     {
-      throttle_timer.stop();
+      if ( throttled_ ) manager->load_balancer_->unregister( this );
+      throttled_ = false;
       if ( !subscriber_ ) subscribe();
     }
-    else if ( throttle_timer.remainingTime() > min_interval )
+    else if ( !throttled_ )
     {
-      throttle_timer.start( min_interval );
+      throttled_ = true;
+      manager->load_balancer_->registerThrottledSubscription( this );
     }
-  }
-
-  Q_INVOKABLE void restartTimer()
-  {
-    int interval = getThrottleInterval();
-    int timeout = interval == 0 ? 0 : manager->getLoadBalancedTimeout( interval );
-    if ( timeout <= 0 ) subscribe();
-    else throttle_timer.start( timeout );
   }
 
   void subscribe()
   {
-    subscriber_ = subscription_manager->transport->subscribe( topic, queue_size, &Subscription::imageCallback, this,
-                                                              hints );
+    if ( subscriber_ ) return;
+    // Subscribing on background thread to reduce load on UI thread
+    std::thread( [ this ]()
+                 {
+                   // Make sure we don't subscribe twice in a row due to a race condition
+                   std::lock_guard<std::mutex> lock( subscribe_mutex_ );
+                   if ( subscriber_ ) return;
+                   subscriber_ = subscription_manager->transport->subscribe( topic, queue_size,
+                                                                             &Subscription::imageCallback,
+                                                                             this, hints );
+                 } ).detach();
   }
 
   void addSubscription( const std::shared_ptr<ImageTransportSubscriptionHandle> &sub )
@@ -88,7 +156,7 @@ public:
     subscriptions_.push_back( sub.get());
     subscription_handles_.push_back( sub );
     updateSupportedFormats();
-    updateTimer();
+    updateThrottling();
   }
 
   void removeSubscription( const ImageTransportSubscriptionHandle *sub )
@@ -109,22 +177,50 @@ public:
     subscriptions_.erase( it );
     subscription_handles_.erase( subscription_handles_.begin() + index );
     updateSupportedFormats();
+    updateThrottling();
   }
 
-  std::string getTopic() const { return subscriber_.getTopic(); }
+  std::string getTopic() const
+  {
+    const std::string &topic = subscriber_.getTopic();
+    const std::string &transport = subscriber_.getTransport();
+    if ( topic.size() < transport.size() + 1 ||
+         0 != topic.compare( topic.size() - transport.size() - 1, transport.size() + 1, "/" + transport ))
+      return topic;
+    return topic.substr( 0, topic.size() - transport.size() - 1 );
+  }
 
 private:
 
   void imageCallback( const sensor_msgs::ImageConstPtr &image )
   {
+    // Ignore image if timestamp did not differ which seems to be a bug of some gazebo camera plugins when throttling
+    if ( throttled_ && !image->header.stamp.isZero() && last_image_ != nullptr &&
+         last_image_->header.stamp == image->header.stamp )
+      return;
+
     ros::Time received_stamp = ros::Time::now();
     // Check if we have to throttle
     int interval = getThrottleInterval();
-    throttled_ = false;
-    if ( interval != 0 && interval > camera_base_interval_ )
+    if ( throttled_ )
     {
+      manager->load_balancer_->notifyImageReceived( this );
+      if ( interval != 0 && interval > camera_base_interval_ )
+      {
+        subscriber_.shutdown();
+      }
+      else
+      {
+        // No need to throttle
+        manager->load_balancer_->unregister( this );
+        throttled_ = false;
+      }
+    }
+    else if ( interval != 0 && interval > camera_base_interval_ * 1.1 )
+    {
+      // Need to throttle now
       subscriber_.shutdown();
-      QMetaObject::invokeMethod( this, "restartTimer", Qt::AutoConnection );
+      manager->load_balancer_->registerThrottledSubscription( this );
       throttled_ = true;
     }
     QList<QVideoFrame::PixelFormat> formats;
@@ -207,6 +303,7 @@ private:
   }
 
   std::mutex subscriptions_mutex_;
+  std::mutex subscribe_mutex_;
   std::mutex image_mutex_;
   image_transport::Subscriber subscriber_;
   std::vector<ImageTransportSubscriptionHandle *> subscriptions_;
@@ -215,9 +312,120 @@ private:
   ImageBuffer *last_buffer_ = nullptr;
   sensor_msgs::ImageConstPtr last_image_;
   ros::Time last_received_stamp_;
-  int camera_base_interval_ = std::numeric_limits<int>::max();
+  int camera_base_interval_ = 0;
   bool throttled_ = false;
 };
+
+
+// ============================= Load Balancing =============================
+void ImageTransportManager::LoadBalancer::notifyImageReceived( ImageTransportManager::Subscription *subscription )
+{
+  {
+    std::lock_guard<std::mutex> lock( mutex_ );
+    waiting_subscriptions_.erase( subscription );
+    insertTimeout( subscription->getThrottleInterval(), subscription );
+    if ( !waiting_subscriptions_.empty() && !new_subscriptions_.empty())
+    {
+      // Can trigger the next camera if we have new subscriptions
+      triggerSubscription( new_subscriptions_.front());
+    }
+  }
+  startTimerIfNotActive();
+}
+
+void ImageTransportManager::LoadBalancer::registerThrottledSubscription( Subscription *subscription )
+{
+  {
+    std::lock_guard<std::mutex> lock( mutex_ );
+    for ( auto &timeout : timeouts_ ) if ( timeout.second == subscription ) return;
+    insertTimeout( subscription->getThrottleInterval(), subscription );
+    if ( !waiting_subscriptions_.empty())
+    {
+      new_subscriptions_.push_back( subscription );
+      return;
+    }
+    triggerSubscription( subscription );
+  }
+  startTimerIfNotActive();
+}
+
+void ImageTransportManager::LoadBalancer::unregister( ImageTransportManager::Subscription *subscription )
+{
+  std::lock_guard<std::mutex> lock( mutex_ );
+  waiting_subscriptions_.erase( subscription );
+  new_subscriptions_.erase( std::remove( new_subscriptions_.begin(), new_subscriptions_.end(), subscription ),
+                            new_subscriptions_.end());
+  timeouts_.erase( std::remove_if( timeouts_.begin(), timeouts_.end(),
+                                   [ subscription ]( auto item ) { return item.second == subscription; } ),
+                   timeouts_.end());
+}
+
+void ImageTransportManager::LoadBalancer::triggerSubscription( ImageTransportManager::Subscription *subscription )
+{
+  new_subscriptions_.erase( std::remove( new_subscriptions_.begin(), new_subscriptions_.end(), subscription ),
+                            new_subscriptions_.end());
+  timeouts_.erase( std::remove_if( timeouts_.begin(), timeouts_.end(),
+                                   [ subscription ]( auto item ) { return item.second == subscription; } ),
+                   timeouts_.end());
+
+  waiting_subscriptions_.insert( subscription );
+  subscription->subscribe();
+  long now = std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch()).count();
+  std::cout << now << std::endl;
+}
+
+void ImageTransportManager::LoadBalancer::insertTimeout( const long desired_throttle_interval,
+                                                         ImageTransportManager::Subscription *subscription )
+{
+  long now = std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::system_clock::now().time_since_epoch()).count();
+  long timeout = now + desired_throttle_interval;
+  if ( !load_balancing_enabled_ )
+  {
+    std::pair<long, ImageTransportManager::Subscription *> value( timeout, subscription );
+    timeouts_.insert( std::upper_bound( timeouts_.begin(), timeouts_.end(), value,
+                                        []( auto a, auto b )
+                                        {
+                                          return a.first < b.first;
+                                        } ), value );
+    return;
+  }
+  long largest_gap = timeouts_.empty() ? 0 : timeouts_[0].first - now;
+  size_t ind_largest_gap = 0;
+  // Very unsophisticated method. We just find the largest gap before the desired interval and insert the desired_throttle_interval in the middle
+  for ( size_t i = 1; i < timeouts_.size(); ++i )
+  {
+    if ( timeouts_[i - 1].first > timeout ) break;
+    long gap;
+    // Gap is either between two timeouts or between now and the first desired_throttle_interval that is not in the past
+    if ( timeouts_[i - 1].first < now )
+    {
+      if ( timeouts_[i].first <= now ) continue;
+      gap = timeouts_[i].first - now;
+    }
+    else
+    {
+      gap = timeouts_[i].first > timeout ? timeout - timeouts_[i - 1].first
+                                         : timeouts_[i].first - timeouts_[i - 1].first;
+    }
+    if ( gap <= largest_gap ) continue;
+    ind_largest_gap = i;
+    largest_gap = gap;
+  }
+  // Update timeout if inserting it with the desired timeout wouldn't create a larger gap (which can only happen if it is inserted at the end)
+  if ( !timeouts_.empty() && timeout - timeouts_.back().first < largest_gap / 2 )
+  {
+    timeout = timeouts_[ind_largest_gap].first - largest_gap / 2;
+  }
+  // We insert the desired_throttle_interval in the table so that the timeouts are sorted or before now
+  std::pair<long, ImageTransportManager::Subscription *> value( timeout, subscription );
+  timeouts_.insert( std::upper_bound( timeouts_.begin(), timeouts_.end(), value,
+                                      []( auto a, auto b )
+                                      {
+                                        return a.first < b.first;
+                                      } ), value );
+}
 
 ImageTransportSubscriptionHandle::~ImageTransportSubscriptionHandle()
 {
@@ -227,7 +435,7 @@ ImageTransportSubscriptionHandle::~ImageTransportSubscriptionHandle()
 void ImageTransportSubscriptionHandle::updateThrottleInterval( int interval )
 {
   throttle_interval = interval;
-  subscription->updateTimer();
+  subscription->updateThrottling();
 }
 
 std::string ImageTransportSubscriptionHandle::getTopic()
@@ -235,7 +443,10 @@ std::string ImageTransportSubscriptionHandle::getTopic()
   return subscription->getTopic();
 }
 
-ImageTransportManager::ImageTransportManager() = default;
+ImageTransportManager::ImageTransportManager()
+{
+  load_balancer_ = std::make_unique<ImageTransportManager::LoadBalancer>();
+}
 
 
 ImageTransportManager &ImageTransportManager::getInstance()
@@ -295,60 +506,9 @@ ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtop
   return nullptr;
 }
 
-int ImageTransportManager::getLoadBalancedTimeout( int desired_throttle_interval )
-{
-  if ( !load_balancing_enabled_ ) return desired_throttle_interval;
-  std::lock_guard<std::mutex> load_balancing_lock( load_balancer_mutex_ );
-  long now = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::system_clock::now().time_since_epoch()).count();
-  long timeout = now + desired_throttle_interval;
-  long largest_gap = timeouts_.empty() ? 0 : timeouts_[0] - now;
-  size_t ind_largest_gap = 0;
-  // Very unsophisticated method. We just find the largest gap before the desired interval and insert the timeout in the middle
-  for ( size_t i = 1; i < timeouts_.size(); ++i )
-  {
-    if ( timeouts_[i] > timeout ) break;
-    long gap;
-    // Gap is either between two timeouts or between now and the first timeout that is not in the past
-    if ( timeouts_[i - 1] < now )
-    {
-      if ( timeouts_[i] <= now ) continue;
-      gap = timeouts_[i] - now;
-    }
-    else
-    {
-      gap = timeouts_[i] - timeouts_[i - 1];
-    }
-    if ( gap <= largest_gap ) continue;
-    ind_largest_gap = i;
-    largest_gap = gap;
-  }
-  // If just using the interval would create a new gap that is larger than inserting it inbetween, don't modify
-  if ( !timeouts_.empty() && timeout - timeouts_[timeouts_.size() - 1] < largest_gap / 2 )
-  {
-    timeout = timeouts_[ind_largest_gap] - largest_gap / 2;
-    desired_throttle_interval = static_cast<int>(timeout - now);
-  }
-  // We insert the timeout in the table so that the timeouts are sorted or before now
-  size_t i = 0, old = 0;
-  for ( ; i < timeouts_.size(); ++i )
-  {
-    if ( timeouts_[i] < now ) ++old;
-    if ( timeouts_[i] > timeout )
-    {
-      timeouts_.insert( timeouts_.begin() + i, timeout );
-      break;
-    }
-  }
-  if ( i == timeouts_.size()) timeouts_.push_back( timeout );
-  // If we have more than 10 times before now, we remove them to limit memory moves
-  if ( old > 10 ) timeouts_.erase( timeouts_.begin(), timeouts_.begin() + old );
-  return desired_throttle_interval;
-}
-
 void ImageTransportManager::setLoadBalancingEnabled( bool value )
 {
-  load_balancing_enabled_ = value;
+  load_balancer_->setEnabled( value );
 }
 
 void ImageTransportManagerSingletonWrapper::setLoadBalancingEnabled( bool value )
