@@ -86,7 +86,7 @@ void ImageTransportSubscriber::shutdownSubscriber()
 
 void ImageTransportSubscriber::onNoImageTimeout()
 {
-  if ( !surface_->isActive()) return;
+  if ( surface_ == nullptr || !surface_->isActive()) return;
   int elapsed_time_milliseconds = static_cast<int>((ros::Time::now() - last_frame_timestamp_).toNSec() / 1000000);
 
   if ( timeout_ == 0 ) return;
@@ -122,7 +122,7 @@ const char *videoSurfaceErrorToString( QAbstractVideoSurface::Error error )
 
 void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
 {
-
+  if ( surface_ == nullptr ) return;
   const QVideoSurfaceFormat &surface_format = surface_->surfaceFormat();
   if ( surface_format.frameWidth() != frame.width() || surface_format.frameHeight() != frame.height() ||
        surface_format.pixelFormat() != frame.pixelFormat())
