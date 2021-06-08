@@ -112,6 +112,7 @@ void TfTransform::subscribe()
 {
   if ( source_frame_.isEmpty() || target_frame_.isEmpty() || !enabled_ ) return;
 
+  TfTransformListener::getInstance().registerWrapper();
   QObject::connect( &TfTransformListener::getInstance(), &TfTransformListener::transformChanged,
                     this, &TfTransform::onTransformChanged );
   // Load transform
@@ -122,6 +123,7 @@ void TfTransform::shutdown()
 {
   QObject::disconnect( &TfTransformListener::getInstance(), &TfTransformListener::transformChanged,
                        this, &TfTransform::onTransformChanged );
+  TfTransformListener::getInstance().unregisterWrapper();
 }
 
 void TfTransform::updateMessage()

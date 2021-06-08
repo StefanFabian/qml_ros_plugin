@@ -38,7 +38,7 @@ void TfTransformListener::onRosInitialized()
 {
   if ( wrapper_count_ == 0 ) return;
   state_.reset( new State());
-  state_->buffer._addTransformsChangedListener( boost::bind( &TfTransformListener::onTransformChanged, this ));
+  state_->buffer._addTransformsChangedListener( [this] { onTransformChanged(); });
 }
 
 void TfTransformListener::onRosShutdown()
@@ -242,10 +242,11 @@ QVariantMap TfTransformListener::lookUpTransform( const QString &target_frame, c
 
 void TfTransformListener::registerWrapper()
 {
+
   if ( wrapper_count_++ == 0 && isInitialized())
   {
     state_.reset( new State());
-    state_->buffer._addTransformsChangedListener( boost::bind( &TfTransformListener::onTransformChanged, this ));
+    state_->buffer._addTransformsChangedListener( [this] { onTransformChanged(); });
   }
 }
 
