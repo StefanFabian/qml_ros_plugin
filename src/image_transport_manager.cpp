@@ -237,9 +237,9 @@ private:
       {
         // Update the base interval only if we are not throttled
         if ( last_image_->header.stamp.isZero())
-          camera_base_interval_ = static_cast<int>((last_received_stamp_ - received_stamp).toNSec() / (1000 * 1000));
+          camera_base_interval_ = static_cast<int>((received_stamp - last_received_stamp_).toNSec() / (1000 * 1000));
         else
-          camera_base_interval_ = static_cast<int>((last_image_->header.stamp - image->header.stamp).toNSec() /
+          camera_base_interval_ = static_cast<int>((image->header.stamp - last_image_->header.stamp).toNSec() /
                                                    (1000 * 1000));
       }
       last_received_stamp_ = received_stamp;
