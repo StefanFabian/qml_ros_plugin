@@ -84,13 +84,29 @@ public:
   //! The images may still arrive at a higher rate if other subscriptions request it.
   void updateThrottleInterval( int interval );
 
-  std::string getTopic();
+  //! The subscribed topic. Once subscribed this is the full topic name without the transport.
+  std::string getTopic() const;
+
+  //! The full latency (in ms) from camera to your display excluding drawing time.
+  int latency() const;
+
+  //! The latency (in ms) from the camera to the reception of the image in this node.
+  int networkLatency() const;
+
+  //! The latency (in ms) from the reception of the image until it is in a displayable format.
+  int processingLatency() const;
+
+  //! The framerate (in frames per second).
+  double framerate() const;
 
 private:
-  int throttle_interval = 0;
   std::shared_ptr<ImageTransportManager::Subscription> subscription;
   QAbstractVideoSurface *surface = nullptr;
   std::function<void( const QVideoFrame & )> callback;
+  double framerate_ = 0;
+  int throttle_interval = 0;
+  int network_latency = -1;
+  int processing_latency = -1;
 
   friend class ImageTransportManager;
 };

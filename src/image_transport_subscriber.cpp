@@ -31,14 +31,15 @@ QAbstractVideoSurface *ImageTransportSubscriber::videoSurface() const { return s
 void ImageTransportSubscriber::setVideoSurface( QAbstractVideoSurface *surface )
 {
   if ( surface == surface_ ) return;
-
-  bool subscribed = subscribed_;
-  blockSignals( true );
-  shutdownSubscriber();
+  if ( surface_ != nullptr && surface_->isActive())
+    surface_->stop();
   surface_ = surface;
-  initSubscriber();
-  blockSignals( false );
-  if ( subscribed != subscribed_ ) emit subscribedChanged();
+  if ( surface_ == nullptr && subscribed_ ) {
+    shutdownSubscriber();
+    return;
+  }
+  if ( !subscribed_ ) initSubscriber();
+  if ( last_frame_.isValid()) presentFrame( last_frame_ );
 }
 
 void ImageTransportSubscriber::onNodeHandleReady()
@@ -67,8 +68,10 @@ void ImageTransportSubscriber::initSubscriber()
   // TODO Transport hints
   image_transport::TransportHints transport_hints( default_transport_.toStdString());
   subscription_ = ImageTransportManager::getInstance().subscribe( nh_, topic_, queue_size_, transport_hints,
-                                                                  std::bind( &ImageTransportSubscriber::presentFrame,
-                                                                             this, std::placeholders::_1 ),
+                                                                  [ this ]( const QVideoFrame &frame )
+                                                                  {
+                                                                    presentFrame( frame );
+                                                                  },
                                                                   surface_, throttle_interval_ );
   subscribed_ = subscription_ != nullptr;
   if ( !was_subscribed ) emit subscribedChanged();
@@ -147,8 +150,18 @@ void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
       return;
     }
   }
+  last_frame_ = frame;
   surface_->present( frame );
+  bool network_latency_changed = last_network_latency_ != subscription_->networkLatency();
+  bool processing_latency_changed = last_processing_latency_ != subscription_->processingLatency();
+  if ( network_latency_changed ) emit networkLatencyChanged();
+  if ( processing_latency_changed ) emit processingLatencyChanged();
+  if ( network_latency_changed || processing_latency_changed ) emit latencyChanged();
+  if ( std::abs( last_framerate_ - subscription_->framerate()) > 0.1 ) emit framerateChanged();
+  last_framerate_ = subscription_->framerate();
   last_frame_timestamp_ = ros::Time::now();
+  last_network_latency_ = subscription_->networkLatency();
+  last_processing_latency_ = subscription_->processingLatency();
   if ( timeout_ != 0 )
   {
     no_image_timer_.start( throttle_interval_ + timeout_ );
@@ -200,5 +213,25 @@ void ImageTransportSubscriber::setThrottleRate( double value )
     subscription_->updateThrottleInterval( throttle_interval_ );
   }
   emit throttleRateChanged();
+}
+
+double ImageTransportSubscriber::framerate() const
+{
+  return subscription_ == nullptr ? 0 : subscription_->framerate();
+}
+
+int ImageTransportSubscriber::latency() const
+{
+  return subscription_ == nullptr ? -1 : subscription_->latency();
+}
+
+int ImageTransportSubscriber::networkLatency() const
+{
+  return subscription_ == nullptr ? -1 : subscription_->networkLatency();
+}
+
+int ImageTransportSubscriber::processingLatency() const
+{
+  return subscription_ == nullptr ? -1 : subscription_->processingLatency();
 }
 }

@@ -3,6 +3,8 @@
 //
 
 #include "qml_ros_plugin/image_transport_manager.h"
+
+#include "qml_ros_plugin/helpers/rolling_average.h"
 #include "qml_ros_plugin/image_buffer.h"
 
 #include <QTimer>
@@ -137,7 +139,10 @@ public:
 
   void subscribe()
   {
-    if ( subscriber_ ) return;
+    {
+      std::lock_guard<std::mutex> lock( subscribe_mutex_ );
+      if ( subscriber_ ) return;
+    }
     // Subscribing on background thread to reduce load on UI thread
     std::thread( [ this ]()
                  {
@@ -204,10 +209,13 @@ private:
     int interval = getThrottleInterval();
     if ( throttled_ )
     {
-      manager->load_balancer_->notifyImageReceived( this );
       if ( interval != 0 && interval > camera_base_interval_ )
       {
-        subscriber_.shutdown();
+        {
+          std::lock_guard<std::mutex> lock( subscribe_mutex_ );
+          subscriber_.shutdown();
+        }
+        manager->load_balancer_->notifyImageReceived( this );
       }
       else
       {
@@ -216,10 +224,13 @@ private:
         throttled_ = false;
       }
     }
-    else if ( interval != 0 && interval > camera_base_interval_ * 1.1 )
+    else if ( interval != 0 && interval > camera_base_interval_ * 1.1 ) // 10% off for hysteresis to prevent oscillation
     {
       // Need to throttle now
-      subscriber_.shutdown();
+      {
+        std::lock_guard<std::mutex> lock( subscribe_mutex_ );
+        subscriber_.shutdown();
+      }
       manager->load_balancer_->registerThrottledSubscription( this );
       throttled_ = true;
     }
@@ -242,6 +253,10 @@ private:
           camera_base_interval_ = static_cast<int>((image->header.stamp - last_image_->header.stamp).toNSec() /
                                                    (1000 * 1000));
       }
+      else if ( throttled_ )
+      {
+        current_throttle_interval_ = interval;
+      }
       last_received_stamp_ = received_stamp;
       last_image_ = image;
       last_buffer_ = buffer;
@@ -254,11 +269,15 @@ private:
   {
     ImageBuffer *buffer;
     sensor_msgs::ImageConstPtr image;
+    ros::Time received;
+    int base_interval;
     {
       std::lock_guard<std::mutex> image_lock( image_mutex_ );
       if ( last_buffer_ == nullptr || last_image_ == nullptr ) return;
       buffer = last_buffer_;
       image = last_image_;
+      received = last_received_stamp_;
+      base_interval = throttled_ ? current_throttle_interval_ : camera_base_interval_;
       last_buffer_ = nullptr;
     }
     QVideoFrame frame( buffer, QSize( image->width, image->height ), buffer->format());
@@ -272,9 +291,19 @@ private:
         subscribers.push_back( sub_weak.lock());
       }
     }
+    const ros::Time &image_stamp = image->header.stamp;
+    int network_latency = !image_stamp.isZero() ? static_cast<int>((received - image_stamp).toSec() * 1000)
+                                                : -1;
+    network_latency_average_.add( network_latency );
+    int processing_latency = static_cast<int>((ros::Time::now() - received).toSec() * 1000);
+    processing_latency_average_.add( processing_latency );
+    if ( base_interval > 0 ) framerate_average_.add( 1000.0 / base_interval );
     for ( const auto &sub : subscribers )
     {
       if ( sub == nullptr || !sub->callback ) continue;
+      sub->network_latency = network_latency_average_;
+      sub->processing_latency = processing_latency_average_;
+      sub->framerate_ = std::round(framerate_average_ * 10) / 10;
       sub->callback( frame );
     }
   }
@@ -309,10 +338,14 @@ private:
   std::vector<ImageTransportSubscriptionHandle *> subscriptions_;
   std::vector<std::weak_ptr<ImageTransportSubscriptionHandle>> subscription_handles_;
   QList<QVideoFrame::PixelFormat> supported_formats_;
-  ImageBuffer *last_buffer_ = nullptr;
-  sensor_msgs::ImageConstPtr last_image_;
+  RollingAverage<double, 10> framerate_average_;
+  RollingAverage<int, 10> network_latency_average_;
+  RollingAverage<int, 10> processing_latency_average_;
   ros::Time last_received_stamp_;
+  sensor_msgs::ImageConstPtr last_image_;
+  ImageBuffer *last_buffer_ = nullptr;
   int camera_base_interval_ = 0;
+  int current_throttle_interval_ = 0;
   bool throttled_ = false;
 };
 
@@ -337,7 +370,9 @@ void ImageTransportManager::LoadBalancer::registerThrottledSubscription( Subscri
 {
   {
     std::lock_guard<std::mutex> lock( mutex_ );
-    for ( auto &timeout : timeouts_ ) if ( timeout.second == subscription ) return;
+    for ( auto &timeout : timeouts_ )
+      if ( timeout.second == subscription )
+        return;
     insertTimeout( subscription->getThrottleInterval(), subscription );
     if ( !waiting_subscriptions_.empty())
     {
@@ -370,9 +405,6 @@ void ImageTransportManager::LoadBalancer::triggerSubscription( ImageTransportMan
 
   waiting_subscriptions_.insert( subscription );
   subscription->subscribe();
-  long now = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::system_clock::now().time_since_epoch()).count();
-  std::cout << now << std::endl;
 }
 
 void ImageTransportManager::LoadBalancer::insertTimeout( const long desired_throttle_interval,
@@ -438,9 +470,29 @@ void ImageTransportSubscriptionHandle::updateThrottleInterval( int interval )
   subscription->updateThrottling();
 }
 
-std::string ImageTransportSubscriptionHandle::getTopic()
+std::string ImageTransportSubscriptionHandle::getTopic() const
 {
   return subscription->getTopic();
+}
+
+int ImageTransportSubscriptionHandle::latency() const
+{
+  return network_latency + processing_latency;
+}
+
+int ImageTransportSubscriptionHandle::networkLatency() const
+{
+  return network_latency;
+}
+
+int ImageTransportSubscriptionHandle::processingLatency() const
+{
+  return processing_latency;
+}
+
+double ImageTransportSubscriptionHandle::framerate() const
+{
+  return framerate_;
 }
 
 ImageTransportManager::ImageTransportManager()
