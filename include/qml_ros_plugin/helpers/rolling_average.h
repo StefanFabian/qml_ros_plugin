@@ -22,10 +22,10 @@ public:
   void add( const T &value )
   {
     if (count_values_ == COUNT) sum_ -= values_[index_];
+    else ++count_values_;
     values_[index_] = value;
     sum_ += value;
     if ( ++index_ == COUNT ) index_ = 0;
-    if (count_values_ != COUNT) ++count_values_;
   }
 
   T value() const { return count_values_ == 0 ? 0 : sum_ / count_values_; }

@@ -297,13 +297,13 @@ private:
     network_latency_average_.add( network_latency );
     int processing_latency = static_cast<int>((ros::Time::now() - received).toSec() * 1000);
     processing_latency_average_.add( processing_latency );
-    if ( base_interval > 0 ) framerate_average_.add( 1000.0 / base_interval );
+    image_interval_average_.add(base_interval);
     for ( const auto &sub : subscribers )
     {
       if ( sub == nullptr || !sub->callback ) continue;
       sub->network_latency = network_latency_average_;
       sub->processing_latency = processing_latency_average_;
-      sub->framerate_ = std::round(framerate_average_ * 10) / 10;
+      sub->framerate_ = std::round(1000.0 / image_interval_average_ * 10) / 10;
       sub->callback( frame );
     }
   }
@@ -338,7 +338,7 @@ private:
   std::vector<ImageTransportSubscriptionHandle *> subscriptions_;
   std::vector<std::weak_ptr<ImageTransportSubscriptionHandle>> subscription_handles_;
   QList<QVideoFrame::PixelFormat> supported_formats_;
-  RollingAverage<double, 10> framerate_average_;
+  RollingAverage<int, 10> image_interval_average_;
   RollingAverage<int, 10> network_latency_average_;
   RollingAverage<int, 10> processing_latency_average_;
   ros::Time last_received_stamp_;
