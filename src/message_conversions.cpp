@@ -109,17 +109,17 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &ms
     case MessageTypes::Bool:
       return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue());
     case MessageTypes::UInt8:
-      return QVariant::fromValue( msg.as<ValueMessage<uint8_t>>().getValue());
+      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue());
     case MessageTypes::UInt16:
-      return QVariant::fromValue( msg.as<ValueMessage<uint16_t>>().getValue());
+      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue());
     case MessageTypes::UInt32:
       return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue());
     case MessageTypes::UInt64:
       return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue());
     case MessageTypes::Int8:
-      return QVariant::fromValue( msg.as<ValueMessage<int8_t>>().getValue());
+      return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue());
     case MessageTypes::Int16:
-      return QVariant::fromValue( msg.as<ValueMessage<int16_t>>().getValue());
+      return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue());
     case MessageTypes::Int32:
       return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue());
     case MessageTypes::Int64:
@@ -253,17 +253,17 @@ QVariant msgToMap( const Message &msg )
     case MessageTypes::Bool:
       return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue());
     case MessageTypes::UInt8:
-      return QVariant::fromValue( msg.as<ValueMessage<uint8_t>>().getValue());
+      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue());
     case MessageTypes::UInt16:
-      return QVariant::fromValue( msg.as<ValueMessage<uint16_t>>().getValue());
+      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue());
     case MessageTypes::UInt32:
       return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue());
     case MessageTypes::UInt64:
       return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue());
     case MessageTypes::Int8:
-      return QVariant::fromValue( msg.as<ValueMessage<int8_t>>().getValue());
+      return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue());
     case MessageTypes::Int16:
-      return QVariant::fromValue( msg.as<ValueMessage<int16_t>>().getValue());
+      return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue());
     case MessageTypes::Int32:
       return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue());
     case MessageTypes::Int64:
