@@ -177,8 +177,10 @@ QString ImageTransportSubscriber::topic() const
 void ImageTransportSubscriber::setTopic( const QString &value )
 {
   if ( topic_ == value ) return;
+  shutdownSubscriber();
   topic_ = value;
   emit topicChanged();
+  initSubscriber();
 }
 
 const QString &ImageTransportSubscriber::defaultTransport() const { return default_transport_; }
@@ -186,8 +188,10 @@ const QString &ImageTransportSubscriber::defaultTransport() const { return defau
 void ImageTransportSubscriber::setDefaultTransport( const QString &value )
 {
   if ( default_transport_ == value ) return;
+  shutdownSubscriber();
   default_transport_ = value;
   emit defaultTransportChanged();
+  initSubscriber();
 }
 
 bool ImageTransportSubscriber::subscribed() const { return subscribed_; }
