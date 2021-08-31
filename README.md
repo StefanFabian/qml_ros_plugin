@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/StefanFabian/qml_ros_plugin.svg?branch=master)](https://travis-ci.org/StefanFabian/qml_ros_plugin)
+[![Build Status](https://app.travis-ci.com/StefanFabian/qml_ros_plugin.svg?branch=master)](https://app.travis-ci.com/StefanFabian/qml_ros_plugin)
 [![codecov](https://codecov.io/gh/StefanFabian/qml_ros_plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/StefanFabian/qml_ros_plugin)
 
 ## Warning: Currently in Alpha
