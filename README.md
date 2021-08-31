@@ -6,7 +6,18 @@
 While this plugin contains a significant amount of tests, it is still in beta stadium and bugs
 may be part of the experience. Be aware of this. I would not recommend using it in production systems without further testing.
 
-## QmlRosPlugin
+## Scientific Works
+If you are using this module in a scientific context, feel free to cite this paper:
+```
+@INPROCEEDINGS{fabian2021hri,
+  author = {Stefan Fabian and Oskar von Stryk},
+  title = {Open-Source Tools for Efficient ROS and ROS2-based 2D Human-Robot Interface Development},
+  year = {2021},
+  booktitle = {2021 European Conference on Mobile Robots (ECMR)},
+}
+```
+
+## QML ROS Plugin
 Connects QML user interfaces to the Robot Operating System (ROS).  
 Please be aware that this loses some of the semantic information that the type of a message would normally provide.
 
