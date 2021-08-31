@@ -1,9 +1,9 @@
 [![Build Status](https://app.travis-ci.com/StefanFabian/qml_ros_plugin.svg?branch=master)](https://app.travis-ci.com/StefanFabian/qml_ros_plugin)
 [![codecov](https://codecov.io/gh/StefanFabian/qml_ros_plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/StefanFabian/qml_ros_plugin)
 
-## Warning: Currently in Alpha
-While this plugin contains a significant amount of tests, it is still in alpha stadium and bugs
-are expected. Be aware of this. I would not recommend using it in production systems without further testing.
+## Warning: Currently in Beta
+While this plugin contains a significant amount of tests, it is still in beta stadium and bugs
+may be part of the experience. Be aware of this. I would not recommend using it in production systems without further testing.
 
 ## QmlRosPlugin
 Connects QML user interfaces to the Robot Operating System (ROS).  
