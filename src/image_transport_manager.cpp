@@ -259,6 +259,7 @@ private:
       }
       last_received_stamp_ = received_stamp;
       last_image_ = image;
+      delete last_buffer_;
       last_buffer_ = buffer;
     }
     // Deliver frames on UI thread
