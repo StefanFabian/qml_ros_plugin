@@ -221,6 +221,12 @@ public:
   //! @copydoc RosQml::setThreads
   Q_INVOKABLE void setThreads( int count );
 
+  //! Returns the name of the node. Returns empty string before ROS node was initialized.
+  Q_INVOKABLE QString getName();
+
+  //! Returns the namespace of the node. Returns empty string before ROS node was initialized.
+  Q_INVOKABLE QString getNamespace();
+
   //! @copydoc RosQml::queryTopics
   Q_INVOKABLE QStringList queryTopics( const QString &datatype = QString()) const;
 

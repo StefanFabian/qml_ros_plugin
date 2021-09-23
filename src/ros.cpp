@@ -84,7 +84,7 @@ QStringList RosQml::queryTopics( const QString &datatype ) const
   ros::master::getTopics( topic_info );
   QStringList result;
   std::string std_datatype = datatype.toStdString();
-  for ( const auto &topic : topic_info )
+  for ( const auto &topic: topic_info )
   {
     if ( !std_datatype.empty() && topic.datatype != std_datatype ) continue;
     result.append( QString::fromStdString( topic.name ));
@@ -97,7 +97,7 @@ QList<TopicInfo> RosQml::queryTopicInfo() const
   ros::master::V_TopicInfo topic_info;
   ros::master::getTopics( topic_info );
   QList<TopicInfo> result;
-  for ( const auto &topic : topic_info )
+  for ( const auto &topic: topic_info )
   {
     result.append( { QString::fromStdString( topic.name ), QString::fromStdString( topic.datatype ) } );
   }
@@ -111,7 +111,7 @@ QString RosQml::queryTopicType( const QString &name ) const
   ros::master::getTopics( topic_info );
   QList<TopicInfo> result;
   std::string std_name = name.toStdString();
-  for ( const auto &topic : topic_info )
+  for ( const auto &topic: topic_info )
   {
     if ( std_name != topic.name ) continue;
     return QString::fromStdString( topic.datatype );
@@ -266,6 +266,18 @@ bool RosQmlSingletonWrapper::ok() const { return RosQml::getInstance().ok(); }
 void RosQmlSingletonWrapper::spinOnce() { RosQml::getInstance().spinOnce(); }
 
 void RosQmlSingletonWrapper::setThreads( int count ) { RosQml::getInstance().setThreads( count ); }
+
+QString RosQmlSingletonWrapper::getName()
+{
+  if ( !isInitialized()) return {};
+  return QString::fromStdString( ros::this_node::getName());
+}
+
+QString RosQmlSingletonWrapper::getNamespace()
+{
+  if ( !isInitialized()) return {};
+  return QString::fromStdString( ros::this_node::getNamespace());
+}
 
 QStringList RosQmlSingletonWrapper::queryTopics( const QString &datatype ) const
 {
