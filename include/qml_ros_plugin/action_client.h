@@ -25,11 +25,15 @@ Q_OBJECT
   // @formatter:off
   //! True if the ActionClient is connected to the ActionServer, false otherwise.
   Q_PROPERTY( bool connected READ isServerConnected NOTIFY connectedChanged )
+  //! The type of the action. Example: actionlib_tutorials/FibonacciAction
+  Q_PROPERTY( QString actionType READ actionType CONSTANT )
   // @formatter:on
 public:
   ActionClient( NodeHandle::Ptr nh, const QString &action_type, const QString &name );
 
   Q_INVOKABLE bool isServerConnected() const;
+
+  QString actionType() const;
 
   /*!
    * Sends a goal to the action server if it is connected.

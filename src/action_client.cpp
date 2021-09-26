@@ -73,6 +73,8 @@ bool ActionClient::isServerConnected() const
   return client_ != nullptr && client_->isServerConnected();
 }
 
+QString ActionClient::actionType() const { return action_type_; }
+
 void ActionClient::checkServerConnected()
 {
   if ( !isServerConnected()) return;
