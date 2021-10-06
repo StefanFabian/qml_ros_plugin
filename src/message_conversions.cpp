@@ -1078,6 +1078,28 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
         ros::WallTime wall_time = value.value<WallTime>().getRosTime();
         return fillValue<ros::Time>( msg, ros::Time( wall_time.sec, wall_time.nsec ), MessageTypes::Time );
       }
+      if ( value.canConvert<QVariantMap>())
+      {
+        const QVariantMap &map = value.value<QVariantMap>();
+        if ( msg.type() == MessageTypes::Time )
+        {
+          uint32_t sec = 0;
+          if ( map.contains( "sec" )) sec = map["sec"].toUInt();
+          uint32_t nsec = 0;
+          if ( map.contains( "nsec" )) nsec = map["nsec"].toUInt();
+          msg.as<ValueMessage<ros::Time>>().setValue( ros::Time( sec, nsec ));
+          return true;
+        }
+        else if ( msg.type() == MessageTypes::Duration )
+        {
+          int32_t sec = 0;
+          if ( map.contains( "sec" )) sec = map["sec"].toInt();
+          int32_t nsec = 0;
+          if ( map.contains( "nsec" )) nsec = map["nsec"].toInt();
+          msg.as<ValueMessage<ros::Duration>>().setValue( ros::Duration( sec, nsec ));
+          return true;
+        }
+      }
       ROS_WARN( "Unsupported QVariant type '%s' encountered while filling message!", value.typeName());
       break;
   }
