@@ -10,6 +10,7 @@
 #include <QAbstractListModel>
 #include <QDateTime>
 #include <QMetaProperty>
+#include <QVector3D>
 
 #include <ros_babel_fish/message_types.h>
 #include <ros/ros.h>
@@ -895,7 +896,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListMode
       std::vector<std::string> names;
       {
         int max_key = 0;
-        for ( auto key : roleNames.keys()) max_key = std::max( max_key, key );
+        for ( auto key: roleNames.keys()) max_key = std::max( max_key, key );
         names.resize( max_key + 1 );
       }
       // Collect keys
@@ -907,7 +908,7 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListMode
       }
       // Check that all keys are in message
       const std::vector<std::string> &compound_names = array.elementTemplate()->compound.names;
-      for ( auto &name : names )
+      for ( auto &name: names )
       {
         const std::string &key = name;
         if ( key.empty()) continue;
@@ -946,7 +947,7 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     auto &compound = msg.as<CompoundMessage>();
     const QVariantMap &map = value.value<QVariantMap>();
     bool no_error = true;
-    for ( auto &key : map.keys())
+    for ( auto &key: map.keys())
     {
       std::string skey = key.toStdString();
       if ( !compound.containsKey( skey ))
@@ -992,6 +993,27 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
       }
       return no_error;
     }
+  }
+  else if ( value.type() == QVariant::Vector3D && msg.type() == MessageTypes::Compound )
+  {
+    auto &compound = msg.as<CompoundMessage>();
+    const QVector3D &vec = value.value<QVector3D>();
+    bool no_error = true;
+
+    for ( auto &key: { "x", "y", "z" } )
+    {
+      if ( !compound.containsKey( key ))
+      {
+        ROS_WARN_STREAM( "Message doesn't have field '" << key << "'!" );
+        no_error = false;
+        continue;
+      }
+    }
+    if ( !no_error ) return no_error;
+    no_error &= fillMessage( fish, compound["x"], QVariant::fromValue( vec.x()));
+    no_error &= fillMessage( fish, compound["y"], QVariant::fromValue( vec.y()));
+    no_error &= fillMessage( fish, compound["z"], QVariant::fromValue( vec.z()));
+    return no_error;
   }
 
   if ( msg.type() & (MessageTypes::Array | MessageTypes::Compound))
