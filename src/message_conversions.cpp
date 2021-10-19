@@ -10,7 +10,11 @@
 #include <QAbstractListModel>
 #include <QDateTime>
 #include <QMetaProperty>
+#include <QQuaternion>
+#include <QUrl>
+#include <QVector2D>
 #include <QVector3D>
+#include <QVector4D>
 
 #include <ros_babel_fish/message_types.h>
 #include <ros/ros.h>
@@ -994,25 +998,82 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
       return no_error;
     }
   }
-  else if ( value.type() == QVariant::Vector3D && msg.type() == MessageTypes::Compound )
+  else if ( value.type() == QVariant::Vector2D && msg.type() == MessageTypes::Compound )
   {
+    auto vector = value.value<QVector2D>();
     auto &compound = msg.as<CompoundMessage>();
-    const QVector3D &vec = value.value<QVector3D>();
     bool no_error = true;
-
-    for ( auto &key: { "x", "y", "z" } )
+    int i = 0;
+    for ( const auto &key: { "x", "y" } )
     {
       if ( !compound.containsKey( key ))
       {
-        ROS_WARN_STREAM( "Message doesn't have field '" << key << "'!" );
+        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
+                                 "Tried to set QVector2D to compound message that has no %s property", key );
         no_error = false;
         continue;
       }
+      no_error &= fillMessage( fish, compound[key], vector[i++] );
     }
-    if ( !no_error ) return no_error;
-    no_error &= fillMessage( fish, compound["x"], QVariant::fromValue( vec.x()));
-    no_error &= fillMessage( fish, compound["y"], QVariant::fromValue( vec.y()));
-    no_error &= fillMessage( fish, compound["z"], QVariant::fromValue( vec.z()));
+    return no_error;
+  }
+  else if ( value.type() == QVariant::Vector3D && msg.type() == MessageTypes::Compound )
+  {
+    QVector3D vector = value.value<QVector3D>();
+    auto &compound = msg.as<CompoundMessage>();
+    bool no_error = true;
+    int i = 0;
+    for ( const auto &key: { "x", "y", "z" } )
+    {
+      if ( !compound.containsKey( key ))
+      {
+        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
+                                 "Tried to set QVector3D to compound message that has no %s property", key );
+        no_error = false;
+        continue;
+      }
+      no_error &= fillMessage( fish, compound[key], vector[i++] );
+    }
+    return no_error;
+  }
+  else if ( value.type() == QVariant::Vector4D && msg.type() == MessageTypes::Compound )
+  {
+    auto vector = value.value<QVector4D>();
+    auto &compound = msg.as<CompoundMessage>();
+    bool no_error = true;
+    int i = 0;
+    for ( const auto &key: { "x", "y", "z", "w" } )
+    {
+      if ( !compound.containsKey( key ))
+      {
+        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
+                                 "Tried to set QVector4D to compound message that has no %s property", key );
+        no_error = false;
+        continue;
+      }
+      no_error &= fillMessage( fish, compound[key], vector[i++] );
+    }
+    return no_error;
+  }
+  else if ( value.type() == QVariant::Quaternion && msg.type() == MessageTypes::Compound )
+  {
+    auto quaternion = value.value<QQuaternion>();
+    auto &compound = msg.as<CompoundMessage>();
+    bool no_error = true;
+    for ( const std::string &key: { "w", "x", "y", "z" } )
+    {
+      if ( !compound.containsKey( key ))
+      {
+        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
+                                 "Tried to set QQuaternion to compound message that has no %s property", key.c_str());
+        no_error = false;
+        continue;
+      }
+      if ( key == "w" ) no_error &= fillMessage( fish, compound[key], quaternion.scalar());
+      else if ( key == "x" ) no_error &= fillMessage( fish, compound[key], quaternion.x());
+      else if ( key == "y" ) no_error &= fillMessage( fish, compound[key], quaternion.y());
+      else no_error &= fillMessage( fish, compound[key], quaternion.z());
+    }
     return no_error;
   }
 
@@ -1063,6 +1124,8 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
     }
     case QVariant::String:
       return fillValue<std::string>( msg, value.toString().toStdString(), 0 /* ignored for this special case anyway */);
+    case QVariant::Url:
+      return fillValue<std::string>( msg, value.toUrl().toString().toStdString(), 0 /* same */ );
     case QVariant::DateTime:
       return fillValue<ros::Time>( msg, qmlToRosTime( value.toDateTime()), MessageTypes::Time );
     case QVariant::Date: // Not sure if any of these types should be supported
