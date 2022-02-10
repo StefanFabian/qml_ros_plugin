@@ -17,6 +17,7 @@ Subscriber::Subscriber() : running_( true ), is_subscribed_( false ), queue_size
   nh_ = std::make_shared<NodeHandle>();
   babel_fish_ = BabelFishDispenser::getBabelFish();
   connect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
+  initTimer();
 }
 
 Subscriber::Subscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size, bool running )
@@ -25,10 +26,19 @@ Subscriber::Subscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size, b
 {
   babel_fish_ = BabelFishDispenser::getBabelFish();
   connect( nh_.get(), &NodeHandle::ready, this, &Subscriber::subscribe );
+  initTimer();
   if ( nh_->isReady()) subscribe();
 }
 
 Subscriber::~Subscriber() = default;
+
+void Subscriber::initTimer()
+{
+  connect( &throttle_timer_, &QTimer::timeout, this, &Subscriber::updateMessage );
+  throttle_timer_.setSingleShot( false );
+  throttle_timer_.setInterval( 50 );
+  throttle_timer_.start();
+}
 
 QString Subscriber::topic() const { return QString::fromStdString( subscriber_.getTopic()); }
 
@@ -71,6 +81,15 @@ void Subscriber::setRunning( bool value )
   emit runningChanged();
 }
 
+int Subscriber::throttleRate() const { return throttle_rate_; }
+
+void Subscriber::setThrottleRate( int value )
+{
+  throttle_rate_ = value;
+  throttle_timer_.setInterval( 1000 / throttle_rate_ );
+  emit throttleRateChanged();
+}
+
 const QVariant &Subscriber::message() const { return message_; }
 
 const QString &Subscriber::messageType() const { return message_type_; }
@@ -104,11 +123,18 @@ void Subscriber::shutdown()
 
 void Subscriber::messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg )
 {
-  TranslatedMessage::Ptr translated = babel_fish_.translateMessage( msg );
+  last_message_ = msg;
+}
+
+void Subscriber::updateMessage()
+{
+  if (current_message_ == last_message_) return;
+  current_message_ = last_message_;
+  TranslatedMessage::Ptr translated = babel_fish_.translateMessage( current_message_ );
   message_ = msgToMap( translated, translated->translated_message->as<CompoundMessage>());
-  if ( msg->dataType() != message_type_.toStdString())
+  if (current_message_->dataType() != message_type_.toStdString())
   {
-    message_type_ = QString::fromStdString( msg->dataType());
+    message_type_ = QString::fromStdString(current_message_->dataType());
     emit messageTypeChanged();
   }
   emit messageChanged();

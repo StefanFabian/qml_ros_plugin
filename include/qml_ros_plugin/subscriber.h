@@ -9,6 +9,7 @@
 
 #include <QVariant>
 #include <QMap>
+#include <QTimer>
 
 #include <ros_babel_fish/babel_fish.h>
 #include <ros_babel_fish/babel_fish_message.h>
@@ -37,6 +38,9 @@ Q_OBJECT
   //! The type of the last received message, e.g., geometry_msgs/Pose.
   Q_PROPERTY( QString messageType READ messageType NOTIFY messageTypeChanged )
 
+  //! Limits the frequency in which the notification for an updated message is emitted. Default: 20 Hz
+  Q_PROPERTY( int throttleRate READ throttleRate WRITE setThrottleRate NOTIFY throttleRateChanged )
+
   //! Controls whether or not the subscriber is currently running, i.e., able to receive messages. Default: true
   Q_PROPERTY( bool running READ running WRITE setRunning NOTIFY runningChanged )
   // @formatter:on
@@ -63,6 +67,10 @@ public:
 
   void setRunning( bool value );
 
+  int throttleRate() const;
+
+  void setThrottleRate( int value );
+
   const QVariant &message() const;
 
   const QString &messageType() const;
@@ -80,6 +88,9 @@ signals:
 
   //! Emitted when the namespace ns changed.
   void nsChanged();
+
+  //! Emitted when the throttle rate was changed.
+  void throttleRateChanged();
 
   //! Emitted if the running state of this subscriber changed.
   void runningChanged();
@@ -100,7 +111,11 @@ protected slots:
 
   void subscribe();
 
+  void updateMessage();
+
 protected:
+  void initTimer();
+
   void onRosInitialized() override;
 
   void shutdown();
@@ -110,13 +125,17 @@ protected:
   NodeHandle::Ptr nh_;
   ros::Subscriber subscriber_;
   ros_babel_fish::BabelFish babel_fish_;
+  ros_babel_fish::BabelFishMessage::ConstPtr last_message_;
+  ros_babel_fish::BabelFishMessage::ConstPtr current_message_;
+  QTimer throttle_timer_;
   bool running_;
   bool is_subscribed_;
 
   QString topic_;
-  quint32 queue_size_;
-  QVariant message_;
   QString message_type_;
+  QVariant message_;
+  quint32 queue_size_;
+  int throttle_rate_ = 20;
 };
 } // qml_ros_plugin
 

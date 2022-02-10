@@ -51,6 +51,7 @@ has more properties to give you more fine-grained control.
     id: mySubscriber
     ns: "~" // Namespace
     topic: "/intval"
+    throttleRate: 30 // Update rate of message property in Hz
     queueSize: 10
     running: true
     onNewMessage: doStuff(message)
@@ -61,6 +62,11 @@ the ``ros::NodeHandle`` that is created to subscribe to the given topic.
 
 The ``queueSize`` property controls how many incoming messages are queued for
 processing before the oldest are dropped.
+
+The ``throttleRate`` limits the rate in which QML receives updates from the given topic.
+By default the Subscriber polls with 20 Hz on the UI thread and will notify of property changes with at most this rate.
+This is to reduce load and prevent race conditions that could otherwise update the message while QML is using it since
+the subscriber is receiving messages in a background thread by default.
 
 Using the ``running`` property, the subscriber can be enabled and disabled.
 If the property is set to ``false``, the subscriber is shut down until it is
