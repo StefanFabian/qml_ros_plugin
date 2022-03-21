@@ -15,6 +15,7 @@
 #include <ros_babel_fish/babel_fish_message.h>
 
 #include <ros/subscriber.h>
+#include <mutex>
 
 namespace qml_ros_plugin
 {
