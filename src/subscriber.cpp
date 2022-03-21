@@ -123,18 +123,22 @@ void Subscriber::shutdown()
 
 void Subscriber::messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg )
 {
+  std::lock_guard<std::mutex> lock( message_mutex_ );
   last_message_ = msg;
 }
 
 void Subscriber::updateMessage()
 {
-  if (current_message_ == last_message_) return;
-  current_message_ = last_message_;
-  TranslatedMessage::Ptr translated = babel_fish_.translateMessage( current_message_ );
+  std::unique_lock<std::mutex> lock( message_mutex_ );
+  if ( !last_message_ ) return;
+  ros_babel_fish::BabelFishMessage::ConstPtr msg = std::move( last_message_ );
+  last_message_ = nullptr;
+  lock.unlock(); // Don't need the mutex anymore
+  TranslatedMessage::Ptr translated = babel_fish_.translateMessage( msg );
   message_ = msgToMap( translated, translated->translated_message->as<CompoundMessage>());
-  if (current_message_->dataType() != message_type_.toStdString())
+  if ( msg->dataType() != message_type_.toStdString())
   {
-    message_type_ = QString::fromStdString(current_message_->dataType());
+    message_type_ = QString::fromStdString( msg->dataType());
     emit messageTypeChanged();
   }
   emit messageChanged();

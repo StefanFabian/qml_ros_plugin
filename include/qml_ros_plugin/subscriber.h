@@ -126,7 +126,7 @@ protected:
   ros::Subscriber subscriber_;
   ros_babel_fish::BabelFish babel_fish_;
   ros_babel_fish::BabelFishMessage::ConstPtr last_message_;
-  ros_babel_fish::BabelFishMessage::ConstPtr current_message_;
+  std::mutex message_mutex_;
   QTimer throttle_timer_;
   bool running_;
   bool is_subscribed_;
