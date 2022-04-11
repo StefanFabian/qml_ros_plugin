@@ -94,7 +94,7 @@ public:
   Q_INVOKABLE QVariant toJSDate() const { return QVariant::fromValue( rosToQmlTime( time_ )); }
 };
 
-class TimeSingleton : public QObjectRos
+class TimeSingleton : public QObject
 {
 Q_OBJECT
 public:

@@ -10,7 +10,7 @@ namespace qml_ros_plugin
 // ============== TIME SINGLETON ==============
 QVariant TimeSingleton::now()
 {
-  if ( !isInitialized() || !ros::Time::isValid())
+  if ( !ros::Time::isValid())
     return QVariant::fromValue( Time());
   return QVariant::fromValue( Time( ros::Time::now()));
 }

@@ -24,6 +24,13 @@ QObjectRos::QObjectRos( QObject *parent ) : QObject( parent ), is_initialized_( 
   // and this might lead to dependency issues.
   QObject::connect( &RosQml::getInstance(), &RosQml::shutdown, this, &QObjectRos::_shutdown );
   QObject::connect( QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &QObjectRos::_shutdown );
+  // This object needs ROS communication, so it's safe to assume it wants the spinner to be running during its lifetime.
+  RosQml::getInstance().startSpinning();
+}
+
+QObjectRos::~QObjectRos()
+{
+  RosQml::getInstance().stopSpinning();
 }
 
 bool QObjectRos::isInitialized() const { return is_initialized_; }

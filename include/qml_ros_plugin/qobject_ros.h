@@ -20,6 +20,8 @@ Q_OBJECT
 public:
   explicit QObjectRos( QObject *parent = nullptr );
 
+  ~QObjectRos() override;
+
   //! @return Whether or not this object is initialized.
   bool isInitialized() const;
 
