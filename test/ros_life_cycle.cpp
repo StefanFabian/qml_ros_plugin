@@ -51,7 +51,6 @@ TEST( RosLifeCycle, testLifeCycle )
   ASSERT_NE( publisher_before_init, nullptr );
   MockRos mock_ros;
   QCoreApplication::processEvents();
-  EXPECT_FALSE( time.isInitialized());
   EXPECT_FALSE( time.isValid());
   EXPECT_FALSE( qml_nh->isInitialized());
   EXPECT_FALSE( qml_nh->isReady());
@@ -66,7 +65,7 @@ TEST( RosLifeCycle, testLifeCycle )
   while ( true )
   {
     if ( ++wait_count > 10 ) FAIL() << "Initialization did not finish in time!";
-    if ( time.isInitialized()) break;
+    if ( time.isValid()) break;
     QCoreApplication::processEvents();
     ros::Duration( 0.05 ).sleep();
   }
@@ -75,7 +74,6 @@ TEST( RosLifeCycle, testLifeCycle )
   EXPECT_TRUE( RosQml::getInstance().isInitialized());
   EXPECT_TRUE( ros_wrapper.ok());
   EXPECT_TRUE( qml_ros_plugin::TfTransformListener::getInstance().isInitialized());
-  EXPECT_TRUE( time.isInitialized());
   EXPECT_FALSE( time.isSimTime());
   EXPECT_TRUE( time.isSystemTime());
   EXPECT_TRUE( qml_nh->isInitialized());
