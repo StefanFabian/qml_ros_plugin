@@ -219,6 +219,20 @@ void ImageTransportSubscriber::setThrottleRate( double value )
   emit throttleRateChanged();
 }
 
+bool ImageTransportSubscriber::enabled() const { return enabled_; }
+
+void ImageTransportSubscriber::setEnabled( bool value )
+{
+  if ( enabled_ == value )
+    return;
+  enabled_ = value;
+  if ( enabled_ )
+    initSubscriber();
+  else
+    shutdownSubscriber();
+  emit enabledChanged();
+}
+
 double ImageTransportSubscriber::framerate() const
 {
   return subscription_ == nullptr ? 0 : subscription_->framerate();

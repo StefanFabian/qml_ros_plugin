@@ -125,6 +125,7 @@ public:
 
   void subscribe()
   {
+    if ( subscriptions_.empty()) return;
     // Subscribing on background thread to reduce load on UI thread
     std::thread( [ this ]()
                  {
@@ -144,6 +145,9 @@ public:
     subscription_handles_.push_back( sub );
     updateSupportedFormats();
     updateThrottling();
+    // If this was the first subscription, subscribe
+    if ( subscriptions_.size() == 1 )
+      subscribe();
   }
 
   void removeSubscription( const ImageTransportSubscriptionHandle *sub )

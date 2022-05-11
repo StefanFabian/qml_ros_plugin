@@ -48,6 +48,8 @@ Q_OBJECT
   //! The update rate to throttle image receiving in images per second. Set to 0 to disable throttling.
   //! Default is 0 (disabled).
   Q_PROPERTY(double throttleRate READ throttleRate WRITE setThrottleRate NOTIFY throttleRateChanged)
+  //! Whether the subscriber is active or not. Setting to false will shut down subscribers
+  Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
   // @formatter:on
 public:
 
@@ -77,6 +79,10 @@ public:
 
   void setThrottleRate( double value );
 
+  bool enabled() const;
+
+  void setEnabled( bool value );
+
   double framerate() const;
 
   int latency() const;
@@ -104,6 +110,8 @@ signals:
   void networkLatencyChanged();
 
   void processingLatencyChanged();
+
+  void enabledChanged();
 
 private slots:
 
@@ -136,6 +144,7 @@ private:
   int last_processing_latency_ = -1;
   int timeout_ = 3000;
   bool subscribed_ = false;
+  bool enabled_ = true;
 };
 }
 
