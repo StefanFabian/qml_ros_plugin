@@ -524,7 +524,6 @@ ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtop
       sub->topic = topic;
       sub->queue_size = queue_size;
       sub->hints = transport_hints;
-      sub->subscribe();
       subscriptions.emplace_back( sub );
       ROS_DEBUG_NAMED( "qml_ros_plugin", "Subscribed to '%s' with transport '%s'.", topic.c_str(),
                        transport_hints.getTransport().c_str());

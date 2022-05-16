@@ -152,6 +152,9 @@ void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
   }
   last_frame_ = frame;
   surface_->present( frame );
+  // Return if this is the last frame of our subscription.
+  if ( subscription_ == nullptr ) return;
+
   bool network_latency_changed = last_network_latency_ != subscription_->networkLatency();
   bool processing_latency_changed = last_processing_latency_ != subscription_->processingLatency();
   if ( network_latency_changed ) emit networkLatencyChanged();
