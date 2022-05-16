@@ -4,8 +4,8 @@
 #ifndef QML_ROS_PLUGIN_TIME_H
 #define QML_ROS_PLUGIN_TIME_H
 
-#include "qml_ros_plugin/qobject_ros.h"
 #include "qml_ros_plugin/qml_ros_conversion.h"
+#include "qml_ros_plugin/qobject_ros.h"
 
 #include <QVariant>
 #include <ros/time.h>
@@ -17,7 +17,7 @@ template<typename RosTime>
 class TimeWrapper
 {
 public:
-  explicit TimeWrapper( const RosTime &time = RosTime()) : time_( time ) { }
+  explicit TimeWrapper( const RosTime &time = RosTime() ) : time_( time ) { }
 
   quint32 sec() const { return time_.sec; }
 
@@ -42,11 +42,11 @@ protected:
  */
 class Time : public TimeWrapper<ros::Time>
 {
-Q_GADGET
+  Q_GADGET
   Q_PROPERTY( quint32 sec READ sec WRITE setSec )
   Q_PROPERTY( quint32 nsec READ nsec WRITE setNSec )
 public:
-  explicit Time( const ros::Time &time = ros::Time()) : TimeWrapper<ros::Time>( time ) { }
+  explicit Time( const ros::Time &time = ros::Time() ) : TimeWrapper<ros::Time>( time ) { }
 
   //! The time in seconds (since 1970) as a decimal value. (Possible loss in precision)
   Q_INVOKABLE double toSec() const { return time_.toSec(); }
@@ -58,11 +58,10 @@ public:
   Q_INVOKABLE bool isZero() const { return time_.isZero(); }
 
   //!  A JS Date representing the value stored in this instance.
-  //!  Since JS Dates only have millisecond accuracy, information about microseconds and nanoseconds are lost.
-  //!  The time is always rounded down to prevent the JS Date from being in the future.
-  Q_INVOKABLE QVariant toJSDate() const { return QVariant::fromValue( rosToQmlTime( time_ )); }
+  //!  Since JS Dates only have millisecond accuracy, information about microseconds and nanoseconds
+  //!  are lost. The time is always rounded down to prevent the JS Date from being in the future.
+  Q_INVOKABLE QVariant toJSDate() const { return QVariant::fromValue( rosToQmlTime( time_ ) ); }
 };
-
 
 /*!
  * Represents a point in time of the current system.
@@ -73,11 +72,14 @@ public:
  */
 class WallTime : public TimeWrapper<ros::WallTime>
 {
-Q_GADGET
+  Q_GADGET
   Q_PROPERTY( quint32 sec READ sec WRITE setSec )
   Q_PROPERTY( quint32 nsec READ nsec WRITE setNSec )
 public:
-  explicit WallTime( const ros::WallTime &time = ros::WallTime()) : TimeWrapper<ros::WallTime>( time ) { }
+  explicit WallTime( const ros::WallTime &time = ros::WallTime() )
+      : TimeWrapper<ros::WallTime>( time )
+  {
+  }
 
   //! The time in seconds (since 1970) as a decimal value. (Possible loss in precision)
   Q_INVOKABLE double toSec() const { return time_.toSec(); }
@@ -89,14 +91,14 @@ public:
   Q_INVOKABLE bool isZero() const { return time_.isZero(); }
 
   //!  A JS Date representing the value stored in this instance.
-  //!  Since JS Dates only have millisecond accuracy, information about microseconds and nanoseconds are lost.
-  //!  The time is always rounded down to prevent the JS Date from being in the future.
-  Q_INVOKABLE QVariant toJSDate() const { return QVariant::fromValue( rosToQmlTime( time_ )); }
+  //!  Since JS Dates only have millisecond accuracy, information about microseconds and nanoseconds
+  //!  are lost. The time is always rounded down to prevent the JS Date from being in the future.
+  Q_INVOKABLE QVariant toJSDate() const { return QVariant::fromValue( rosToQmlTime( time_ ) ); }
 };
 
 class TimeSingleton : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   /*!
    * Returns the ros::Time as Time.
@@ -124,7 +126,7 @@ public:
 
 class WallTimeSingleton : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   /*!
    * Returns the ros::WallTime as WallTime.
@@ -138,11 +140,11 @@ public:
   //! Creates a WallTime instance from the given time in seconds since 1970 and nanoseconds since the last full second.
   Q_INVOKABLE QVariant create( quint32 sec, quint32 nsec );
 };
-}
+} // namespace qml_ros_plugin
 
 // Register Time types
 Q_DECLARE_METATYPE( qml_ros_plugin::Time );
 
 Q_DECLARE_METATYPE( qml_ros_plugin::WallTime );
 
-#endif //QML_ROS_PLUGIN_TIME_H
+#endif // QML_ROS_PLUGIN_TIME_H

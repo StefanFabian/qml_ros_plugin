@@ -23,10 +23,11 @@ inline ros::Time qmlToRosTime( double milliseconds_since_epoch )
 
 inline ros::Time qmlToRosTime( const QDateTime &time )
 {
-  if ( !time.isValid()) return ros::Time( 0 );
+  if ( !time.isValid() )
+    return ros::Time( 0 );
   qint64 msecs = time.toMSecsSinceEpoch();
   uint32_t secs = msecs / 1000;
-  return { secs, static_cast<uint32_t>(msecs - 1000 * secs) * 1000 * 1000 };
+  return { secs, static_cast<uint32_t>( msecs - 1000 * secs ) * 1000 * 1000 };
 }
 
 inline double rosToQmlDuration( const ros::Duration &duration )
@@ -44,6 +45,6 @@ inline QDateTime rosToQmlTime( const ros::WallTime &time )
 {
   return QDateTime::fromMSecsSinceEpoch( time.sec * 1E3 + time.nsec * 1E-6 );
 }
-}
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_QML_ROS_CONVERSION_H
+#endif // QML_ROS_PLUGIN_QML_ROS_CONVERSION_H

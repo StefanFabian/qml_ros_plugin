@@ -13,7 +13,7 @@ namespace qml_ros_plugin
 
 class TopicInfo
 {
-Q_GADGET
+  Q_GADGET
   // @formatter:off
   //! The name of the topic, e.g., /front_camera/image_raw
   Q_PROPERTY( QString name READ name )
@@ -23,7 +23,10 @@ Q_GADGET
 public:
   TopicInfo() = default;
 
-  TopicInfo( QString name, QString datatype ) : name_( std::move( name )), datatype_( std::move( datatype )) { }
+  TopicInfo( QString name, QString datatype )
+      : name_( std::move( name ) ), datatype_( std::move( datatype ) )
+  {
+  }
 
   const QString &name() const { return name_; }
 
@@ -33,8 +36,8 @@ private:
   QString name_;
   QString datatype_;
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( qml_ros_plugin::TopicInfo );
 
-#endif //QML_ROS_PLUGIN_TOPIC_INFO_H
+#endif // QML_ROS_PLUGIN_TOPIC_INFO_H

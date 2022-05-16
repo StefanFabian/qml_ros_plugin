@@ -14,7 +14,7 @@ namespace qml_ros_plugin
 
 class Service : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   Service();
 
@@ -38,14 +38,15 @@ public:
    * @param req The service request, i.e., a filled request message of the service type, e.g., "roscpp_tutorials/TwoIntsRequest"
    * @param callback The callback that is called once the service has finished.
    */
-  Q_INVOKABLE void callAsync( const QString &service, const QString &type, const QVariantMap &req, const QJSValue &callback = QJSValue());
+  Q_INVOKABLE void callAsync( const QString &service, const QString &type, const QVariantMap &req,
+                              const QJSValue &callback = QJSValue() );
 
 private slots:
-  void invokeCallback(QJSValue value, QVariant result);
+  void invokeCallback( QJSValue value, QVariant result );
 
 private:
   ros_babel_fish::BabelFish babel_fish_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
 #endif // QML_ROS_PLUGIN_SERVICE_H

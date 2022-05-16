@@ -25,7 +25,7 @@ TEST( MessageConversion, babelFishDispenser )
 {
   BabelFish fish1 = BabelFishDispenser::getBabelFish();
   BabelFish fish2 = BabelFishDispenser::getBabelFish();
-  EXPECT_EQ( fish1.descriptionProvider().get(), fish2.descriptionProvider().get());
+  EXPECT_EQ( fish1.descriptionProvider().get(), fish2.descriptionProvider().get() );
 }
 
 TEST( MessageConversion, emptyMessage )
@@ -34,17 +34,17 @@ TEST( MessageConversion, emptyMessage )
   {
     QVariant map = ros.createEmptyMessage( "geometry_msgs/PoseStamped" );
     geometry_msgs::PoseStamped msg;
-    EXPECT_TRUE( mapAndMessageEqual( map, msg ));
+    EXPECT_TRUE( mapAndMessageEqual( map, msg ) );
   }
   {
     QVariant map = ros.createEmptyMessage( "ros_babel_fish_test_msgs/TestMessage" );
     ros_babel_fish_test_msgs::TestMessage msg;
-    EXPECT_TRUE( mapAndMessageEqual( map, msg ));
+    EXPECT_TRUE( mapAndMessageEqual( map, msg ) );
   }
   {
     QVariant map = ros.createEmptyServiceRequest( "roscpp_tutorials/TwoInts" );
     roscpp_tutorials::TwoIntsRequest req;
-    EXPECT_TRUE( mapAndMessageEqual( map, req ));
+    EXPECT_TRUE( mapAndMessageEqual( map, req ) );
   }
 }
 
@@ -56,22 +56,22 @@ TEST( MessageConversion, msgToMapHeader )
   msg.seq = 42;
   msg.stamp = ros::Time( 1, 336 * 1000 * 1000 + 532 * 1000 );
   QVariantMap map = msgToMap( msg );
-  ASSERT_TRUE( map.contains( "frame_id" ));
+  ASSERT_TRUE( map.contains( "frame_id" ) );
   EXPECT_EQ( map["frame_id"].toString().toStdString(), msg.frame_id );
-  ASSERT_TRUE( map.contains( "seq" ));
+  ASSERT_TRUE( map.contains( "seq" ) );
   bool ok;
   EXPECT_EQ( map["seq"].toUInt( &ok ), msg.seq );
   EXPECT_TRUE( ok );
-  ASSERT_TRUE( map.contains( "stamp" ));
+  ASSERT_TRUE( map.contains( "stamp" ) );
   EXPECT_EQ( map["stamp"].value<Time>().getRosTime(), msg.stamp );
   Message::Ptr bf_msg = fish.createMessage( "std_msgs/Header" );
-  EXPECT_TRUE( fillMessage( *bf_msg, map ));
+  EXPECT_TRUE( fillMessage( *bf_msg, map ) );
   auto &compound = bf_msg->as<CompoundMessage>();
-  ASSERT_TRUE( compound.containsKey( "frame_id" ));
+  ASSERT_TRUE( compound.containsKey( "frame_id" ) );
   EXPECT_EQ( compound["frame_id"].value<std::string>(), msg.frame_id );
-  ASSERT_TRUE( compound.containsKey( "seq" ));
+  ASSERT_TRUE( compound.containsKey( "seq" ) );
   EXPECT_EQ( compound["seq"].value<uint32_t>(), msg.seq );
-  ASSERT_TRUE( compound.containsKey( "stamp" ));
+  ASSERT_TRUE( compound.containsKey( "stamp" ) );
   EXPECT_EQ( compound["stamp"].value<ros::Time>(), msg.stamp );
 }
 
@@ -95,25 +95,32 @@ TEST( MessageConversion, msgToMapTransformStamped )
   bool ok = false;
   EXPECT_EQ( map["header"].toHash()["seq"].toUInt( &ok ), msg.header.seq );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["header"].toHash()["stamp"].value<Time>().getRosTime(), ros::Time( 42 ));
+  EXPECT_EQ( map["header"].toHash()["stamp"].value<Time>().getRosTime(), ros::Time( 42 ) );
   EXPECT_EQ( map["child_frame_id"].toString().toStdString(), msg.child_frame_id );
-  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["x"].toDouble( &ok ), msg.transform.translation.x );
+  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["x"].toDouble( &ok ),
+             msg.transform.translation.x );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["y"].toDouble( &ok ), msg.transform.translation.y );
+  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["y"].toDouble( &ok ),
+             msg.transform.translation.y );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["z"].toDouble( &ok ), msg.transform.translation.z );
+  EXPECT_EQ( map["transform"].toHash()["translation"].toHash()["z"].toDouble( &ok ),
+             msg.transform.translation.z );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["w"].toDouble( &ok ), msg.transform.rotation.w );
+  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["w"].toDouble( &ok ),
+             msg.transform.rotation.w );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["x"].toDouble( &ok ), msg.transform.rotation.x );
+  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["x"].toDouble( &ok ),
+             msg.transform.rotation.x );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["y"].toDouble( &ok ), msg.transform.rotation.y );
+  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["y"].toDouble( &ok ),
+             msg.transform.rotation.y );
   EXPECT_TRUE( ok );
-  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["z"].toDouble( &ok ), msg.transform.rotation.z );
+  EXPECT_EQ( map["transform"].toHash()["rotation"].toHash()["z"].toDouble( &ok ),
+             msg.transform.rotation.z );
   EXPECT_TRUE( ok );
 
   Message::Ptr bf_msg = fish.createMessage( "geometry_msgs/TransformStamped" );
-  EXPECT_TRUE( fillMessage( *bf_msg, map ));
+  EXPECT_TRUE( fillMessage( *bf_msg, map ) );
   auto &compound = bf_msg->as<CompoundMessage>();
   EXPECT_EQ( compound["header"]["frame_id"].value<std::string>(), msg.header.frame_id );
   EXPECT_EQ( compound["header"]["seq"].value<uint32_t>(), msg.header.seq );
@@ -135,9 +142,9 @@ TEST( MessageConversion, msgToMapGoalID )
   msg.id = "42";
   msg.stamp = ros::Time( 1337 );
   QVariantMap map = msgToMap( msg );
-  ASSERT_TRUE( map.contains( "id" ));
+  ASSERT_TRUE( map.contains( "id" ) );
   EXPECT_EQ( map["id"].toString().toStdString(), msg.id );
-  ASSERT_TRUE( map.contains( "stamp" ));
+  ASSERT_TRUE( map.contains( "stamp" ) );
   EXPECT_EQ( map["stamp"].value<Time>().getRosTime(), msg.stamp );
 }
 
@@ -150,13 +157,14 @@ TEST( MessageConversion, msgToMapGoalStatus )
   msg.text = "GoalText";
   msg.status = actionlib_msgs::GoalStatus::ACTIVE;
   QVariantMap map = msgToMap( msg );
-  ASSERT_TRUE( map.contains( "goal_id" ));
-  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["id"].toString().toStdString(), msg.goal_id.id );
+  ASSERT_TRUE( map.contains( "goal_id" ) );
+  EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["id"].toString().toStdString(),
+             msg.goal_id.id );
   EXPECT_EQ( obtainValueAsReference<QVariantMap>( map["goal_id"] )["stamp"].value<Time>().toJSDate(),
-             QDateTime::fromSecsSinceEpoch( 1337 ));
-  ASSERT_TRUE( map.contains( "text" ));
+             QDateTime::fromSecsSinceEpoch( 1337 ) );
+  ASSERT_TRUE( map.contains( "text" ) );
   EXPECT_EQ( map["text"].toString().toStdString(), msg.text );
-  ASSERT_TRUE( map.contains( "status" ));
+  ASSERT_TRUE( map.contains( "status" ) );
   EXPECT_EQ( map["status"].toInt(), msg.status );
 }
 
@@ -180,8 +188,7 @@ TEST( MessageConversion, msgToMapRBF )
   test_message.str = "test string";
   test_message.t = ros::Time( 1337, 42 );
   test_message.d = ros::Duration( 42, 1337 );
-  for ( int i = 0; i < 5; ++i )
-  {
+  for ( int i = 0; i < 5; ++i ) {
     geometry_msgs::Point p;
     p.x = i * 0.1;
     p.y = 3 + i * 0.4;
@@ -191,53 +198,56 @@ TEST( MessageConversion, msgToMapRBF )
 
   ros::SerializedMessage serialized_msg = ros::serialization::serializeMessage( test_message );
   BabelFishMessage::Ptr bf_msg = boost::make_shared<BabelFishMessage>();
-  bf_msg->morph( fish.descriptionProvider()->getMessageDescription( "ros_babel_fish_test_msgs/TestMessage" ));
+  bf_msg->morph(
+      fish.descriptionProvider()->getMessageDescription( "ros_babel_fish_test_msgs/TestMessage" ) );
   ros::serialization::deserializeMessage( serialized_msg, *bf_msg );
   TranslatedMessage::ConstPtr translated = fish.translateMessage( bf_msg );
   QVariant map = msgToMap( translated );
-  EXPECT_TRUE( mapAndMessageEqual( map, test_message ));
+  EXPECT_TRUE( mapAndMessageEqual( map, test_message ) );
   Message::Ptr msg = fish.createMessage( "ros_babel_fish_test_msgs/TestMessage" );
-  EXPECT_TRUE( fillMessage( *msg, map ));
+  EXPECT_TRUE( fillMessage( *msg, map ) );
   auto &compound = msg->as<CompoundMessage>();
-  EXPECT_TRUE( messageEqual( compound, test_message ));
+  EXPECT_TRUE( messageEqual( compound, test_message ) );
 
   // Int for duration
   map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( map )["d"] = 42;
-  EXPECT_TRUE( fillMessage( *msg, map ));
+  EXPECT_TRUE( fillMessage( *msg, map ) );
 
   // Incompatible type
   QVariant broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["i32"] = QVariantList();
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
-  obtainValueAsReference<QVariantMap>( broken_map )["i32"] = QDateTime::fromMSecsSinceEpoch( 157000000000L );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  obtainValueAsReference<QVariantMap>( broken_map )["i32"] =
+      QDateTime::fromMSecsSinceEpoch( 157000000000L );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["i32"] = QString( "WRONG" );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["str"] = 132;
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["str"] = QVariantMap();
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["header"] = 12;
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
-  obtainValueAsReference<QVariantMap>( obtainValueAsReference<QVariantMap>( broken_map )["header"] )["invalid"] = 12;
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  obtainValueAsReference<QVariantMap>(
+      obtainValueAsReference<QVariantMap>( broken_map )["header"] )["invalid"] = 12;
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
   obtainValueAsReference<QVariantMap>( broken_map )["i32"] = QDate( 2019, 11, 4 );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 }
 
 TEST( MessageConversion, array )
@@ -266,32 +276,33 @@ TEST( MessageConversion, array )
 
   ros::SerializedMessage serialized_msg = ros::serialization::serializeMessage( test_array );
   BabelFishMessage::Ptr bf_msg = boost::make_shared<BabelFishMessage>();
-  bf_msg->morph( fish.descriptionProvider()->getMessageDescription( "ros_babel_fish_test_msgs/TestArray" ));
+  bf_msg->morph(
+      fish.descriptionProvider()->getMessageDescription( "ros_babel_fish_test_msgs/TestArray" ) );
   ros::serialization::deserializeMessage( serialized_msg, *bf_msg );
   TranslatedMessage::ConstPtr translated = fish.translateMessage( bf_msg );
   QVariant map = msgToMap( translated );
-  ASSERT_TRUE( mapAndMessageEqual( map, test_array ));
+  ASSERT_TRUE( mapAndMessageEqual( map, test_array ) );
   Message::Ptr msg = fish.createMessage( "ros_babel_fish_test_msgs/TestArray" );
-  EXPECT_TRUE( fillMessage( *msg, map ));
-  ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
+  EXPECT_TRUE( fillMessage( *msg, map ) );
+  ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ) );
 
-  EXPECT_FALSE( map.toHash()["float32s"].value<Array>()._isModified( 0 ));
+  EXPECT_FALSE( map.toHash()["float32s"].value<Array>()._isModified( 0 ) );
 
   // Remove element from end
   auto int32s_array = map.toMap()["int32s"].value<Array>();
-  ASSERT_FALSE( int32s_array._inCache());
+  ASSERT_FALSE( int32s_array._inCache() );
   EXPECT_EQ( int32s_array.pop().toInt(), test_array.int32s[test_array.int32s.size() - 1] );
   test_array.int32s.pop_back();
-  ASSERT_FALSE( int32s_array._inCache());
+  ASSERT_FALSE( int32s_array._inCache() );
 
   // Add an element to the back
   test_array.int32s.push_back( 420 );
   int32s_array.push( 420ULL );
-  ASSERT_FALSE( int32s_array._inCache());
+  ASSERT_FALSE( int32s_array._inCache() );
   // Replace an element
   test_array.int32s[4] -= 42;
   int32s_array.spliceList( 4, 1, { int32s_array.at( 4 ).toInt() - 42 } );
-  ASSERT_FALSE( int32s_array._inCache());
+  ASSERT_FALSE( int32s_array._inCache() );
   // Add an element to the front (this will require a deep copy)
   test_array.uint32s.insert( test_array.uint32s.begin(), 1337 );
   auto uint32_array = map.toMap()["uint32s"].value<Array>();
@@ -303,114 +314,117 @@ TEST( MessageConversion, array )
   int32s_array.spliceList( 8, 0, { 43172LL } );
   // Remove an element from the beginning
   EXPECT_EQ( int32s_array.shift().toInt(), test_array.int32s[0] );
-  test_array.int32s.erase( test_array.int32s.begin());
+  test_array.int32s.erase( test_array.int32s.begin() );
   // Remove an element from the end
   int32s_array.setLength( int32s_array.length() - 1 );
   test_array.int32s.pop_back();
-  EXPECT_TRUE( mapAndMessageEqual( map, test_array ));
+  EXPECT_TRUE( mapAndMessageEqual( map, test_array ) );
   // Obtain array as QML compatible type which should fill the cache
-  EXPECT_TRUE( mapAndMessageEqual( int32s_array.toArray(), test_array.int32s ));
-  ASSERT_TRUE( int32s_array._inCache());
+  EXPECT_TRUE( mapAndMessageEqual( int32s_array.toArray(), test_array.int32s ) );
+  ASSERT_TRUE( int32s_array._inCache() );
 
   // Change array length
   test_array.uint32s.resize( 5 );
   uint32_array.setLength( 5 );
 
   // Remove multiple elements from the end and add some
-  test_array.float32s.erase( test_array.float32s.begin() + 5, test_array.float32s.end());
+  test_array.float32s.erase( test_array.float32s.begin() + 5, test_array.float32s.end() );
   test_array.float32s.push_back( 42.0 );
   test_array.float32s.push_back( 13.37 );
   map.toMap()["float32s"].value<Array>().spliceList( 5, 100000, { 42.0, 13.37 } );
 
   // All the different time and duration types
   auto time_array = map.toMap()["times"].value<Array>();
-  time_array.push( static_cast<uint8_t>(21));
-  test_array.times.push_back( ros::Time( 0.021 ));
-  time_array.push( static_cast<uint16_t>(24));
-  test_array.times.push_back( ros::Time( 0.024 ));
-  time_array.push( static_cast<uint32_t>(27));
-  test_array.times.push_back( ros::Time( 0.027 ));
-  time_array.push( static_cast<qulonglong>(30));
-  test_array.times.push_back( ros::Time( 0.030 ));
-  time_array.push( static_cast<int8_t>(33));
-  test_array.times.push_back( ros::Time( 0.033 ));
-  time_array.push( static_cast<int16_t>(36));
-  test_array.times.push_back( ros::Time( 0.036 ));
-  time_array.push( static_cast<int32_t>(39));
-  test_array.times.push_back( ros::Time( 0.039 ));
-  time_array.push( static_cast<qlonglong>(42));
-  test_array.times.push_back( ros::Time( 0.042 ));
+  time_array.push( static_cast<uint8_t>( 21 ) );
+  test_array.times.push_back( ros::Time( 0.021 ) );
+  time_array.push( static_cast<uint16_t>( 24 ) );
+  test_array.times.push_back( ros::Time( 0.024 ) );
+  time_array.push( static_cast<uint32_t>( 27 ) );
+  test_array.times.push_back( ros::Time( 0.027 ) );
+  time_array.push( static_cast<qulonglong>( 30 ) );
+  test_array.times.push_back( ros::Time( 0.030 ) );
+  time_array.push( static_cast<int8_t>( 33 ) );
+  test_array.times.push_back( ros::Time( 0.033 ) );
+  time_array.push( static_cast<int16_t>( 36 ) );
+  test_array.times.push_back( ros::Time( 0.036 ) );
+  time_array.push( static_cast<int32_t>( 39 ) );
+  test_array.times.push_back( ros::Time( 0.039 ) );
+  time_array.push( static_cast<qlonglong>( 42 ) );
+  test_array.times.push_back( ros::Time( 0.042 ) );
   time_array.push( 45.0 );
-  test_array.times.push_back( ros::Time( 0.045 ));
+  test_array.times.push_back( ros::Time( 0.045 ) );
 
   auto duration_array = map.toMap()["durations"].value<Array>();
-  duration_array.spliceList( 0, 1, { static_cast<uint8_t>(21) } );
+  duration_array.spliceList( 0, 1, { static_cast<uint8_t>( 21 ) } );
   test_array.durations[0] = ros::Duration( 0.021 );
-  duration_array.spliceList( 1, 1, { static_cast<uint16_t>(24) } );
+  duration_array.spliceList( 1, 1, { static_cast<uint16_t>( 24 ) } );
   test_array.durations[1] = ros::Duration( 0.024 );
-  duration_array.spliceList( 2, 1, { static_cast<uint32_t>(27) } );
+  duration_array.spliceList( 2, 1, { static_cast<uint32_t>( 27 ) } );
   test_array.durations[2] = ros::Duration( 0.027 );
-  duration_array.spliceList( 3, 1, { static_cast<qulonglong>(30) } );
+  duration_array.spliceList( 3, 1, { static_cast<qulonglong>( 30 ) } );
   test_array.durations[3] = ros::Duration( 0.030 );
-  duration_array.spliceList( 4, 1, { static_cast<int8_t>(33) } );
+  duration_array.spliceList( 4, 1, { static_cast<int8_t>( 33 ) } );
   test_array.durations[4] = ros::Duration( 0.033 );
-  duration_array.spliceList( 5, 1, { static_cast<int16_t>(36) } );
+  duration_array.spliceList( 5, 1, { static_cast<int16_t>( 36 ) } );
   test_array.durations[5] = ros::Duration( 0.036 );
-  duration_array.spliceList( 6, 1, { static_cast<int32_t>(39) } );
+  duration_array.spliceList( 6, 1, { static_cast<int32_t>( 39 ) } );
   test_array.durations[6] = ros::Duration( 0.039 );
-  duration_array.spliceList( 7, 1, { static_cast<qlonglong>(42) } );
+  duration_array.spliceList( 7, 1, { static_cast<qlonglong>( 42 ) } );
   test_array.durations[7] = ros::Duration( 0.042 );
 
   msg = fish.createMessage( "ros_babel_fish_test_msgs/TestArray" );
-  EXPECT_TRUE( fillMessage( *msg, map ));
-  ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
+  EXPECT_TRUE( fillMessage( *msg, map ) );
+  ASSERT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ) );
   bf_msg = fish.translateMessage( msg );
   translated = fish.translateMessage( bf_msg );
   map = msgToMap( translated );
   // Out of bounds access
-  EXPECT_FALSE( map.toMap()["uint32s"].value<Array>().at( 5 ).isValid());
+  EXPECT_FALSE( map.toMap()["uint32s"].value<Array>().at( 5 ).isValid() );
 
   // Incompatible type
   QVariant broken_map = msgToMap( translated );
   auto int32_array = broken_map.toMap()["int32s"].value<Array>();
   int32_array.push( 1337.42 );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   broken_map = msgToMap( translated );
-  broken_map.toMap()["int32s"].value<Array>().push( QVariantList());
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map.toMap()["int32s"].value<Array>().push( QVariantList() );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   // Too long fixed array
   broken_map = msgToMap( translated );
   broken_map.toMap()["durations"].value<Array>().push( 3456.0 );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   // Non string in string array but can be converted to string
   broken_map = msgToMap( translated );
   broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { 3456.0 } );
-  EXPECT_TRUE( fillMessage( *msg, broken_map ));
+  EXPECT_TRUE( fillMessage( *msg, broken_map ) );
 
   // Non string in string array that cant be converted to string
   broken_map = msgToMap( translated );
-  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( new QObject()) } );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map.toMap()["strings"].value<Array>().spliceList(
+      3, 0, { QVariant::fromValue( new QObject() ) } );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
   broken_map = msgToMap( translated );
-  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( QVariantList()) } );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map.toMap()["strings"].value<Array>().spliceList(
+      3, 0, { QVariant::fromValue( QVariantList() ) } );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
   broken_map = msgToMap( translated );
-  broken_map.toMap()["strings"].value<Array>().spliceList( 3, 0, { QVariant::fromValue( QVariantMap()) } );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  broken_map.toMap()["strings"].value<Array>().spliceList(
+      3, 0, { QVariant::fromValue( QVariantMap() ) } );
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 
   // Primitive in compound array
   broken_map = msgToMap( translated );
   broken_map.toMap()["subarrays"].value<Array>().spliceList( 5, 0, { 3.141592 } );
-  EXPECT_FALSE( fillMessage( *msg, broken_map ));
+  EXPECT_FALSE( fillMessage( *msg, broken_map ) );
 }
 
 QObject *createModel( QQmlEngine *engine, const QByteArray &elements )
 {
   QQmlComponent component( engine );
-  component.setData( "import QtQuick 2.0 ListModel {" + elements + "}", QUrl());
+  component.setData( "import QtQuick 2.0 ListModel {" + elements + "}", QUrl() );
   return component.create();
 }
 
@@ -432,11 +446,12 @@ QtObject {
     ListElement { x: 10000; y: -2; z: -300 }
   }
 }
-)", QUrl());
+)",
+                     QUrl() );
   QObject *obj = component.create();
   Message::Ptr msg = fish.createMessage( "ros_babel_fish_test_msgs/TestMessage" );
   ASSERT_NE( obj, nullptr ) << component.errorString().toStdString();
-  fillMessage( *msg, QVariant::fromValue( obj ));
+  fillMessage( *msg, QVariant::fromValue( obj ) );
 
   ros_babel_fish_test_msgs::TestMessage test_msg;
   test_msg.b = false;
@@ -450,11 +465,12 @@ QtObject {
   test_msg.point_arr[1].z = 3;
   test_msg.point_arr[2].x = 1;
   test_msg.point_arr[2].y = 3.14;
-  test_msg.point_arr[2].z = 1;;
+  test_msg.point_arr[2].z = 1;
+  ;
   test_msg.point_arr[3].x = 10000;
   test_msg.point_arr[3].y = -2;
   test_msg.point_arr[3].z = -300;
-  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_msg ));
+  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_msg ) );
   delete obj;
 
   component.setData( R"(
@@ -541,11 +557,12 @@ QtObject {
     stringModel.append({ 'x': "An object", 'y': "that's not a string"})
   }
 }
-)", QUrl());
+)",
+                     QUrl() );
   obj = component.create();
   msg = fish.createMessage( "ros_babel_fish_test_msgs/TestArray" );
   ASSERT_NE( obj, nullptr ) << component.errorString().toStdString();
-  fillMessage( *msg, QVariant::fromValue( obj ));
+  fillMessage( *msg, QVariant::fromValue( obj ) );
   ros_babel_fish_test_msgs::TestArray test_array;
   test_array.bools = { true, false, true };
   test_array.uint8s = { 1, 2, 3, 5 };
@@ -559,12 +576,13 @@ QtObject {
   test_array.float32s = { 1.0, 3.14 };
   test_array.float64s = { 2.7 };
   test_array.times = { ros::Time( 13 ) };
-  test_array.durations = { ros::Duration( 42 ), ros::Duration( 1.337 ), ros::Duration( -2 ), ros::Duration( 0.001 ),
-                           ros::Duration( -0.001 ), ros::Duration( 0.002 ), ros::Duration( -0.002 ),
-                           ros::Duration( 0.003 ), ros::Duration( -0.003 ), ros::Duration( -0.004 ),
-                           ros::Duration( 0.004 ), ros::Duration( 0.005 ) };
+  test_array.durations = {
+      ros::Duration( 42 ),     ros::Duration( 1.337 ),  ros::Duration( -2 ),
+      ros::Duration( 0.001 ),  ros::Duration( -0.001 ), ros::Duration( 0.002 ),
+      ros::Duration( -0.002 ), ros::Duration( 0.003 ),  ros::Duration( -0.003 ),
+      ros::Duration( -0.004 ), ros::Duration( 0.004 ),  ros::Duration( 0.005 ) };
   test_array.strings = { "This", "is", "a", "test" };
-  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ));
+  EXPECT_TRUE( messageEqual( msg->as<CompoundMessage>(), test_array ) );
   delete obj;
 }
 
@@ -573,23 +591,25 @@ TEST( MessageConversion, timeConversion )
   qml_ros_plugin::WallTimeSingleton wall_time;
   qml_ros_plugin::TimeSingleton time;
   // It should always round down to prevent issues with look ups into the future
-  EXPECT_EQ( ros::Time( 13, 1000000 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 1500000 ))));
-  EXPECT_EQ( ros::Time( 13, 0 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 900000 ))));
-  EXPECT_EQ( qmlToRosTime( QDateTime::fromMSecsSinceEpoch( 13042 )), ros::Time( 13, 42000000 ));
-  EXPECT_EQ( rosToQmlTime( ros::Time( 1337, 800000 )), QDateTime::fromMSecsSinceEpoch( 1337000 ));
-  EXPECT_EQ( rosToQmlTime( ros::Time( 1337, 499999 )), QDateTime::fromMSecsSinceEpoch( 1337000 ));
-  EXPECT_EQ( rosToQmlTime( ros::WallTime( 1337, 800000 )), QDateTime::fromMSecsSinceEpoch( 1337000 ));
-  EXPECT_EQ( rosToQmlTime( ros::WallTime( 1337, 499999 )), QDateTime::fromMSecsSinceEpoch( 1337000 ));
-  EXPECT_DOUBLE_EQ( rosToQmlDuration( ros::Duration( 5, 42 )), 5000.000042 );
-  EXPECT_DOUBLE_EQ( rosToQmlDuration( ros::Duration( -1337, -42 )), -1337000.000042 );
-  EXPECT_EQ( qmlToRosDuration( 2020 ), ros::Duration( 2, 20000000 ));
-  EXPECT_EQ( qmlToRosDuration( -1337.000420 ), ros::Duration( -1, -337000420 ));
+  EXPECT_EQ( ros::Time( 13, 1000000 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 1500000 ) ) ) );
+  EXPECT_EQ( ros::Time( 13, 0 ), qmlToRosTime( rosToQmlTime( ros::Time( 13, 900000 ) ) ) );
+  EXPECT_EQ( qmlToRosTime( QDateTime::fromMSecsSinceEpoch( 13042 ) ), ros::Time( 13, 42000000 ) );
+  EXPECT_EQ( rosToQmlTime( ros::Time( 1337, 800000 ) ), QDateTime::fromMSecsSinceEpoch( 1337000 ) );
+  EXPECT_EQ( rosToQmlTime( ros::Time( 1337, 499999 ) ), QDateTime::fromMSecsSinceEpoch( 1337000 ) );
+  EXPECT_EQ( rosToQmlTime( ros::WallTime( 1337, 800000 ) ),
+             QDateTime::fromMSecsSinceEpoch( 1337000 ) );
+  EXPECT_EQ( rosToQmlTime( ros::WallTime( 1337, 499999 ) ),
+             QDateTime::fromMSecsSinceEpoch( 1337000 ) );
+  EXPECT_DOUBLE_EQ( rosToQmlDuration( ros::Duration( 5, 42 ) ), 5000.000042 );
+  EXPECT_DOUBLE_EQ( rosToQmlDuration( ros::Duration( -1337, -42 ) ), -1337000.000042 );
+  EXPECT_EQ( qmlToRosDuration( 2020 ), ros::Duration( 2, 20000000 ) );
+  EXPECT_EQ( qmlToRosDuration( -1337.000420 ), ros::Duration( -1, -337000420 ) );
 
   // Create custom time objects
-  EXPECT_EQ( time.create( 2.0 ).value<Time>().getRosTime(), ros::Time( 2.0 ));
-  EXPECT_EQ( time.create( 13, 37 ).value<Time>().getRosTime(), ros::Time( 13, 37 ));
-  EXPECT_EQ( wall_time.create( 2.0 ).value<WallTime>().getRosTime(), ros::WallTime( 2.0 ));
-  EXPECT_EQ( wall_time.create( 13, 37 ).value<WallTime>().getRosTime(), ros::WallTime( 13, 37 ));
+  EXPECT_EQ( time.create( 2.0 ).value<Time>().getRosTime(), ros::Time( 2.0 ) );
+  EXPECT_EQ( time.create( 13, 37 ).value<Time>().getRosTime(), ros::Time( 13, 37 ) );
+  EXPECT_EQ( wall_time.create( 2.0 ).value<WallTime>().getRosTime(), ros::WallTime( 2.0 ) );
+  EXPECT_EQ( wall_time.create( 13, 37 ).value<WallTime>().getRosTime(), ros::WallTime( 13, 37 ) );
   ros::WallTime now = ros::WallTime::now();
   WallTime then = wall_time.now().value<WallTime>();
   EXPECT_GE( then.getRosTime(), now );

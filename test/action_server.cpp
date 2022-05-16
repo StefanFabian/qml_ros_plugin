@@ -3,9 +3,9 @@
 //
 
 #include <actionlib/server/action_server.h>
-#include <ros_babel_fish_test_msgs/SimpleTestAction.h>
 #include <ros/callback_queue.h>
 #include <ros/ros.h>
+#include <ros_babel_fish_test_msgs/SimpleTestAction.h>
 
 #include <thread>
 
@@ -13,8 +13,8 @@ class TestActionServer
 {
 public:
   TestActionServer()
-    : spinner( 8, &queue )
-      , server( nh, "action", boost::bind( &TestActionServer::goalCallback, this, _1 ),
+      : spinner( 8, &queue ),
+        server( nh, "action", boost::bind( &TestActionServer::goalCallback, this, _1 ),
                 boost::bind( &TestActionServer::cancelCallback, this, _1 ), false )
   {
     nh.setCallbackQueue( &queue );
@@ -26,21 +26,19 @@ public:
     server.start();
   }
 
-  void processGoal( actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
+  void
+  processGoal( actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
   {
     int goal = handle.getGoal()->goal;
-    for ( int i = 0; i < goal; ++i )
-    {
+    for ( int i = 0; i < goal; ++i ) {
       usleep( 1000 );
-      if ( cancel_requested[handle.getGoalID().id] )
-      {
+      if ( cancel_requested[handle.getGoalID().id] ) {
         ros_babel_fish_test_msgs::SimpleTestResult result;
         result.result = handle.getGoal()->goal * 2 - 1;
         handle.setCanceled( result );
         return;
       }
-      if ( i == goal / 2 )
-      {
+      if ( i == goal / 2 ) {
         ros_babel_fish_test_msgs::SimpleTestFeedback feedback;
         feedback.feedback = goal + 1;
         handle.publishFeedback( feedback );
@@ -51,16 +49,18 @@ public:
     handle.setSucceeded( result, "test result text" );
   }
 
-  void goalCallback( actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
+  void
+  goalCallback( actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
   {
     cancel_requested.insert( { handle.getGoalID().id, false } );
     handle.setAccepted();
     std::thread execute_thread( &TestActionServer::processGoal, this, handle );
     execute_thread.detach();
-//    threads.insert( { handle.getGoalID().id, std::move( execute_thread ) } );
+    //    threads.insert( { handle.getGoalID().id, std::move( execute_thread ) } );
   }
 
-  void cancelCallback( actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
+  void cancelCallback(
+      actionlib::ActionServer<ros_babel_fish_test_msgs::SimpleTestAction>::GoalHandle handle )
   {
     cancel_requested[handle.getGoalID().id] = true;
   }
@@ -74,9 +74,9 @@ private:
   std::map<std::string, std::thread> threads;
 };
 
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
-  ros::init(argc, argv, "test_action_server");
+  ros::init( argc, argv, "test_action_server" );
 
   TestActionServer server;
   server.start();

@@ -14,8 +14,7 @@ namespace ros_console_levels
 {
 Q_NAMESPACE
 
-enum RosConsoleLevel
-{
+enum RosConsoleLevel {
   Debug = ros::console::levels::Debug,
   Info = ros::console::levels::Info,
   Warn = ros::console::levels::Warn,
@@ -26,17 +25,16 @@ enum RosConsoleLevel
 };
 
 Q_ENUM_NS( RosConsoleLevel )
-}
+} // namespace ros_console_levels
 
 class Console
 {
-Q_GADGET
+  Q_GADGET
 
   // @formatter:off
   Q_PROPERTY( QString defaultName READ defaultName CONSTANT )
   // @formatter:on
 public:
-
   /*!
    * Sets the logger level of the given console to the given level.
    * @param ros_console_name The console for which the level is changed.
@@ -48,9 +46,9 @@ public:
 
   QString defaultName() const;
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( qml_ros_plugin::ros_console_levels::RosConsoleLevel );
 Q_DECLARE_METATYPE( qml_ros_plugin::Console );
 
-#endif //QML_ROS_PLUGIN_CONSOLE_H
+#endif // QML_ROS_PLUGIN_CONSOLE_H

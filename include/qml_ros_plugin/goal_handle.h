@@ -16,8 +16,7 @@ namespace action_comm_states
 {
 Q_NAMESPACE
 
-enum CommState
-{
+enum CommState {
   WAITING_FOR_GOAL_ACK = actionlib::CommState::WAITING_FOR_GOAL_ACK,
   PENDING = actionlib::CommState::PENDING,
   ACTIVE = actionlib::CommState::ACTIVE,
@@ -29,14 +28,13 @@ enum CommState
 };
 
 Q_ENUM_NS( CommState )
-}
+} // namespace action_comm_states
 
 namespace action_terminal_states
 {
 Q_NAMESPACE
 
-enum TerminalState
-{
+enum TerminalState {
   RECALLED = actionlib::TerminalState::RECALLED,
   REJECTED = actionlib::TerminalState::REJECTED,
   PREEMPTED = actionlib::TerminalState::PREEMPTED,
@@ -48,11 +46,11 @@ enum TerminalState
 };
 
 Q_ENUM_NS( TerminalState )
-}
+} // namespace action_terminal_states
 
 class TerminalState
 {
-Q_GADGET
+  Q_GADGET
   // @formatter:off
   //! The terminal state in form of an ActionTerminalStates enum value:
   //! RECALLED, REJECTED, PREEMPTED, ABORTED, SUCCEEDED, LOST
@@ -64,21 +62,22 @@ public:
   TerminalState() : state_( action_terminal_states::UNKNOWN ) { }
 
   TerminalState( action_terminal_states::TerminalState state, QString text )
-    : text_( std::move( text )), state_( state ) { }
+      : text_( std::move( text ) ), state_( state )
+  {
+  }
 
   const QString &text() const { return text_; }
 
   qml_ros_plugin::action_terminal_states::TerminalState state() const { return state_; }
 
 private:
-
   QString text_;
   action_terminal_states::TerminalState state_;
 };
 
 class GoalHandle : public QObjectRos
 {
-Q_OBJECT
+  Q_OBJECT
   // @formatter:off
   //! True if this handle is not tracking a goal, false otherwise
   Q_PROPERTY( bool expired READ expired )
@@ -90,8 +89,9 @@ Q_OBJECT
   Q_PROPERTY( qml_ros_plugin::action_comm_states::CommState commState READ commState )
   // @formatter:on
 public:
-  explicit GoalHandle( std::shared_ptr<actionlib::ActionClient<ros_babel_fish::BabelFishAction>> client,
-                       const actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle &handle );
+  explicit GoalHandle(
+      std::shared_ptr<actionlib::ActionClient<ros_babel_fish::BabelFishAction>> client,
+      const actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle &handle );
 
   bool expired() const;
 
@@ -115,7 +115,7 @@ private:
   std::shared_ptr<actionlib::ActionClient<ros_babel_fish::BabelFishAction>> client_;
   actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle goal_handle_;
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( qml_ros_plugin::action_comm_states::CommState );
 
@@ -123,5 +123,4 @@ Q_DECLARE_METATYPE( qml_ros_plugin::TerminalState );
 
 Q_DECLARE_METATYPE( qml_ros_plugin::action_terminal_states::TerminalState );
 
-
-#endif //QML_ROS_PLUGIN_GOAL_HANDLE_H
+#endif // QML_ROS_PLUGIN_GOAL_HANDLE_H

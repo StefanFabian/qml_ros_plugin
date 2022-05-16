@@ -12,7 +12,7 @@ namespace qml_ros_plugin
 
 class NodeHandle : public QObjectRos, public std::enable_shared_from_this<NodeHandle>
 {
-Q_OBJECT
+  Q_OBJECT
 
   // @formatter:off
   //! The NodeHandle namespace. Only valid after isReady is true.
@@ -22,11 +22,12 @@ public:
   typedef std::shared_ptr<NodeHandle> Ptr;
   typedef std::shared_ptr<const NodeHandle> ConstPtr;
 
-  explicit NodeHandle( std::string ns = std::string());
+  explicit NodeHandle( std::string ns = std::string() );
 
-  explicit NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string ns = std::string());
+  explicit NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string ns = std::string() );
 
-  Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch = false );
+  Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size,
+                                  bool latch = false );
 
   bool isReady() const;
 
@@ -39,13 +40,12 @@ signals:
   void ready();
 
 protected:
-
   void onRosInitialized() override;
 
   std::shared_ptr<ros::CallbackQueue> queue_;
   std::unique_ptr<ros::NodeHandle> nh_;
   std::string ns_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
 #endif // QML_ROS_PLUGIN_NODE_HANDLE_H

@@ -11,9 +11,8 @@ namespace qml_ros_plugin
 
 class IO
 {
-Q_GADGET
+  Q_GADGET
 public:
-
   /*!
    * Writes the given value to the given path in the yaml format.
    * @param path The path to the file.
@@ -29,8 +28,8 @@ public:
    */
   Q_INVOKABLE QVariant readYaml( QString path );
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( qml_ros_plugin::IO );
 
-#endif //QML_ROS_PLUGIN_IO_H
+#endif // QML_ROS_PLUGIN_IO_H

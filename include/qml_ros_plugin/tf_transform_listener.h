@@ -15,7 +15,7 @@ namespace qml_ros_plugin
 
 class TfTransformListener : public QObjectRos
 {
-Q_OBJECT
+  Q_OBJECT
 private:
   TfTransformListener();
 
@@ -38,8 +38,7 @@ public:
    * @return True if the transform is possible, otherwise an error message (string) if available, false if not.
    */
   QVariant canTransform( const QString &target_frame, const QString &source_frame,
-                         const ros::Time &time = ros::Time( 0 ),
-                         double timeout = 0 ) const;
+                         const ros::Time &time = ros::Time( 0 ), double timeout = 0 ) const;
 
   /*!
    * Checks if a transform is possible. Returns true if possible, otherwise either false or if available a message why
@@ -67,8 +66,7 @@ public:
    *    and a message field containing more information about the reason of failure.
    */
   QVariantMap lookUpTransform( const QString &target_frame, const QString &source_frame,
-                               const ros::Time &time = ros::Time( 0 ),
-                               double timeout = 0 );
+                               const ros::Time &time = ros::Time( 0 ), double timeout = 0 );
 
   /*!
    * Get the transform between two frames by frame id.
@@ -113,7 +111,7 @@ protected:
  */
 class TfTransformListenerWrapper : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   TfTransformListenerWrapper();
 
@@ -121,12 +119,11 @@ public:
 
   //! @copydoc TfTransformListener::canTransform(const QString &, const QString &, ros::Time, double)
   Q_INVOKABLE QVariant canTransform( const QString &target_frame, const QString &source_frame,
-                                     const QDateTime &time,
-                                     double timeout = 0 ) const;
+                                     const QDateTime &time, double timeout = 0 ) const;
 
   //! @copydoc TfTransformListener::canTransform(const QString &, const QString &, ros::Time, double)
   Q_INVOKABLE QVariant canTransform( const QString &target_frame, const QString &source_frame,
-                                     const Time &time = Time( ros::Time( 0 )),
+                                     const Time &time = Time( ros::Time( 0 ) ),
                                      double timeout = 0 ) const;
 
   //! @copydoc TfTransformListener::canTransform(const QString &, ros::Time, const QString &, ros::Time, const QString &, double)
@@ -141,12 +138,12 @@ public:
 
   //! @copydoc TfTransformListener::lookUpTransform(const QString &, const QString &, ros::Time, double)
   Q_INVOKABLE QVariantMap lookUpTransform( const QString &target_frame, const QString &source_frame,
-                                           const QDateTime &time,
-                                           double timeout = 0 );
+                                           const QDateTime &time, double timeout = 0 );
 
   //! @copydoc TfTransformListener::lookUpTransform(const QString &, const QString &, ros::Time, double)
   Q_INVOKABLE QVariantMap lookUpTransform( const QString &target_frame, const QString &source_frame,
-                                           const Time &time = Time( ros::Time( 0 )), double timeout = 0 );
+                                           const Time &time = Time( ros::Time( 0 ) ),
+                                           double timeout = 0 );
 
   //! @copydoc TfTransformListener::lookUpTransform(const QString &, ros::Time, const QString &, ros::Time, const QString &, double)
   Q_INVOKABLE QVariantMap lookUpTransform( const QString &target_frame, const QDateTime &target_time,
@@ -163,6 +160,6 @@ signals:
   //! @copydoc TfTransformListener::transformChanged
   void transformChanged();
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_TF_TRANSFORM_LISTENER_H
+#endif // QML_ROS_PLUGIN_TF_TRANSFORM_LISTENER_H

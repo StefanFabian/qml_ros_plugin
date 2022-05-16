@@ -16,9 +16,10 @@ ros_babel_fish::BabelFish BabelFishDispenser::getBabelFish()
 
 ros_babel_fish::BabelFish BabelFishDispenser::createBabelFish()
 {
-  if ( description_provider_ != nullptr ) return ros_babel_fish::BabelFish( description_provider_ );
+  if ( description_provider_ != nullptr )
+    return ros_babel_fish::BabelFish( description_provider_ );
   ros_babel_fish::BabelFish babel_fish;
   description_provider_ = babel_fish.descriptionProvider();
   return babel_fish;
 }
-} // qml_ros_plugin
+} // namespace qml_ros_plugin

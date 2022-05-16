@@ -2,7 +2,6 @@
 // Created by stefan on 06.11.19.
 //
 
-
 #include "common.h"
 #include "message_comparison.h"
 
@@ -13,13 +12,12 @@
 #include <qml_ros_plugin/time.h>
 
 #include <QCoreApplication>
-#include <ros/ros.h>
 #include <geometry_msgs/Pose.h>
+#include <ros/ros.h>
 
 void processSomeEvents( int n = 10, int sleep_duration_us = 5000 )
 {
-  for ( int i = 0; i < n; ++i )
-  {
+  for ( int i = 0; i < n; ++i ) {
     usleep( sleep_duration_us );
     QCoreApplication::processEvents();
   }
@@ -37,18 +35,19 @@ TEST( Spinning, testSpinning )
   geometry_msgs::Pose pose_msg;
   pose_msg.position.y = 1.12;
 
-  auto subscriber = dynamic_cast<qml_ros_plugin::Subscriber *>(ros_wrapper.subscribe( "/test", 1 ));
+  auto subscriber = dynamic_cast<qml_ros_plugin::Subscriber *>( ros_wrapper.subscribe( "/test", 1 ) );
   processSomeEvents();
   pub.publish( pose_msg );
   processSomeEvents();
-  ASSERT_TRUE( subscriber->message().isValid());
+  ASSERT_TRUE( subscriber->message().isValid() );
   EXPECT_EQ( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 1.12 );
 
   ros_wrapper.setThreads( 0 ); // Disable async spinner
   pose_msg.position.y = 2.34;
   pub.publish( pose_msg );
-  processSomeEvents(100);
-  EXPECT_NE( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 2.34 ) << "Shouldn't have received that yet!";
+  processSomeEvents( 100 );
+  EXPECT_NE( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 2.34 )
+      << "Shouldn't have received that yet!";
   ros_wrapper.spinOnce();
   processSomeEvents();
   EXPECT_EQ( subscriber->message().toMap()["position"].toMap()["y"].toDouble(), 2.34 );

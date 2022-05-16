@@ -14,7 +14,8 @@ namespace qml_ros_plugin
 class ImageBuffer : public QAbstractVideoBuffer
 {
 public:
-  ImageBuffer( sensor_msgs::ImageConstPtr img, const QList<QVideoFrame::PixelFormat> &supported_formats );
+  ImageBuffer( sensor_msgs::ImageConstPtr img,
+               const QList<QVideoFrame::PixelFormat> &supported_formats );
 
   ~ImageBuffer() override;
 
@@ -33,6 +34,6 @@ private:
   int bytes_per_line_;
   unsigned char *data_;
 };
-}
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_IMAGE_BUFFER_H
+#endif // QML_ROS_PLUGIN_IMAGE_BUFFER_H

@@ -14,7 +14,7 @@ namespace qml_ros_plugin
  */
 class Package
 {
-Q_GADGET
+  Q_GADGET
 
 public:
   /*!
@@ -54,10 +54,11 @@ public:
    * @return A map with the name of the package exporting something for name as the key (string) and a QStringList
    *   containing all exported values as the value.
    */
-  Q_INVOKABLE QVariantMap getPlugins( const QString &name, const QString &attribute, bool force_recrawl = false );
+  Q_INVOKABLE QVariantMap getPlugins( const QString &name, const QString &attribute,
+                                      bool force_recrawl = false );
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( qml_ros_plugin::Package );
 
-#endif //QML_ROS_PLUGIN_PACKAGE_H
+#endif // QML_ROS_PLUGIN_PACKAGE_H

@@ -21,7 +21,7 @@ class GoalHandle;
 
 class ActionClient : public QObjectRos
 {
-Q_OBJECT
+  Q_OBJECT
   // @formatter:off
   //! True if the ActionClient is connected to the ActionServer, false otherwise.
   Q_PROPERTY( bool connected READ isServerConnected NOTIFY connectedChanged )
@@ -44,7 +44,7 @@ public:
    * @return null if the action server is not connected, otherwise a GoalHandle keeping track of the state of the goal.
    */
   Q_INVOKABLE QObject *sendGoal( const QVariantMap &goal, QJSValue transition_cb = QJSValue(),
-                                 QJSValue feedback_cb = QJSValue());
+                                 QJSValue feedback_cb = QJSValue() );
 
   //! Cancels all goals that are currently tracked by this client.
   Q_INVOKABLE void cancelAllGoals();
@@ -62,12 +62,12 @@ private slots:
 
   void checkServerConnected();
 
-  void invokeTransitionCallback( QJSValue callback,
-                                 actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle handle );
+  void invokeTransitionCallback(
+      QJSValue callback, actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle handle );
 
-  void invokeFeedbackCallback( QJSValue callback,
-                               actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle handle,
-                               ros_babel_fish::BabelFishMessage::ConstPtr feedback );
+  void invokeFeedbackCallback(
+      QJSValue callback, actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle handle,
+      ros_babel_fish::BabelFishMessage::ConstPtr feedback );
 
 private:
   void onRosInitialized() override;
@@ -81,10 +81,10 @@ private:
   std::shared_ptr<actionlib::ActionClient<ros_babel_fish::BabelFishAction>> client_;
   QTimer connect_timer_;
 };
-}
+} // namespace qml_ros_plugin
 
 Q_DECLARE_METATYPE( actionlib::ActionClient<ros_babel_fish::BabelFishAction>::GoalHandle );
 
 Q_DECLARE_METATYPE( ros_babel_fish::BabelFishMessage::ConstPtr );
 
-#endif //QML_ROS_PLUGIN_ACTION_CLIENT_H
+#endif // QML_ROS_PLUGIN_ACTION_CLIENT_H

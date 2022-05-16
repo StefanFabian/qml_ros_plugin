@@ -7,8 +7,8 @@
 
 #include "qml_ros_plugin/node_handle.h"
 
-#include <image_transport/image_transport.h>
 #include <QAbstractVideoSurface>
+#include <image_transport/image_transport.h>
 #include <mutex>
 
 namespace qml_ros_plugin
@@ -17,7 +17,7 @@ class ImageTransportSubscriptionHandle;
 
 class ImageTransportManagerSingletonWrapper : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   //! @copydoc ImageTransportManager::setLoadBalancingEnabled
   Q_INVOKABLE void setLoadBalancingEnabled( bool value );
@@ -34,8 +34,8 @@ class ImageTransportManager
   struct SubscriptionManager;
   class Subscription;
   class LoadBalancer;
-public:
 
+public:
   static ImageTransportManager &getInstance();
 
   //! Sets whether the manager should try to balance throttled subscriptions_ to ensure they don't update at the same
@@ -61,8 +61,8 @@ public:
   std::shared_ptr<ImageTransportSubscriptionHandle>
   subscribe( const NodeHandle::Ptr &nh, const QString &qtopic, quint32 queue_size,
              const image_transport::TransportHints &transport_hints,
-             const std::function<void( const QVideoFrame & )> &callback, QAbstractVideoSurface *surface = nullptr,
-             int throttle_interval = 0 );
+             const std::function<void( const QVideoFrame & )> &callback,
+             QAbstractVideoSurface *surface = nullptr, int throttle_interval = 0 );
 
 private:
   std::map<std::string, std::shared_ptr<SubscriptionManager>> subscriptions_;
@@ -74,7 +74,6 @@ private:
 class ImageTransportSubscriptionHandle
 {
 public:
-
   ~ImageTransportSubscriptionHandle();
 
   //! The interval in ms the subscription waits between receiving images.
@@ -110,6 +109,6 @@ private:
 
   friend class ImageTransportManager;
 };
-}
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_IMAGE_TRANSPORT_MANAGER_H
+#endif // QML_ROS_PLUGIN_IMAGE_TRANSPORT_MANAGER_H

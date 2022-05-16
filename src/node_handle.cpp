@@ -9,37 +9,36 @@
 
 namespace qml_ros_plugin
 {
-NodeHandle::NodeHandle( std::string ns ) : ns_( std::move( ns )) { }
+NodeHandle::NodeHandle( std::string ns ) : ns_( std::move( ns ) ) { }
 
 NodeHandle::NodeHandle( std::shared_ptr<ros::CallbackQueue> queue, std::string ns )
-  : queue_( std::move( queue )), ns_( std::move( ns )) { }
+    : queue_( std::move( queue ) ), ns_( std::move( ns ) )
+{
+}
 
-QObject *NodeHandle::advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch )
+QObject *NodeHandle::advertise( const QString &type, const QString &topic, quint32 queue_size,
+                                bool latch )
 {
   return new Publisher( shared_from_this(), type, topic, queue_size, latch );
 }
 
-bool NodeHandle::isReady() const
-{
-  return nh_ != nullptr;
-}
+bool NodeHandle::isReady() const { return nh_ != nullptr; }
 
-ros::NodeHandle &NodeHandle::nodeHandle()
-{
-  return *nh_;
-}
+ros::NodeHandle &NodeHandle::nodeHandle() { return *nh_; }
 
 void NodeHandle::onRosInitialized()
 {
-  if ( nh_ != nullptr ) return;
-  nh_.reset( new ros::NodeHandle( ns_ ));
-  if (queue_ == nullptr) queue_ = RosQml::getInstance().callbackQueue();
-  nh_->setCallbackQueue( queue_.get());
+  if ( nh_ != nullptr )
+    return;
+  nh_.reset( new ros::NodeHandle( ns_ ) );
+  if ( queue_ == nullptr )
+    queue_ = RosQml::getInstance().callbackQueue();
+  nh_->setCallbackQueue( queue_.get() );
   emit ready();
 }
 
 QString NodeHandle::ns() const
 {
-  return nh_ == nullptr ? QString() : QString::fromStdString( nh_->getNamespace());
+  return nh_ == nullptr ? QString() : QString::fromStdString( nh_->getNamespace() );
 }
-} // qml_ros_plugin
+} // namespace qml_ros_plugin

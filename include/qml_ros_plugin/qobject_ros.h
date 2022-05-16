@@ -11,12 +11,12 @@ namespace qml_ros_plugin
 
 /*!
  * Base class for QObjects that require ROS functionality.
- * Provides virtual methods that are called once ROS was initialized and once it was shutdown to enable initialization
- * and clean-up of of functionality that requires ROS.
+ * Provides virtual methods that are called once ROS was initialized and once it was shutdown to
+ * enable initialization and clean-up of of functionality that requires ROS.
  */
 class QObjectRos : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 public:
   explicit QObjectRos( QObject *parent = nullptr );
 
@@ -36,8 +36,8 @@ protected:
   /*!
    * Called once ROS or the application shuts down.
    *
-   * Override to perform clean-up of functionality that depends on ROS, e.g., if the destruction order does not
-   * guarantee destruction before required ROS objects are destructed.
+   * Override to perform clean-up of functionality that depends on ROS, e.g., if the destruction
+   * order does not guarantee destruction before required ROS objects are destructed.
    */
   virtual void onRosShutdown() { }
 
@@ -49,6 +49,6 @@ public slots:
 private:
   bool is_initialized_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_QOBJECT_ROS_H
+#endif // QML_ROS_PLUGIN_QOBJECT_ROS_H

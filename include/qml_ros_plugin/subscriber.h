@@ -7,15 +7,15 @@
 #include "qml_ros_plugin/node_handle.h"
 #include "qml_ros_plugin/qobject_ros.h"
 
-#include <QVariant>
 #include <QMap>
 #include <QTimer>
+#include <QVariant>
 
 #include <ros_babel_fish/babel_fish.h>
 #include <ros_babel_fish/babel_fish_message.h>
 
-#include <ros/subscriber.h>
 #include <mutex>
+#include <ros/subscriber.h>
 
 namespace qml_ros_plugin
 {
@@ -23,7 +23,7 @@ class NodeHandle;
 
 class Subscriber : public QObjectRos
 {
-Q_OBJECT
+  Q_OBJECT
   // @formatter:off
   //! The topic this subscriber subscribes to.
   Q_PROPERTY( QString topic READ topic WRITE setTopic NOTIFY topicChanged )
@@ -138,6 +138,6 @@ protected:
   quint32 queue_size_;
   int throttle_rate_ = 20;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_SUBSCRIBER_H
+#endif // QML_ROS_PLUGIN_SUBSCRIBER_H

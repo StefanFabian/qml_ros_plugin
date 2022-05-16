@@ -25,10 +25,16 @@ namespace qml_ros_plugin
 namespace conversion
 {
 template<typename T>
-T &obtainValueAsReference( QVariant &value ) { return *reinterpret_cast<T *>(value.data()); }
+T &obtainValueAsReference( QVariant &value )
+{
+  return *reinterpret_cast<T *>( value.data() );
+}
 
 template<typename T>
-const T &obtainValueAsConstReference( const QVariant &value ) { return *reinterpret_cast<const T *>(value.data()); }
+const T &obtainValueAsConstReference( const QVariant &value )
+{
+  return *reinterpret_cast<const T *>( value.data() );
+}
 
 QVariantMap msgToMap( const std_msgs::Header &msg );
 
@@ -46,14 +52,16 @@ QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg );
 
 QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &msg );
 
-QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &storage, const ros_babel_fish::Message &msg );
+QVariant msgToMap( const ros_babel_fish::TranslatedMessage::ConstPtr &storage,
+                   const ros_babel_fish::Message &msg );
 
 QVariant msgToMap( const ros_babel_fish::Message &msg );
 
 bool fillMessage( ros_babel_fish::Message &msg, const QVariant &value );
 
-bool fillMessage( ros_babel_fish::BabelFish &fish, ros_babel_fish::Message &msg, const QVariant &value );
-}
-} // qml_ros_plugin
+bool fillMessage( ros_babel_fish::BabelFish &fish, ros_babel_fish::Message &msg,
+                  const QVariant &value );
+} // namespace conversion
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_MESSAGE_CONVERSIONS_H
+#endif // QML_ROS_PLUGIN_MESSAGE_CONVERSIONS_H

@@ -10,48 +10,36 @@ namespace qml_ros_plugin
 // ============== TIME SINGLETON ==============
 QVariant TimeSingleton::now()
 {
-  if ( !ros::Time::isValid())
-    return QVariant::fromValue( Time());
-  return QVariant::fromValue( Time( ros::Time::now()));
+  if ( !ros::Time::isValid() )
+    return QVariant::fromValue( Time() );
+  return QVariant::fromValue( Time( ros::Time::now() ) );
 }
 
-QVariant TimeSingleton::create( double t )
-{
-  return QVariant::fromValue( Time( ros::Time( t )));
-}
+QVariant TimeSingleton::create( double t ) { return QVariant::fromValue( Time( ros::Time( t ) ) ); }
 
 QVariant TimeSingleton::create( quint32 sec, quint32 nsec )
 {
-  return QVariant::fromValue( Time( ros::Time( sec, nsec )));
+  return QVariant::fromValue( Time( ros::Time( sec, nsec ) ) );
 }
 
-bool TimeSingleton::isSimTime()
-{
-  return ros::Time::isSimTime();
-}
+bool TimeSingleton::isSimTime() { return ros::Time::isSimTime(); }
 
-bool TimeSingleton::isSystemTime()
-{
-  return ros::Time::isSystemTime();
-}
+bool TimeSingleton::isSystemTime() { return ros::Time::isSystemTime(); }
 
-bool TimeSingleton::isValid()
-{
-  return ros::Time::isValid();
-}
+bool TimeSingleton::isValid() { return ros::Time::isValid(); }
 
 QVariant WallTimeSingleton::now()
 {
-  return QVariant::fromValue( WallTime( ros::WallTime::now()));
+  return QVariant::fromValue( WallTime( ros::WallTime::now() ) );
 }
 
 QVariant WallTimeSingleton::create( double t )
 {
-  return QVariant::fromValue( WallTime( ros::WallTime( t )));
+  return QVariant::fromValue( WallTime( ros::WallTime( t ) ) );
 }
 
 QVariant WallTimeSingleton::create( quint32 sec, quint32 nsec )
 {
-  return QVariant::fromValue( WallTime( ros::WallTime( sec, nsec )));
+  return QVariant::fromValue( WallTime( ros::WallTime( sec, nsec ) ) );
 }
-}
+} // namespace qml_ros_plugin

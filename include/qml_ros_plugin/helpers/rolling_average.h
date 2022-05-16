@@ -14,18 +14,18 @@ template<typename T, int COUNT>
 class RollingAverage
 {
 public:
-  RollingAverage()
-  {
-    values_.fill( 0 );
-  }
+  RollingAverage() { values_.fill( 0 ); }
 
   void add( const T &value )
   {
-    if (count_values_ == COUNT) sum_ -= values_[index_];
-    else ++count_values_;
+    if ( count_values_ == COUNT )
+      sum_ -= values_[index_];
+    else
+      ++count_values_;
     values_[index_] = value;
     sum_ += value;
-    if ( ++index_ == COUNT ) index_ = 0;
+    if ( ++index_ == COUNT )
+      index_ = 0;
   }
 
   T value() const { return count_values_ == 0 ? 0 : sum_ / count_values_; }
@@ -38,6 +38,6 @@ private:
   size_t count_values_ = 0;
   size_t index_ = 0;
 };
-}
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_ROLLING_AVERAGE_H
+#endif // QML_ROS_PLUGIN_ROLLING_AVERAGE_H

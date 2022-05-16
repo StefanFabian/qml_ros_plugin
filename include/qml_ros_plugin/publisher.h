@@ -6,10 +6,10 @@
 
 #include "qml_ros_plugin/node_handle.h"
 
-#include <QObject>
-#include <QVariant>
 #include <QMap>
+#include <QObject>
 #include <QTimer>
+#include <QVariant>
 
 #include <ros_babel_fish/babel_fish.h>
 
@@ -21,7 +21,7 @@ namespace qml_ros_plugin
 
 class Publisher : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
   // @formatter:off
   //! The type of the published messages, e.g., geometry_msgs/Pose.
   Q_PROPERTY( QString type READ type )
@@ -97,6 +97,6 @@ protected:
   bool is_latched_;
   uint32_t queue_size_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
 #endif // QML_ROS_PLUGIN_PUBLISHER_H

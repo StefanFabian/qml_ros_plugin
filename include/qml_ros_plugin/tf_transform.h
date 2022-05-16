@@ -15,7 +15,7 @@ namespace signals2
 {
 class connection;
 }
-}
+} // namespace boost
 
 namespace qml_ros_plugin
 {
@@ -24,7 +24,7 @@ namespace qml_ros_plugin
  */
 class TfTransform : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
   // @formatter:off
   //! The source frame of the tf transform, i.e., the frame where the data originated.
   Q_PROPERTY( QString sourceFrame READ sourceFrame WRITE setSourceFrame NOTIFY sourceFrameChanged )
@@ -37,8 +37,8 @@ Q_OBJECT
   //! Alias for enabled
   Q_PROPERTY( bool active READ enabled WRITE setEnabled NOTIFY enabledChanged )
 
-  //! The last received transform as a geometry_msgs/TransformStamped with an added boolean valid field and optional
-  //! error fields. See TfTransformListener::lookUpTransform
+  //! The last received transform as a geometry_msgs/TransformStamped with an added boolean valid
+  //! field and optional error fields. See TfTransformListener::lookUpTransform
   Q_PROPERTY( QVariantMap transform READ message NOTIFY messageChanged )
   //! An alias for transform.
   Q_PROPERTY( QVariantMap message READ message NOTIFY messageChanged )
@@ -49,8 +49,8 @@ Q_OBJECT
   //! The rotation part of the tf transform as a quaternion with w, x, y, z fields. Identity if no valid transform available (yet).
   Q_PROPERTY( QVariant rotation READ rotation NOTIFY rotationChanged )
 
-  //! The maximum rate in Hz at which tf updates are processed and emitted as changed signals. Default: 60
-  //! Note: The rate can not exceed 1000. To disable rate limiting set to 0.
+  //! The maximum rate in Hz at which tf updates are processed and emitted as changed signals.
+  //! Default: 60 Note: The rate can not exceed 1000. To disable rate limiting set to 0.
   Q_PROPERTY( qreal rate READ rate WRITE setRate NOTIFY rateChanged )
 
   //! Whether the current transform, i.e., the fields message, translation and rotation are valid.
@@ -122,6 +122,6 @@ protected:
   std::chrono::milliseconds throttle_time_;
   bool enabled_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_TF_TRANSFORM_H
+#endif // QML_ROS_PLUGIN_TF_TRANSFORM_H

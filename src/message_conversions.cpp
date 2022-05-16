@@ -16,8 +16,8 @@
 #include <QVector3D>
 #include <QVector4D>
 
-#include <ros_babel_fish/message_types.h>
 #include <ros/ros.h>
+#include <ros_babel_fish/message_types.h>
 
 using namespace ros_babel_fish;
 
@@ -29,8 +29,8 @@ namespace conversion
 QVariantMap msgToMap( const std_msgs::Header &msg )
 {
   QVariantMap result;
-  result.insert( "frame_id", QString::fromStdString( msg.frame_id ));
-  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp )));
+  result.insert( "frame_id", QString::fromStdString( msg.frame_id ) );
+  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp ) ) );
   result.insert( "seq", msg.seq );
   return result;
 }
@@ -38,17 +38,17 @@ QVariantMap msgToMap( const std_msgs::Header &msg )
 QVariantMap msgToMap( const geometry_msgs::Transform &msg )
 {
   QVariantMap result;
-  result.insert( "translation", QVariant::fromValue( msgToMap( msg.translation )));
-  result.insert( "rotation", QVariant::fromValue( msgToMap( msg.rotation )));
+  result.insert( "translation", QVariant::fromValue( msgToMap( msg.translation ) ) );
+  result.insert( "rotation", QVariant::fromValue( msgToMap( msg.rotation ) ) );
   return result;
 }
 
 QVariantMap msgToMap( const geometry_msgs::TransformStamped &msg )
 {
   QVariantMap result;
-  result.insert( "header", QVariant::fromValue( msgToMap( msg.header )));
-  result.insert( "child_frame_id", QString::fromStdString( msg.child_frame_id ));
-  result.insert( "transform", QVariant::fromValue( msgToMap( msg.transform )));
+  result.insert( "header", QVariant::fromValue( msgToMap( msg.header ) ) );
+  result.insert( "child_frame_id", QString::fromStdString( msg.child_frame_id ) );
+  result.insert( "transform", QVariant::fromValue( msgToMap( msg.transform ) ) );
   return result;
 }
 
@@ -74,17 +74,17 @@ QVariantMap msgToMap( const geometry_msgs::Quaternion &msg )
 QVariantMap msgToMap( const actionlib_msgs::GoalID &msg )
 {
   QVariantMap result;
-  result.insert( "id", QString::fromStdString( msg.id ));
-  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp )));
+  result.insert( "id", QString::fromStdString( msg.id ) );
+  result.insert( "stamp", QVariant::fromValue( Time( msg.stamp ) ) );
   return result;
 }
 
 QVariantMap msgToMap( const actionlib_msgs::GoalStatus &msg )
 {
   QVariantMap result;
-  result.insert( "goal_id", QVariant::fromValue( msgToMap( msg.goal_id )));
+  result.insert( "goal_id", QVariant::fromValue( msgToMap( msg.goal_id ) ) );
   result.insert( "status", msg.status );
-  result.insert( "text", QString::fromStdString( msg.text ));
+  result.insert( "text", QString::fromStdString( msg.text ) );
   return result;
 }
 
@@ -95,55 +95,51 @@ QVariant msgToMap( const TranslatedMessage::ConstPtr &msg )
 
 QVariant msgToMap( const TranslatedMessage::ConstPtr &storage, const Message &msg )
 {
-  if ( msg.type() == MessageTypes::Compound )
-  {
+  if ( msg.type() == MessageTypes::Compound ) {
     QVariantMap result;
     const auto &compound = msg.as<CompoundMessage>();
-    for ( size_t i = 0; i < compound.keys().size(); ++i )
-    {
-      result.insert( QString::fromStdString( compound.keys()[i] ), msgToMap( storage, *compound.values()[i] ));
+    for ( size_t i = 0; i < compound.keys().size(); ++i ) {
+      result.insert( QString::fromStdString( compound.keys()[i] ),
+                     msgToMap( storage, *compound.values()[i] ) );
     }
     return result;
+  } else if ( msg.type() == MessageTypes::Array ) {
+    return QVariant::fromValue( Array( storage, &msg.as<ArrayMessageBase>() ) );
   }
-  else if ( msg.type() == MessageTypes::Array )
-  {
-    return QVariant::fromValue( Array( storage, &msg.as<ArrayMessageBase>()));
+  switch ( msg.type() ) {
+  case MessageTypes::Bool:
+    return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue() );
+  case MessageTypes::UInt8:
+    return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue() );
+  case MessageTypes::UInt16:
+    return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue() );
+  case MessageTypes::UInt32:
+    return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue() );
+  case MessageTypes::UInt64:
+    return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue() );
+  case MessageTypes::Int8:
+    return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue() );
+  case MessageTypes::Int16:
+    return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue() );
+  case MessageTypes::Int32:
+    return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue() );
+  case MessageTypes::Int64:
+    return QVariant::fromValue( msg.as<ValueMessage<int64_t>>().getValue() );
+  case MessageTypes::Float32:
+    return QVariant::fromValue( msg.as<ValueMessage<float>>().getValue() );
+  case MessageTypes::Float64:
+    return QVariant::fromValue( msg.as<ValueMessage<double>>().getValue() );
+  case MessageTypes::String:
+    return QVariant::fromValue(
+        QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue() ) );
+  case MessageTypes::Time: {
+    return QVariant::fromValue( Time( msg.value<ros::Time>() ) );
   }
-  switch ( msg.type())
-  {
-    case MessageTypes::Bool:
-      return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue());
-    case MessageTypes::UInt8:
-      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue());
-    case MessageTypes::UInt16:
-      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue());
-    case MessageTypes::UInt32:
-      return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue());
-    case MessageTypes::UInt64:
-      return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue());
-    case MessageTypes::Int8:
-      return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue());
-    case MessageTypes::Int16:
-      return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue());
-    case MessageTypes::Int32:
-      return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue());
-    case MessageTypes::Int64:
-      return QVariant::fromValue( msg.as<ValueMessage<int64_t>>().getValue());
-    case MessageTypes::Float32:
-      return QVariant::fromValue( msg.as<ValueMessage<float>>().getValue());
-    case MessageTypes::Float64:
-      return QVariant::fromValue( msg.as<ValueMessage<double>>().getValue());
-    case MessageTypes::String:
-      return QVariant::fromValue( QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue()));
-    case MessageTypes::Time:
-    {
-      return QVariant::fromValue( Time( msg.value<ros::Time>()));
-    }
-    case MessageTypes::Duration:
-      return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
-    default:
-      ROS_WARN( "Unknown type '%d' while processing message!", msg.type());
-      break;
+  case MessageTypes::Duration:
+    return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue() ) );
+  default:
+    ROS_WARN( "Unknown type '%d' while processing message!", msg.type() );
+    break;
   }
   return QVariant();
 }
@@ -154,11 +150,10 @@ template<typename T>
 QVariantList msgToList( const ArrayMessageBase &array )
 {
   QVariantList result;
-  result.reserve( array.length());
+  result.reserve( array.length() );
   auto &typed_array = array.as<ArrayMessage<T>>();
-  for ( size_t i = 0; i < array.length(); ++i )
-  {
-    result.append( QVariant::fromValue( typed_array[i] ));
+  for ( size_t i = 0; i < array.length(); ++i ) {
+    result.append( QVariant::fromValue( typed_array[i] ) );
   }
   return result;
 }
@@ -167,11 +162,10 @@ template<>
 QVariantList msgToList<ros::Duration>( const ArrayMessageBase &array )
 {
   QVariantList result;
-  result.reserve( array.length());
+  result.reserve( array.length() );
   auto &typed_array = array.as<ArrayMessage<ros::Duration>>();
-  for ( size_t i = 0; i < array.length(); ++i )
-  {
-    result.append( QVariant::fromValue( rosToQmlDuration( typed_array[i] )));
+  for ( size_t i = 0; i < array.length(); ++i ) {
+    result.append( QVariant::fromValue( rosToQmlDuration( typed_array[i] ) ) );
   }
   return result;
 }
@@ -180,11 +174,10 @@ template<>
 QVariantList msgToList<ros::Time>( const ArrayMessageBase &array )
 {
   QVariantList result;
-  result.reserve( array.length());
+  result.reserve( array.length() );
   auto &typed_array = array.as<ArrayMessage<ros::Time>>();
-  for ( size_t i = 0; i < array.length(); ++i )
-  {
-    result.append( QVariant::fromValue( Time( typed_array[i] )));
+  for ( size_t i = 0; i < array.length(); ++i ) {
+    result.append( QVariant::fromValue( Time( typed_array[i] ) ) );
   }
   return result;
 }
@@ -193,101 +186,94 @@ template<>
 QVariantList msgToList<std::string>( const ArrayMessageBase &array )
 {
   QVariantList result;
-  result.reserve( array.length());
+  result.reserve( array.length() );
   auto &typed_array = array.as<ArrayMessage<std::string>>();
-  for ( size_t i = 0; i < array.length(); ++i )
-  {
-    result.append( QVariant::fromValue( QString::fromStdString( typed_array[i] )));
+  for ( size_t i = 0; i < array.length(); ++i ) {
+    result.append( QVariant::fromValue( QString::fromStdString( typed_array[i] ) ) );
   }
   return result;
 }
-}
+} // namespace
 
 QVariant msgToMap( const Message &msg )
 {
-  if ( msg.type() == MessageTypes::Compound )
-  {
+  if ( msg.type() == MessageTypes::Compound ) {
     QVariantMap result;
     const auto &compound = msg.as<CompoundMessage>();
-    for ( size_t i = 0; i < compound.keys().size(); ++i )
-    {
-      result.insert( QString::fromStdString( compound.keys()[i] ), msgToMap( *compound.values()[i] ));
+    for ( size_t i = 0; i < compound.keys().size(); ++i ) {
+      result.insert( QString::fromStdString( compound.keys()[i] ), msgToMap( *compound.values()[i] ) );
     }
     return result;
-  }
-  else if ( msg.type() == MessageTypes::Array )
-  {
+  } else if ( msg.type() == MessageTypes::Array ) {
     auto &arr = msg.as<ArrayMessageBase>();
-    switch ( arr.elementType())
-    {
-      case MessageTypes::Bool:
-        return msgToList<bool>( arr );
-      case MessageTypes::UInt8:
-        return msgToList<uint8_t>( arr );
-      case MessageTypes::UInt16:
-        return msgToList<uint16_t>( arr );
-      case MessageTypes::UInt32:
-        return msgToList<uint32_t>( arr );
-      case MessageTypes::UInt64:
-        return msgToList<uint64_t>( arr );
-      case MessageTypes::Int8:
-        return msgToList<int8_t>( arr );
-      case MessageTypes::Int16:
-        return msgToList<int16_t>( arr );
-      case MessageTypes::Int32:
-        return msgToList<int32_t>( arr );
-      case MessageTypes::Int64:
-        return msgToList<int64_t>( arr );
-      case MessageTypes::Float32:
-        return msgToList<float>( arr );
-      case MessageTypes::Float64:
-        return msgToList<double>( arr );
-      case MessageTypes::Time:
-        return msgToList<ros::Time>( arr );
-      case MessageTypes::Duration:
-        return msgToList<ros::Duration>( arr );
-      case MessageTypes::String:
-        return msgToList<std::string>( arr );
-      case MessageTypes::None:
-      default:
-        return QVariantList();
+    switch ( arr.elementType() ) {
+    case MessageTypes::Bool:
+      return msgToList<bool>( arr );
+    case MessageTypes::UInt8:
+      return msgToList<uint8_t>( arr );
+    case MessageTypes::UInt16:
+      return msgToList<uint16_t>( arr );
+    case MessageTypes::UInt32:
+      return msgToList<uint32_t>( arr );
+    case MessageTypes::UInt64:
+      return msgToList<uint64_t>( arr );
+    case MessageTypes::Int8:
+      return msgToList<int8_t>( arr );
+    case MessageTypes::Int16:
+      return msgToList<int16_t>( arr );
+    case MessageTypes::Int32:
+      return msgToList<int32_t>( arr );
+    case MessageTypes::Int64:
+      return msgToList<int64_t>( arr );
+    case MessageTypes::Float32:
+      return msgToList<float>( arr );
+    case MessageTypes::Float64:
+      return msgToList<double>( arr );
+    case MessageTypes::Time:
+      return msgToList<ros::Time>( arr );
+    case MessageTypes::Duration:
+      return msgToList<ros::Duration>( arr );
+    case MessageTypes::String:
+      return msgToList<std::string>( arr );
+    case MessageTypes::None:
+    default:
+      return QVariantList();
     }
   }
-  switch ( msg.type())
-  {
-    case MessageTypes::Bool:
-      return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue());
-    case MessageTypes::UInt8:
-      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue());
-    case MessageTypes::UInt16:
-      return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue());
-    case MessageTypes::UInt32:
-      return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue());
-    case MessageTypes::UInt64:
-      return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue());
-    case MessageTypes::Int8:
-      return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue());
-    case MessageTypes::Int16:
-      return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue());
-    case MessageTypes::Int32:
-      return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue());
-    case MessageTypes::Int64:
-      return QVariant::fromValue( msg.as<ValueMessage<int64_t>>().getValue());
-    case MessageTypes::Float32:
-      return QVariant::fromValue( msg.as<ValueMessage<float>>().getValue());
-    case MessageTypes::Float64:
-      return QVariant::fromValue( msg.as<ValueMessage<double>>().getValue());
-    case MessageTypes::String:
-      return QVariant::fromValue( QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue()));
-    case MessageTypes::Time:
-    {
-      return QVariant::fromValue( Time( msg.value<ros::Time>()));
-    }
-    case MessageTypes::Duration:
-      return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue()));
-    default:
-      ROS_WARN( "Unknown type '%d' while processing message!", msg.type());
-      break;
+  switch ( msg.type() ) {
+  case MessageTypes::Bool:
+    return QVariant::fromValue( msg.as<ValueMessage<bool>>().getValue() );
+  case MessageTypes::UInt8:
+    return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint8_t>>().getValue() );
+  case MessageTypes::UInt16:
+    return QVariant::fromValue<unsigned int>( msg.as<ValueMessage<uint16_t>>().getValue() );
+  case MessageTypes::UInt32:
+    return QVariant::fromValue( msg.as<ValueMessage<uint32_t>>().getValue() );
+  case MessageTypes::UInt64:
+    return QVariant::fromValue( msg.as<ValueMessage<uint64_t>>().getValue() );
+  case MessageTypes::Int8:
+    return QVariant::fromValue<int>( msg.as<ValueMessage<int8_t>>().getValue() );
+  case MessageTypes::Int16:
+    return QVariant::fromValue<int>( msg.as<ValueMessage<int16_t>>().getValue() );
+  case MessageTypes::Int32:
+    return QVariant::fromValue( msg.as<ValueMessage<int32_t>>().getValue() );
+  case MessageTypes::Int64:
+    return QVariant::fromValue( msg.as<ValueMessage<int64_t>>().getValue() );
+  case MessageTypes::Float32:
+    return QVariant::fromValue( msg.as<ValueMessage<float>>().getValue() );
+  case MessageTypes::Float64:
+    return QVariant::fromValue( msg.as<ValueMessage<double>>().getValue() );
+  case MessageTypes::String:
+    return QVariant::fromValue(
+        QString::fromStdString( msg.as<ValueMessage<std::string>>().getValue() ) );
+  case MessageTypes::Time: {
+    return QVariant::fromValue( Time( msg.value<ros::Time>() ) );
+  }
+  case MessageTypes::Duration:
+    return QVariant::fromValue( rosToQmlDuration( msg.as<ValueMessage<ros::Duration>>().getValue() ) );
+  default:
+    ROS_WARN( "Unknown type '%d' while processing message!", msg.type() );
+    break;
   }
   return QVariant();
 }
@@ -298,59 +284,57 @@ namespace
 template<typename T>
 bool fillValue( Message &msg, T value, uint32_t types )
 {
-  if ( !(msg.type() & types))
-  {
-    ROS_WARN( "Tried to fill '%s' field with incompatible type!", typeid( T ).name());
+  if ( !( msg.type() & types ) ) {
+    ROS_WARN( "Tried to fill '%s' field with incompatible type!", typeid( T ).name() );
     return false;
   }
-  switch ( msg.type())
-  {
-    case MessageTypes::Bool:
-      msg.as<ValueMessage<bool>>().setValue( static_cast<bool>(value));
-      break;
-    case MessageTypes::UInt8:
-      msg.as<ValueMessage<uint8_t>>().setValue( static_cast<uint8_t>(value));
-      break;
-    case MessageTypes::UInt16:
-      msg.as<ValueMessage<uint16_t>>().setValue( static_cast<uint16_t>(value));
-      break;
-    case MessageTypes::UInt32:
-      msg.as<ValueMessage<uint32_t>>().setValue( static_cast<uint32_t>(value));
-      break;
-    case MessageTypes::UInt64:
-      msg.as<ValueMessage<uint64_t>>().setValue( static_cast<uint64_t>(value));
-      break;
-    case MessageTypes::Int8:
-      msg.as<ValueMessage<int8_t>>().setValue( static_cast<int8_t>(value));
-      break;
-    case MessageTypes::Int16:
-      msg.as<ValueMessage<int16_t>>().setValue( static_cast<int16_t>(value));
-      break;
-    case MessageTypes::Int32:
-      msg.as<ValueMessage<int32_t>>().setValue( static_cast<int32_t>(value));
-      break;
-    case MessageTypes::Int64:
-      msg.as<ValueMessage<int64_t>>().setValue( static_cast<int64_t>(value));
-      break;
-    case MessageTypes::Float32:
-      msg.as<ValueMessage<float>>().setValue( static_cast<float>(value));
-      break;
-    case MessageTypes::Float64:
-      msg.as<ValueMessage<double>>().setValue( static_cast<double>(value));
-      break;
-//    case MessageTypes::String:
-//      msg.as<ValueMessage<std::string>>().setValue( std::to_string( value ));
-//      break;
-//    case MessageTypes::Time:
-//      msg.as<ValueMessage<ros::Time>>().setValue( ros::Time( static_cast<double>(value)));
-//      break;
-    case MessageTypes::Duration:
-      // Durations in qml are given in milliseconds
-      msg.as<ValueMessage<ros::Duration>>().setValue( ros::Duration( value / 1000.0 ));
-      break;
-    default:
-      ROS_WARN( "Unknown type while filling message!" );
-      return false;
+  switch ( msg.type() ) {
+  case MessageTypes::Bool:
+    msg.as<ValueMessage<bool>>().setValue( static_cast<bool>( value ) );
+    break;
+  case MessageTypes::UInt8:
+    msg.as<ValueMessage<uint8_t>>().setValue( static_cast<uint8_t>( value ) );
+    break;
+  case MessageTypes::UInt16:
+    msg.as<ValueMessage<uint16_t>>().setValue( static_cast<uint16_t>( value ) );
+    break;
+  case MessageTypes::UInt32:
+    msg.as<ValueMessage<uint32_t>>().setValue( static_cast<uint32_t>( value ) );
+    break;
+  case MessageTypes::UInt64:
+    msg.as<ValueMessage<uint64_t>>().setValue( static_cast<uint64_t>( value ) );
+    break;
+  case MessageTypes::Int8:
+    msg.as<ValueMessage<int8_t>>().setValue( static_cast<int8_t>( value ) );
+    break;
+  case MessageTypes::Int16:
+    msg.as<ValueMessage<int16_t>>().setValue( static_cast<int16_t>( value ) );
+    break;
+  case MessageTypes::Int32:
+    msg.as<ValueMessage<int32_t>>().setValue( static_cast<int32_t>( value ) );
+    break;
+  case MessageTypes::Int64:
+    msg.as<ValueMessage<int64_t>>().setValue( static_cast<int64_t>( value ) );
+    break;
+  case MessageTypes::Float32:
+    msg.as<ValueMessage<float>>().setValue( static_cast<float>( value ) );
+    break;
+  case MessageTypes::Float64:
+    msg.as<ValueMessage<double>>().setValue( static_cast<double>( value ) );
+    break;
+    //    case MessageTypes::String:
+    //      msg.as<ValueMessage<std::string>>().setValue( std::to_string( value ));
+    //      break;
+    //    case MessageTypes::Time:
+    //      msg.as<ValueMessage<ros::Time>>().setValue( ros::Time( static_cast<double>(value)));
+    //      break;
+  case MessageTypes::Duration:
+    // Durations in qml are given in milliseconds
+    msg.as<ValueMessage<ros::Duration>>().setValue( ros::Duration( value / 1000.0 ) );
+    break;
+  default:
+    ROS_WARN( "Unknown type while filling message!" );
+    return false;
   }
   return true;
 }
@@ -358,8 +342,7 @@ bool fillValue( Message &msg, T value, uint32_t types )
 template<>
 bool fillValue( Message &msg, ros::Time value, uint32_t )
 {
-  if ( msg.type() != MessageTypes::Time )
-  {
+  if ( msg.type() != MessageTypes::Time ) {
     ROS_WARN( "Tried to fill 'ros::Time' field with incompatible type!" );
     return false;
   }
@@ -370,13 +353,12 @@ bool fillValue( Message &msg, ros::Time value, uint32_t )
 template<>
 bool fillValue( Message &msg, std::string value, uint32_t )
 {
-  if ( msg.type() != MessageTypes::String )
-  {
+  if ( msg.type() != MessageTypes::String ) {
     ROS_WARN( "Tried to fill 'std::string' field with incompatible type!" );
     return false;
   }
   auto &value_msg = msg.as<ValueMessage<std::string>>();
-  value_msg.setValue( std::move( value ));
+  value_msg.setValue( std::move( value ) );
   return true;
 }
 
@@ -389,158 +371,153 @@ typename std::enable_if<std::is_signed<TVal>::value, bool>::type inBounds( TVal 
   // val is in bounds of a signed target type if it is greater than the min of the signed type and either smaller than
   // zero or smaller than its max. If val is greater or equal to zero, the val and max are casted to unsigned types to
   // prevent compiler warnings if the TVal and TBounds are not both signed or both unsigned.
-  return static_cast<STBounds>(std::numeric_limits<TBounds>::min()) <= val &&
-         (val < 0 || static_cast<UTBounds>(val) <= static_cast<UTVal>(std::numeric_limits<TBounds>::max()));
+  return static_cast<STBounds>( std::numeric_limits<TBounds>::min() ) <= val &&
+         ( val < 0 || static_cast<UTBounds>( val ) <=
+                          static_cast<UTVal>( std::numeric_limits<TBounds>::max() ) );
 }
 
 template<typename TBounds, typename TVal>
 typename std::enable_if<std::is_unsigned<TVal>::value, bool>::type inBounds( TVal val )
 {
-  return val <= static_cast<typename std::make_unsigned<TBounds>::type>(std::numeric_limits<TBounds>::max());
+  return val <= static_cast<typename std::make_unsigned<TBounds>::type>(
+                    std::numeric_limits<TBounds>::max() );
 }
 
 // Default implementation is for all integer types
 template<typename T>
 bool isCompatible( const QVariant &variant )
 {
-  switch ((int) variant.type())
-  {
-    case QMetaType::UChar:
-    {
-      auto val = variant.value<uint8_t>();
-      return inBounds<T>( val );
-    }
-    case QMetaType::UShort:
-    {
-      auto val = variant.value<uint16_t>();
-      return inBounds<T>( val );
-    }
-    case QVariant::UInt:
-    {
-      uint val = variant.toUInt();
-      return inBounds<T>( val );
-    }
-    case QMetaType::ULong:
-    {
-      auto val = variant.value<unsigned long>();
-      return inBounds<T>( val );
-    }
-    case QVariant::ULongLong:
-    {
-      qulonglong val = variant.toULongLong();
-      return inBounds<T>( val );
-    }
-    case QMetaType::SChar:
-    case QMetaType::Char:
-    {
-      auto val = variant.value<int8_t>();
-      return inBounds<T>( val );
-    }
-    case QMetaType::Short:
-    {
-      auto val = variant.value<int16_t>();
-      return inBounds<T>( val );
-    }
-    case QVariant::Int:
-    {
-      int val = variant.toInt();
-      return inBounds<T>( val );
-    }
-    case QMetaType::Long:
-    {
-      auto val = variant.value<long>();
-      return inBounds<T>( val );
-    }
-    case QVariant::LongLong:
-    {
-      qlonglong val = variant.toLongLong();
-      return inBounds<T>( val );
-    }
-    case QMetaType::Float:
-    {
-      auto val = variant.value<float>();
-      return val == std::round( val ) && std::numeric_limits<T>::min() <= val && val <= std::numeric_limits<T>::max();
-    }
-    case QVariant::Double:
-    {
-      double val = variant.toDouble();
-      return val == std::round( val ) && std::numeric_limits<T>::min() <= val && val <= std::numeric_limits<T>::max();
-    }
-    default:
-      break;
+  switch ( (int)variant.type() ) {
+  case QMetaType::UChar: {
+    auto val = variant.value<uint8_t>();
+    return inBounds<T>( val );
+  }
+  case QMetaType::UShort: {
+    auto val = variant.value<uint16_t>();
+    return inBounds<T>( val );
+  }
+  case QVariant::UInt: {
+    uint val = variant.toUInt();
+    return inBounds<T>( val );
+  }
+  case QMetaType::ULong: {
+    auto val = variant.value<unsigned long>();
+    return inBounds<T>( val );
+  }
+  case QVariant::ULongLong: {
+    qulonglong val = variant.toULongLong();
+    return inBounds<T>( val );
+  }
+  case QMetaType::SChar:
+  case QMetaType::Char: {
+    auto val = variant.value<int8_t>();
+    return inBounds<T>( val );
+  }
+  case QMetaType::Short: {
+    auto val = variant.value<int16_t>();
+    return inBounds<T>( val );
+  }
+  case QVariant::Int: {
+    int val = variant.toInt();
+    return inBounds<T>( val );
+  }
+  case QMetaType::Long: {
+    auto val = variant.value<long>();
+    return inBounds<T>( val );
+  }
+  case QVariant::LongLong: {
+    qlonglong val = variant.toLongLong();
+    return inBounds<T>( val );
+  }
+  case QMetaType::Float: {
+    auto val = variant.value<float>();
+    return val == std::round( val ) && std::numeric_limits<T>::min() <= val &&
+           val <= std::numeric_limits<T>::max();
+  }
+  case QVariant::Double: {
+    double val = variant.toDouble();
+    return val == std::round( val ) && std::numeric_limits<T>::min() <= val &&
+           val <= std::numeric_limits<T>::max();
+  }
+  default:
+    break;
   }
   return false;
 }
 
 template<>
-bool isCompatible<bool>( const QVariant &variant ) { return variant.type() == QVariant::Bool; }
+bool isCompatible<bool>( const QVariant &variant )
+{
+  return variant.type() == QVariant::Bool;
+}
 
 template<>
 bool isCompatible<float>( const QVariant &variant )
 {
-  return (int) variant.type() == QMetaType::Float || variant.type() == QVariant::Double ||
-         variant.type() == QVariant::UInt || variant.type() == QVariant::Int || variant.type() == QVariant::ULongLong ||
-         variant.type() == QVariant::LongLong;
+  return (int)variant.type() == QMetaType::Float || variant.type() == QVariant::Double ||
+         variant.type() == QVariant::UInt || variant.type() == QVariant::Int ||
+         variant.type() == QVariant::ULongLong || variant.type() == QVariant::LongLong;
 }
 
 template<>
 bool isCompatible<double>( const QVariant &variant )
 {
-  return (int) variant.type() == QMetaType::Float || variant.type() == QVariant::Double ||
-         variant.type() == QVariant::UInt || variant.type() == QVariant::Int || variant.type() == QVariant::ULongLong ||
-         variant.type() == QVariant::LongLong;
+  return (int)variant.type() == QMetaType::Float || variant.type() == QVariant::Double ||
+         variant.type() == QVariant::UInt || variant.type() == QVariant::Int ||
+         variant.type() == QVariant::ULongLong || variant.type() == QVariant::LongLong;
 }
 
 template<>
 bool isCompatible<ros::Time>( const QVariant &variant )
 {
-  return variant.type() == QVariant::Double || variant.type() == QVariant::UInt || variant.type() == QVariant::Int ||
-         variant.type() == QVariant::ULongLong || variant.type() == QVariant::LongLong ||
-         variant.type() == QVariant::DateTime || variant.typeName() == std::string( "qml_ros_plugin::Time" ) ||
+  return variant.type() == QVariant::Double || variant.type() == QVariant::UInt ||
+         variant.type() == QVariant::Int || variant.type() == QVariant::ULongLong ||
+         variant.type() == QVariant::LongLong || variant.type() == QVariant::DateTime ||
+         variant.typeName() == std::string( "qml_ros_plugin::Time" ) ||
          variant.typeName() == std::string( "qml_ros_plugin::WallTime" );
 }
 
 template<>
 bool isCompatible<ros::Duration>( const QVariant &variant )
 {
-  return variant.type() == QVariant::Double || variant.type() == QVariant::UInt || variant.type() == QVariant::Int ||
-         variant.type() == QVariant::ULongLong || variant.type() == QVariant::LongLong;
+  return variant.type() == QVariant::Double || variant.type() == QVariant::UInt ||
+         variant.type() == QVariant::Int || variant.type() == QVariant::ULongLong ||
+         variant.type() == QVariant::LongLong;
 }
 
 template<typename T>
 T getValue( const QVariant &variant )
 {
-  switch ((int) variant.type())
-  {
-    case QVariant::Bool:
-      return variant.toBool();
-    case QMetaType::SChar:
-      return static_cast<T>(variant.value<int8_t>());
-    case QMetaType::UChar:
-      return static_cast<T>(variant.value<uint8_t>());
-    case QMetaType::Short:
-      return static_cast<T>(variant.value<int16_t>());
-    case QMetaType::UShort:
-      return static_cast<T>(variant.value<uint16_t>());
-    case QVariant::Int:
-      return static_cast<T>(variant.toInt());
-    case QVariant::UInt:
-      return static_cast<T>(variant.toUInt());
-    case QMetaType::Long:
-      return static_cast<T>(variant.value<long>());
-    case QMetaType::ULong:
-      return static_cast<T>(variant.value<unsigned long>());
-    case QVariant::LongLong:
-      return static_cast<T>(variant.toLongLong());
-    case QVariant::ULongLong:
-      return static_cast<T>(variant.toULongLong());
-    case QMetaType::Float:
-      return variant.value<float>();
-    case QVariant::Double:
-      return static_cast<T>(variant.toDouble());
-    default:
-      ROS_WARN_STREAM(
-        "Tried to get " << typeid( T ).name() << " from incompatible type! Type: " << variant.typeName());
+  switch ( (int)variant.type() ) {
+  case QVariant::Bool:
+    return variant.toBool();
+  case QMetaType::SChar:
+    return static_cast<T>( variant.value<int8_t>() );
+  case QMetaType::UChar:
+    return static_cast<T>( variant.value<uint8_t>() );
+  case QMetaType::Short:
+    return static_cast<T>( variant.value<int16_t>() );
+  case QMetaType::UShort:
+    return static_cast<T>( variant.value<uint16_t>() );
+  case QVariant::Int:
+    return static_cast<T>( variant.toInt() );
+  case QVariant::UInt:
+    return static_cast<T>( variant.toUInt() );
+  case QMetaType::Long:
+    return static_cast<T>( variant.value<long>() );
+  case QMetaType::ULong:
+    return static_cast<T>( variant.value<unsigned long>() );
+  case QVariant::LongLong:
+    return static_cast<T>( variant.toLongLong() );
+  case QVariant::ULongLong:
+    return static_cast<T>( variant.toULongLong() );
+  case QMetaType::Float:
+    return variant.value<float>();
+  case QVariant::Double:
+    return static_cast<T>( variant.toDouble() );
+  default:
+    ROS_WARN_STREAM( "Tried to get " << typeid( T ).name()
+                                     << " from incompatible type! Type: " << variant.typeName() );
   }
   return T();
 }
@@ -548,55 +525,54 @@ T getValue( const QVariant &variant )
 template<>
 ros::Time getValue<ros::Time>( const QVariant &variant )
 {
-  switch ( variant.type())
-  {
-    case QVariant::Int:
-      return qmlToRosTime( variant.toInt());
-    case QVariant::UInt:
-      return qmlToRosTime( variant.toUInt());
-    case QVariant::LongLong:
-      return qmlToRosTime( variant.toLongLong());
-    case QVariant::ULongLong:
-      return qmlToRosTime( variant.toULongLong());
-    case QVariant::Double:
-      return ros::Time( variant.toDouble() / 1000.0 );
-    case QVariant::DateTime:
-      return qmlToRosTime( variant.toDateTime().toMSecsSinceEpoch());
-    case QVariant::Date:
-    case QVariant::Time:
-    default:
-      if ( variant.canConvert<Time>()) return variant.value<Time>().getRosTime();
-      if ( variant.canConvert<WallTime>())
-      {
-        ros::WallTime wall_time = variant.value<WallTime>().getRosTime();
-        return { wall_time.sec, wall_time.nsec };
-      }
-      ROS_WARN_STREAM( "Tried to get ros::Time from incompatible type! Type: " << variant.typeName());
-      return {};
+  switch ( variant.type() ) {
+  case QVariant::Int:
+    return qmlToRosTime( variant.toInt() );
+  case QVariant::UInt:
+    return qmlToRosTime( variant.toUInt() );
+  case QVariant::LongLong:
+    return qmlToRosTime( variant.toLongLong() );
+  case QVariant::ULongLong:
+    return qmlToRosTime( variant.toULongLong() );
+  case QVariant::Double:
+    return ros::Time( variant.toDouble() / 1000.0 );
+  case QVariant::DateTime:
+    return qmlToRosTime( variant.toDateTime().toMSecsSinceEpoch() );
+  case QVariant::Date:
+  case QVariant::Time:
+  default:
+    if ( variant.canConvert<Time>() )
+      return variant.value<Time>().getRosTime();
+    if ( variant.canConvert<WallTime>() ) {
+      ros::WallTime wall_time = variant.value<WallTime>().getRosTime();
+      return { wall_time.sec, wall_time.nsec };
+    }
+    ROS_WARN_STREAM( "Tried to get ros::Time from incompatible type! Type: " << variant.typeName() );
+    return {};
   }
 }
 
 template<>
 ros::Duration getValue<ros::Duration>( const QVariant &variant )
 {
-  switch ( variant.type())
-  {
-    case QVariant::Int:
-      return qmlToRosDuration( variant.toInt());
-    case QVariant::UInt:
-      return qmlToRosDuration( variant.toUInt());
-    case QVariant::LongLong:
-      return qmlToRosDuration( variant.toLongLong());
-    case QVariant::ULongLong:
-      return qmlToRosDuration( variant.toULongLong());
-    case QVariant::Double:
-      return qmlToRosDuration( variant.toDouble());
-    case QVariant::Date:
-    case QVariant::Time:
-    case QVariant::DateTime:
-    default:
-      ROS_WARN_STREAM( "Tried to get ros::Duration from incompatible type! Type: " << variant.typeName());
-      return {};
+  switch ( variant.type() ) {
+  case QVariant::Int:
+    return qmlToRosDuration( variant.toInt() );
+  case QVariant::UInt:
+    return qmlToRosDuration( variant.toUInt() );
+  case QVariant::LongLong:
+    return qmlToRosDuration( variant.toLongLong() );
+  case QVariant::ULongLong:
+    return qmlToRosDuration( variant.toULongLong() );
+  case QVariant::Double:
+    return qmlToRosDuration( variant.toDouble() );
+  case QVariant::Date:
+  case QVariant::Time:
+  case QVariant::DateTime:
+  default:
+    ROS_WARN_STREAM(
+        "Tried to get ros::Duration from incompatible type! Type: " << variant.typeName() );
+    return {};
   }
 }
 
@@ -607,23 +583,22 @@ fillArray( Message &msg, const ArrayType &list )
   auto &array = msg.as<ArrayMessage<T>>();
   size_t count = list.size();
   bool no_error = true;
-  if ( array.isFixedSize() && count > array.length())
-  {
+  if ( array.isFixedSize() && count > array.length() ) {
     count = array.length();
     no_error = false;
   }
-  for ( size_t i = 0; i < count; ++i )
-  {
+  for ( size_t i = 0; i < count; ++i ) {
     const QVariant &variant = list.at( i );
-    if ( !isCompatible<T>( variant ))
-    {
-      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)", typeid( T ).name(),
-                variant.typeName());
+    if ( !isCompatible<T>( variant ) ) {
+      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)",
+                typeid( T ).name(), variant.typeName() );
       no_error = false;
       continue;
     }
-    if ( array.isFixedSize()) array.assign( i, getValue<T>( variant ));
-    else array.push_back( getValue<T>( variant ));
+    if ( array.isFixedSize() )
+      array.assign( i, getValue<T>( variant ) );
+    else
+      array.push_back( getValue<T>( variant ) );
   }
   return no_error;
 }
@@ -635,42 +610,45 @@ fillArray( Message &msg, const ArrayType &list )
   auto &array = msg.as<ArrayMessage<T>>();
   size_t count = list.rowCount();
   bool no_error = true;
-  if ( array.isFixedSize() && count > array.length())
-  {
+  if ( array.isFixedSize() && count > array.length() ) {
     count = array.length();
     no_error = false;
   }
-  for ( size_t i = 0; i < count; ++i )
-  {
+  for ( size_t i = 0; i < count; ++i ) {
     QModelIndex index = list.index( i, 0 );
     const QVariant &variant = list.data( index );
-    if ( !isCompatible<T>( variant ))
-    {
-      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)", typeid( T ).name(),
-                variant.typeName());
+    if ( !isCompatible<T>( variant ) ) {
+      ROS_WARN( "Tried to fill array of '%s' with incompatible value! Skipped. (Type: %s)",
+                typeid( T ).name(), variant.typeName() );
       no_error = false;
       continue;
     }
-    if ( array.isFixedSize()) array.assign( i, getValue<T>( variant ));
-    else array.push_back( getValue<T>( variant ));
+    if ( array.isFixedSize() )
+      array.assign( i, getValue<T>( variant ) );
+    else
+      array.push_back( getValue<T>( variant ) );
   }
   return no_error;
 }
-
 
 template<typename T>
 using limits = std::numeric_limits<T>;
 
 uint32_t getCompatibleTypes( int val )
 {
-  uint32_t compatible_types = MessageTypes::Int32 | MessageTypes::Int64 |
-                              MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
+  uint32_t compatible_types = MessageTypes::Int32 | MessageTypes::Int64 | MessageTypes::Float32 |
+                              MessageTypes::Float64 | MessageTypes::Duration;
   // If it fits, it sits
-  if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max()) compatible_types |= MessageTypes::Int8;
-  if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max()) compatible_types |= MessageTypes::UInt8;
-  if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max()) compatible_types |= MessageTypes::Int16;
-  if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max()) compatible_types |= MessageTypes::UInt16;
-  if ( val >= 0 ) compatible_types |= MessageTypes::UInt32 | MessageTypes::UInt64;
+  if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max() )
+    compatible_types |= MessageTypes::Int8;
+  if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max() )
+    compatible_types |= MessageTypes::UInt8;
+  if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max() )
+    compatible_types |= MessageTypes::Int16;
+  if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max() )
+    compatible_types |= MessageTypes::UInt16;
+  if ( val >= 0 )
+    compatible_types |= MessageTypes::UInt32 | MessageTypes::UInt64;
   return compatible_types;
 }
 
@@ -678,58 +656,83 @@ uint32_t getCompatibleTypes( uint val )
 {
   uint32_t compatible_types = MessageTypes::UInt32 | MessageTypes::UInt64 | MessageTypes::Int64 |
                               MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( val <= static_cast<uint>(limits<int8_t>::max())) compatible_types |= MessageTypes::Int8;
-  if ( val <= static_cast<uint>(limits<uint8_t>::max())) compatible_types |= MessageTypes::UInt8;
-  if ( val <= static_cast<uint>(limits<int16_t>::max())) compatible_types |= MessageTypes::Int16;
-  if ( val <= static_cast<uint>(limits<uint16_t>::max())) compatible_types |= MessageTypes::UInt16;
-  if ( val <= static_cast<uint>(limits<int32_t>::max())) compatible_types |= MessageTypes::Int32;
+  if ( val <= static_cast<uint>( limits<int8_t>::max() ) )
+    compatible_types |= MessageTypes::Int8;
+  if ( val <= static_cast<uint>( limits<uint8_t>::max() ) )
+    compatible_types |= MessageTypes::UInt8;
+  if ( val <= static_cast<uint>( limits<int16_t>::max() ) )
+    compatible_types |= MessageTypes::Int16;
+  if ( val <= static_cast<uint>( limits<uint16_t>::max() ) )
+    compatible_types |= MessageTypes::UInt16;
+  if ( val <= static_cast<uint>( limits<int32_t>::max() ) )
+    compatible_types |= MessageTypes::Int32;
   return compatible_types;
 }
 
 uint32_t getCompatibleTypes( qlonglong val )
 {
   uint32_t compatible_types =
-    MessageTypes::Int64 | MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max()) compatible_types |= MessageTypes::Int8;
-  if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max()) compatible_types |= MessageTypes::UInt8;
-  if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max()) compatible_types |= MessageTypes::Int16;
-  if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max()) compatible_types |= MessageTypes::UInt16;
-  if ( limits<int32_t>::min() <= val && val <= limits<int32_t>::max()) compatible_types |= MessageTypes::Int32;
-  if ( val >= 0 ) compatible_types |= MessageTypes::UInt32 | MessageTypes::UInt64;
+      MessageTypes::Int64 | MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
+  if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max() )
+    compatible_types |= MessageTypes::Int8;
+  if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max() )
+    compatible_types |= MessageTypes::UInt8;
+  if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max() )
+    compatible_types |= MessageTypes::Int16;
+  if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max() )
+    compatible_types |= MessageTypes::UInt16;
+  if ( limits<int32_t>::min() <= val && val <= limits<int32_t>::max() )
+    compatible_types |= MessageTypes::Int32;
+  if ( val >= 0 )
+    compatible_types |= MessageTypes::UInt32 | MessageTypes::UInt64;
   return compatible_types;
 }
 
 uint32_t getCompatibleTypes( qulonglong val )
 {
   uint32_t compatible_types =
-    MessageTypes::UInt64 | MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( val <= static_cast<qulonglong>(limits<int8_t>::max())) compatible_types |= MessageTypes::Int8;
-  if ( val <= static_cast<qulonglong>(limits<uint8_t>::max())) compatible_types |= MessageTypes::UInt8;
-  if ( val <= static_cast<qulonglong>(limits<int16_t>::max())) compatible_types |= MessageTypes::Int16;
-  if ( val <= static_cast<qulonglong>(limits<uint16_t>::max())) compatible_types |= MessageTypes::UInt16;
-  if ( val <= static_cast<qulonglong>(limits<int32_t>::max())) compatible_types |= MessageTypes::Int32;
-  if ( val <= static_cast<qulonglong>(limits<uint32_t>::max())) compatible_types |= MessageTypes::UInt32;
-  if ( val <= static_cast<qulonglong>(limits<int64_t>::max())) compatible_types |= MessageTypes::Int64;
+      MessageTypes::UInt64 | MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
+  if ( val <= static_cast<qulonglong>( limits<int8_t>::max() ) )
+    compatible_types |= MessageTypes::Int8;
+  if ( val <= static_cast<qulonglong>( limits<uint8_t>::max() ) )
+    compatible_types |= MessageTypes::UInt8;
+  if ( val <= static_cast<qulonglong>( limits<int16_t>::max() ) )
+    compatible_types |= MessageTypes::Int16;
+  if ( val <= static_cast<qulonglong>( limits<uint16_t>::max() ) )
+    compatible_types |= MessageTypes::UInt16;
+  if ( val <= static_cast<qulonglong>( limits<int32_t>::max() ) )
+    compatible_types |= MessageTypes::Int32;
+  if ( val <= static_cast<qulonglong>( limits<uint32_t>::max() ) )
+    compatible_types |= MessageTypes::UInt32;
+  if ( val <= static_cast<qulonglong>( limits<int64_t>::max() ) )
+    compatible_types |= MessageTypes::Int64;
   return compatible_types;
 }
 
 uint32_t getCompatibleTypes( double val )
 {
   uint32_t compatible_types = MessageTypes::Float32 | MessageTypes::Float64 | MessageTypes::Duration;
-  if ( val == std::round( val ))
-  {
-    if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max()) compatible_types |= MessageTypes::Int8;
-    if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max()) compatible_types |= MessageTypes::UInt8;
-    if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max()) compatible_types |= MessageTypes::Int16;
-    if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max()) compatible_types |= MessageTypes::UInt16;
-    if ( limits<int32_t>::min() <= val && val <= limits<int32_t>::max()) compatible_types |= MessageTypes::Int32;
-    if ( limits<uint32_t>::min() <= val && val <= limits<uint32_t>::max()) compatible_types |= MessageTypes::UInt32;
-    if ( limits<int64_t>::min() <= val && val <= limits<int64_t>::max()) compatible_types |= MessageTypes::Int64;
-    if ( limits<uint64_t>::min() <= val && val <= limits<uint64_t>::max()) compatible_types |= MessageTypes::UInt64;
+  if ( val == std::round( val ) ) {
+    if ( limits<int8_t>::min() <= val && val <= limits<int8_t>::max() )
+      compatible_types |= MessageTypes::Int8;
+    if ( limits<uint8_t>::min() <= val && val <= limits<uint8_t>::max() )
+      compatible_types |= MessageTypes::UInt8;
+    if ( limits<int16_t>::min() <= val && val <= limits<int16_t>::max() )
+      compatible_types |= MessageTypes::Int16;
+    if ( limits<uint16_t>::min() <= val && val <= limits<uint16_t>::max() )
+      compatible_types |= MessageTypes::UInt16;
+    if ( limits<int32_t>::min() <= val && val <= limits<int32_t>::max() )
+      compatible_types |= MessageTypes::Int32;
+    if ( limits<uint32_t>::min() <= val && val <= limits<uint32_t>::max() )
+      compatible_types |= MessageTypes::UInt32;
+    if ( limits<int64_t>::min() <= val && val <= limits<int64_t>::max() )
+      compatible_types |= MessageTypes::Int64;
+    if ( limits<uint64_t>::min() <= val && val <= limits<uint64_t>::max() )
+      compatible_types |= MessageTypes::UInt64;
   }
   return compatible_types;
 }
-}
+} // namespace
 
 bool fillMessage( ros_babel_fish::Message &msg, const QVariant &value )
 {
@@ -740,88 +743,81 @@ bool fillMessage( ros_babel_fish::Message &msg, const QVariant &value )
 template<typename Array>
 bool fillArrayFromVariant( ros_babel_fish::Message &msg, const Array &list )
 {
-  if ( msg.type() != MessageTypes::Array )
-  {
+  if ( msg.type() != MessageTypes::Array ) {
     ROS_WARN( "Tried to fill array in non-array message field!" );
     return false;
   }
   auto &array = msg.as<ArrayMessageBase>();
   size_t count = list.size();
-  if ( array.isFixedSize() && count > array.length())
-  {
-    ROS_WARN( "Too many values for fixed size array (%lu vs %lu)! Only using first %lu.", count, array.length(),
-              array.length());
+  if ( array.isFixedSize() && count > array.length() ) {
+    ROS_WARN( "Too many values for fixed size array (%lu vs %lu)! Only using first %lu.", count,
+              array.length(), array.length() );
     count = array.length();
   }
-  switch ( array.elementType())
-  {
-    case MessageTypes::None:
-      break;
-    case MessageTypes::Bool:
-      return fillArray<bool>( array, list );
-    case MessageTypes::UInt8:
-      return fillArray<uint8_t>( array, list );
-    case MessageTypes::UInt16:
-      return fillArray<uint16_t>( array, list );
-    case MessageTypes::UInt32:
-      return fillArray<uint32_t>( array, list );
-    case MessageTypes::UInt64:
-      return fillArray<uint64_t>( array, list );
-    case MessageTypes::Int8:
-      return fillArray<int8_t>( array, list );
-    case MessageTypes::Int16:
-      return fillArray<int16_t>( array, list );
-    case MessageTypes::Int32:
-      return fillArray<int32_t>( array, list );
-    case MessageTypes::Int64:
-      return fillArray<int64_t>( array, list );
-    case MessageTypes::Float32:
-      return fillArray<float>( array, list );
-    case MessageTypes::Float64:
-      return fillArray<double>( array, list );
-    case MessageTypes::Time:
-      return fillArray<ros::Time>( array, list );
-    case MessageTypes::Duration:
-      return fillArray<ros::Duration>( array, list );
-    case MessageTypes::String:
-    {
-      auto &array = msg.as<ArrayMessage<std::string>>();
-      bool no_error = true;
-      for ( size_t i = 0; i < count; ++i )
-      {
-        const QVariant &variant = list.at( i );
-        if ( !variant.canConvert<QString>())
-        {
-          ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
-          no_error = false;
-          continue;
-        }
-        if ( array.isFixedSize()) array.assign( i, variant.toString().toStdString());
-        else array.push_back( variant.toString().toStdString());
+  switch ( array.elementType() ) {
+  case MessageTypes::None:
+    break;
+  case MessageTypes::Bool:
+    return fillArray<bool>( array, list );
+  case MessageTypes::UInt8:
+    return fillArray<uint8_t>( array, list );
+  case MessageTypes::UInt16:
+    return fillArray<uint16_t>( array, list );
+  case MessageTypes::UInt32:
+    return fillArray<uint32_t>( array, list );
+  case MessageTypes::UInt64:
+    return fillArray<uint64_t>( array, list );
+  case MessageTypes::Int8:
+    return fillArray<int8_t>( array, list );
+  case MessageTypes::Int16:
+    return fillArray<int16_t>( array, list );
+  case MessageTypes::Int32:
+    return fillArray<int32_t>( array, list );
+  case MessageTypes::Int64:
+    return fillArray<int64_t>( array, list );
+  case MessageTypes::Float32:
+    return fillArray<float>( array, list );
+  case MessageTypes::Float64:
+    return fillArray<double>( array, list );
+  case MessageTypes::Time:
+    return fillArray<ros::Time>( array, list );
+  case MessageTypes::Duration:
+    return fillArray<ros::Duration>( array, list );
+  case MessageTypes::String: {
+    auto &array = msg.as<ArrayMessage<std::string>>();
+    bool no_error = true;
+    for ( size_t i = 0; i < count; ++i ) {
+      const QVariant &variant = list.at( i );
+      if ( !variant.canConvert<QString>() ) {
+        ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
+        no_error = false;
+        continue;
       }
-      return no_error;
+      if ( array.isFixedSize() )
+        array.assign( i, variant.toString().toStdString() );
+      else
+        array.push_back( variant.toString().toStdString() );
     }
-    case MessageTypes::Compound:
-    {
-      auto &array = msg.as<CompoundArrayMessage>();
-      bool no_error = true;
-      for ( size_t i = 0; i < count; ++i )
-      {
-        const QVariant &variant = list.at( i );
-        if ( variant.type() != QVariant::Map )
-        {
-          ROS_WARN( "Tried to fill compound array with non-map value! Skipped." );
-          no_error = false;
-          continue;
-        }
-        auto &child = array.isFixedSize() ? array[i] : array.appendEmpty();
-        fillMessage( child, variant );
+    return no_error;
+  }
+  case MessageTypes::Compound: {
+    auto &array = msg.as<CompoundArrayMessage>();
+    bool no_error = true;
+    for ( size_t i = 0; i < count; ++i ) {
+      const QVariant &variant = list.at( i );
+      if ( variant.type() != QVariant::Map ) {
+        ROS_WARN( "Tried to fill compound array with non-map value! Skipped." );
+        no_error = false;
+        continue;
       }
-      return no_error;
+      auto &child = array.isFixedSize() ? array[i] : array.appendEmpty();
+      fillMessage( child, variant );
     }
-    case MessageTypes::Array:
-      ROS_ERROR_ONCE( "Arrays of arrays are not supported!" );
-      break;
+    return no_error;
+  }
+  case MessageTypes::Array:
+    ROS_ERROR_ONCE( "Arrays of arrays are not supported!" );
+    break;
   }
   return false;
 }
@@ -829,133 +825,123 @@ bool fillArrayFromVariant( ros_babel_fish::Message &msg, const Array &list )
 template<>
 bool fillArrayFromVariant( ros_babel_fish::Message &msg, const QAbstractListModel &list )
 {
-  if ( msg.type() != MessageTypes::Array )
-  {
+  if ( msg.type() != MessageTypes::Array ) {
     ROS_WARN( "Invalid value passed to fillMessage!" );
     return false;
   }
   auto &array = msg.as<ArrayMessageBase>();
   size_t count = list.rowCount();
-  if ( array.isFixedSize() && count > array.length())
-  {
-    ROS_WARN( "Too many values for fixed size array (%lu vs %lu)! Only using first %lu.", count, array.length(),
-              array.length());
+  if ( array.isFixedSize() && count > array.length() ) {
+    ROS_WARN( "Too many values for fixed size array (%lu vs %lu)! Only using first %lu.", count,
+              array.length(), array.length() );
     count = array.length();
   }
-  switch ( array.elementType())
-  {
-    case MessageTypes::None:
-      break;
-    case MessageTypes::Bool:
-      return fillArray<bool>( array, list );
-    case MessageTypes::UInt8:
-      return fillArray<uint8_t>( array, list );
-    case MessageTypes::UInt16:
-      return fillArray<uint16_t>( array, list );
-    case MessageTypes::UInt32:
-      return fillArray<uint32_t>( array, list );
-    case MessageTypes::UInt64:
-      return fillArray<uint64_t>( array, list );
-    case MessageTypes::Int8:
-      return fillArray<int8_t>( array, list );
-    case MessageTypes::Int16:
-      return fillArray<int16_t>( array, list );
-    case MessageTypes::Int32:
-      return fillArray<int32_t>( array, list );
-    case MessageTypes::Int64:
-      return fillArray<int64_t>( array, list );
-    case MessageTypes::Float32:
-      return fillArray<float>( array, list );
-    case MessageTypes::Float64:
-      return fillArray<double>( array, list );
-    case MessageTypes::Time:
-      return fillArray<ros::Time>( array, list );
-    case MessageTypes::Duration:
-      return fillArray<ros::Duration>( array, list );
-    case MessageTypes::String:
+  switch ( array.elementType() ) {
+  case MessageTypes::None:
+    break;
+  case MessageTypes::Bool:
+    return fillArray<bool>( array, list );
+  case MessageTypes::UInt8:
+    return fillArray<uint8_t>( array, list );
+  case MessageTypes::UInt16:
+    return fillArray<uint16_t>( array, list );
+  case MessageTypes::UInt32:
+    return fillArray<uint32_t>( array, list );
+  case MessageTypes::UInt64:
+    return fillArray<uint64_t>( array, list );
+  case MessageTypes::Int8:
+    return fillArray<int8_t>( array, list );
+  case MessageTypes::Int16:
+    return fillArray<int16_t>( array, list );
+  case MessageTypes::Int32:
+    return fillArray<int32_t>( array, list );
+  case MessageTypes::Int64:
+    return fillArray<int64_t>( array, list );
+  case MessageTypes::Float32:
+    return fillArray<float>( array, list );
+  case MessageTypes::Float64:
+    return fillArray<double>( array, list );
+  case MessageTypes::Time:
+    return fillArray<ros::Time>( array, list );
+  case MessageTypes::Duration:
+    return fillArray<ros::Duration>( array, list );
+  case MessageTypes::String: {
+    auto &array = msg.as<ArrayMessage<std::string>>();
+    bool no_error = true;
+    for ( size_t i = 0; i < count; ++i ) {
+      QModelIndex index = list.index( i, 0 );
+      const QVariant &variant = list.data( index );
+      if ( variant.type() != QVariant::String ) {
+        ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
+        no_error = false;
+        continue;
+      }
+      if ( array.isFixedSize() )
+        array.assign( i, variant.toString().toStdString() );
+      else
+        array.push_back( variant.toString().toStdString() );
+    }
+    return no_error;
+  }
+  case MessageTypes::Compound: {
+    auto &array = msg.as<CompoundArrayMessage>();
+    bool no_error = true;
+    QHash<int, QByteArray> roleNames = list.roleNames();
+    if ( roleNames.empty() )
+      return true;
+    std::vector<std::string> names;
     {
-      auto &array = msg.as<ArrayMessage<std::string>>();
-      bool no_error = true;
-      for ( size_t i = 0; i < count; ++i )
-      {
-        QModelIndex index = list.index( i, 0 );
-        const QVariant &variant = list.data( index );
-        if ( variant.type() != QVariant::String )
-        {
-          ROS_WARN( "Tried to fill string array with non-string value! Skipped." );
-          no_error = false;
+      int max_key = 0;
+      for ( auto key : roleNames.keys() ) max_key = std::max( max_key, key );
+      names.resize( max_key + 1 );
+    }
+    // Collect keys
+    QHashIterator<int, QByteArray> it( roleNames );
+    while ( it.hasNext() ) {
+      it.next();
+      names[it.key()] = it.value().data();
+    }
+    // Check that all keys are in message
+    const std::vector<std::string> &compound_names = array.elementTemplate()->compound.names;
+    for ( auto &name : names ) {
+      const std::string &key = name;
+      if ( key.empty() )
+        continue;
+      if ( std::find( compound_names.begin(), compound_names.end(), key ) == compound_names.end() ) {
+        ROS_WARN_STREAM( "Message doesn't have field '" << key << "'!" );
+        no_error = false;
+        name = std::string();
+      }
+    }
+    for ( size_t i = 0; i < count; ++i ) {
+      QModelIndex index = list.index( i );
+      auto &child = array.isFixedSize() ? array[i] : array.appendEmpty();
+      auto &compound = child.as<CompoundMessage>();
+      for ( size_t j = 0; j < names.size(); ++j ) {
+        const std::string &key = names[j];
+        if ( key.empty() )
           continue;
-        }
-        if ( array.isFixedSize()) array.assign( i, variant.toString().toStdString());
-        else array.push_back( variant.toString().toStdString());
+        no_error &= fillMessage( compound[key], index.data( j ) );
       }
-      return no_error;
     }
-    case MessageTypes::Compound:
-    {
-      auto &array = msg.as<CompoundArrayMessage>();
-      bool no_error = true;
-      QHash<int, QByteArray> roleNames = list.roleNames();
-      if ( roleNames.empty()) return true;
-      std::vector<std::string> names;
-      {
-        int max_key = 0;
-        for ( auto key: roleNames.keys()) max_key = std::max( max_key, key );
-        names.resize( max_key + 1 );
-      }
-      // Collect keys
-      QHashIterator<int, QByteArray> it( roleNames );
-      while ( it.hasNext())
-      {
-        it.next();
-        names[it.key()] = it.value().data();
-      }
-      // Check that all keys are in message
-      const std::vector<std::string> &compound_names = array.elementTemplate()->compound.names;
-      for ( auto &name: names )
-      {
-        const std::string &key = name;
-        if ( key.empty()) continue;
-        if ( std::find( compound_names.begin(), compound_names.end(), key ) == compound_names.end())
-        {
-          ROS_WARN_STREAM( "Message doesn't have field '" << key << "'!" );
-          no_error = false;
-          name = std::string();
-        }
-      }
-      for ( size_t i = 0; i < count; ++i )
-      {
-        QModelIndex index = list.index( i );
-        auto &child = array.isFixedSize() ? array[i] : array.appendEmpty();
-        auto &compound = child.as<CompoundMessage>();
-        for ( size_t j = 0; j < names.size(); ++j )
-        {
-          const std::string &key = names[j];
-          if ( key.empty()) continue;
-          no_error &= fillMessage( compound[key], index.data( j ));
-        }
-      }
-      return no_error;
-    }
-    case MessageTypes::Array:
-      ROS_ERROR_ONCE( "Arrays of arrays are not supported!" );
-      break;
+    return no_error;
+  }
+  case MessageTypes::Array:
+    ROS_ERROR_ONCE( "Arrays of arrays are not supported!" );
+    break;
   }
   return false;
 }
 
 bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant &value )
 {
-  if ( value.canConvert<QVariantMap>() && msg.type() == MessageTypes::Compound )
-  {
+  if ( value.canConvert<QVariantMap>() && msg.type() == MessageTypes::Compound ) {
     auto &compound = msg.as<CompoundMessage>();
     const QVariantMap &map = value.value<QVariantMap>();
     bool no_error = true;
-    for ( auto &key: map.keys())
-    {
+    for ( auto &key : map.keys() ) {
       std::string skey = key.toStdString();
-      if ( !compound.containsKey( skey ))
-      {
+      if ( !compound.containsKey( skey ) ) {
         ROS_WARN_STREAM( "Message doesn't have field '" << skey << "'!" );
         no_error = false;
         continue;
@@ -963,210 +949,189 @@ bool fillMessage( BabelFish &fish, ros_babel_fish::Message &msg, const QVariant 
       no_error &= fillMessage( fish, compound[skey], map[key] );
     }
     return no_error;
-  }
-  else if ( value.canConvert<Array>() && msg.type() == MessageTypes::Array )
-  {
-    return fillArrayFromVariant( msg, value.value<Array>());
-  }
-  else if ( value.canConvert<QVariantList>() && msg.type() == MessageTypes::Array )
-  {
+  } else if ( value.canConvert<Array>() && msg.type() == MessageTypes::Array ) {
+    return fillArrayFromVariant( msg, value.value<Array>() );
+  } else if ( value.canConvert<QVariantList>() && msg.type() == MessageTypes::Array ) {
     const QVariantList &list = value.value<QVariantList>();
     return fillArrayFromVariant( msg, list );
-  }
-  else if ( value.canConvert<QObject *>())
-  {
+  } else if ( value.canConvert<QObject *>() ) {
     const auto *list_model = value.value<QAbstractListModel *>();
-    if ( list_model != nullptr )
-    {
+    if ( list_model != nullptr ) {
       return fillArrayFromVariant( msg, *list_model );
     }
 
-    if ( msg.type() == MessageTypes::Compound )
-    {
+    if ( msg.type() == MessageTypes::Compound ) {
       const auto *obj = value.value<QObject *>();
       const QMetaObject *metaObj = obj->metaObject();
       auto &compound = msg.as<CompoundMessage>();
       bool no_error = true;
-      for ( int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i )
-      {
+      for ( int i = metaObj->propertyOffset(); i < metaObj->propertyCount(); ++i ) {
         QMetaProperty prop = metaObj->property( i );
         std::string skey = prop.name();
         // Skip keys that don't exist, we don't warn here because there will very likely be properties that don't exist.
-        if ( !compound.containsKey( skey )) continue;
-        no_error &= fillMessage( fish, compound[skey], prop.read( obj ));
+        if ( !compound.containsKey( skey ) )
+          continue;
+        no_error &= fillMessage( fish, compound[skey], prop.read( obj ) );
       }
       return no_error;
     }
-  }
-  else if ( value.type() == QVariant::Vector2D && msg.type() == MessageTypes::Compound )
-  {
+  } else if ( value.type() == QVariant::Vector2D && msg.type() == MessageTypes::Compound ) {
     auto vector = value.value<QVector2D>();
     auto &compound = msg.as<CompoundMessage>();
     bool no_error = true;
     int i = 0;
-    for ( const auto &key: { "x", "y" } )
-    {
-      if ( !compound.containsKey( key ))
-      {
-        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
-                                 "Tried to set QVector2D to compound message that has no %s property", key );
+    for ( const auto &key : { "x", "y" } ) {
+      if ( !compound.containsKey( key ) ) {
+        ROS_WARN_THROTTLE_NAMED(
+            1.0, "qml_ros_plugin",
+            "Tried to set QVector2D to compound message that has no %s property", key );
         no_error = false;
         continue;
       }
       no_error &= fillMessage( fish, compound[key], vector[i++] );
     }
     return no_error;
-  }
-  else if ( value.type() == QVariant::Vector3D && msg.type() == MessageTypes::Compound )
-  {
+  } else if ( value.type() == QVariant::Vector3D && msg.type() == MessageTypes::Compound ) {
     QVector3D vector = value.value<QVector3D>();
     auto &compound = msg.as<CompoundMessage>();
     bool no_error = true;
     int i = 0;
-    for ( const auto &key: { "x", "y", "z" } )
-    {
-      if ( !compound.containsKey( key ))
-      {
-        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
-                                 "Tried to set QVector3D to compound message that has no %s property", key );
+    for ( const auto &key : { "x", "y", "z" } ) {
+      if ( !compound.containsKey( key ) ) {
+        ROS_WARN_THROTTLE_NAMED(
+            1.0, "qml_ros_plugin",
+            "Tried to set QVector3D to compound message that has no %s property", key );
         no_error = false;
         continue;
       }
       no_error &= fillMessage( fish, compound[key], vector[i++] );
     }
     return no_error;
-  }
-  else if ( value.type() == QVariant::Vector4D && msg.type() == MessageTypes::Compound )
-  {
+  } else if ( value.type() == QVariant::Vector4D && msg.type() == MessageTypes::Compound ) {
     auto vector = value.value<QVector4D>();
     auto &compound = msg.as<CompoundMessage>();
     bool no_error = true;
     int i = 0;
-    for ( const auto &key: { "x", "y", "z", "w" } )
-    {
-      if ( !compound.containsKey( key ))
-      {
-        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
-                                 "Tried to set QVector4D to compound message that has no %s property", key );
+    for ( const auto &key : { "x", "y", "z", "w" } ) {
+      if ( !compound.containsKey( key ) ) {
+        ROS_WARN_THROTTLE_NAMED(
+            1.0, "qml_ros_plugin",
+            "Tried to set QVector4D to compound message that has no %s property", key );
         no_error = false;
         continue;
       }
       no_error &= fillMessage( fish, compound[key], vector[i++] );
     }
     return no_error;
-  }
-  else if ( value.type() == QVariant::Quaternion && msg.type() == MessageTypes::Compound )
-  {
+  } else if ( value.type() == QVariant::Quaternion && msg.type() == MessageTypes::Compound ) {
     auto quaternion = value.value<QQuaternion>();
     auto &compound = msg.as<CompoundMessage>();
     bool no_error = true;
-    for ( const std::string &key: { "w", "x", "y", "z" } )
-    {
-      if ( !compound.containsKey( key ))
-      {
-        ROS_WARN_THROTTLE_NAMED( 1.0, "qml_ros_plugin",
-                                 "Tried to set QQuaternion to compound message that has no %s property", key.c_str());
+    for ( const std::string &key : { "w", "x", "y", "z" } ) {
+      if ( !compound.containsKey( key ) ) {
+        ROS_WARN_THROTTLE_NAMED(
+            1.0, "qml_ros_plugin",
+            "Tried to set QQuaternion to compound message that has no %s property", key.c_str() );
         no_error = false;
         continue;
       }
-      if ( key == "w" ) no_error &= fillMessage( fish, compound[key], quaternion.scalar());
-      else if ( key == "x" ) no_error &= fillMessage( fish, compound[key], quaternion.x());
-      else if ( key == "y" ) no_error &= fillMessage( fish, compound[key], quaternion.y());
-      else no_error &= fillMessage( fish, compound[key], quaternion.z());
+      if ( key == "w" )
+        no_error &= fillMessage( fish, compound[key], quaternion.scalar() );
+      else if ( key == "x" )
+        no_error &= fillMessage( fish, compound[key], quaternion.x() );
+      else if ( key == "y" )
+        no_error &= fillMessage( fish, compound[key], quaternion.y() );
+      else
+        no_error &= fillMessage( fish, compound[key], quaternion.z() );
     }
     return no_error;
   }
 
-  if ( msg.type() & (MessageTypes::Array | MessageTypes::Compound))
-  {
-    ROS_WARN_STREAM( "Invalid type for array/compound message: " << value.typeName() << " (" << value.type() << ")" );
+  if ( msg.type() & ( MessageTypes::Array | MessageTypes::Compound ) ) {
+    ROS_WARN_STREAM( "Invalid type for array/compound message: " << value.typeName() << " ("
+                                                                 << value.type() << ")" );
     return false;
   }
-  switch ((int) value.type())
-  {
+  switch ( (int)value.type() ) {
 
-    case QVariant::Invalid:
-      break;
-    case QVariant::Bool:
-      return fillValue<bool>( msg, value.toBool(),
-                              MessageTypes::Bool ); // Since it is specifically a bool, we don't accept other types
-    case QMetaType::Short:
-    case QMetaType::SChar:
-    case QVariant::Int:
-    {
-      int val = value.toInt();
-      return fillValue<int>( msg, val, getCompatibleTypes( val ));
+  case QVariant::Invalid:
+    break;
+  case QVariant::Bool:
+    return fillValue<bool>(
+        msg, value.toBool(),
+        MessageTypes::Bool ); // Since it is specifically a bool, we don't accept other types
+  case QMetaType::Short:
+  case QMetaType::SChar:
+  case QVariant::Int: {
+    int val = value.toInt();
+    return fillValue<int>( msg, val, getCompatibleTypes( val ) );
+  }
+  case QMetaType::UShort:
+  case QMetaType::UChar:
+  case QVariant::UInt: {
+    uint val = value.toUInt();
+    return fillValue<uint>( msg, val, getCompatibleTypes( val ) );
+  }
+  case QMetaType::Long:
+  case QVariant::LongLong: {
+    qlonglong val = value.toLongLong();
+    return fillValue<qlonglong>( msg, val, getCompatibleTypes( val ) );
+  }
+  case QMetaType::ULong:
+  case QVariant::ULongLong: {
+    qulonglong val = value.toULongLong();
+    return fillValue<qulonglong>( msg, val, getCompatibleTypes( val ) );
+  }
+  case QMetaType::Float:
+  case QVariant::Double: {
+    double val = value.toDouble();
+    return fillValue<double>( msg, value.toDouble(), getCompatibleTypes( val ) );
+  }
+  case QVariant::String:
+    return fillValue<std::string>( msg, value.toString().toStdString(),
+                                   0 /* ignored for this special case anyway */ );
+  case QVariant::Url:
+    return fillValue<std::string>( msg, value.toUrl().toString().toStdString(), 0 /* same */ );
+  case QVariant::DateTime:
+    return fillValue<ros::Time>( msg, qmlToRosTime( value.toDateTime() ), MessageTypes::Time );
+  case QVariant::Date: // Not sure if any of these types should be supported
+  case QVariant::Time:
+  case QVariant::Char:
+  default:
+    if ( value.canConvert<Time>() ) {
+      return fillValue<ros::Time>( msg, value.value<Time>().getRosTime(), MessageTypes::Time );
     }
-    case QMetaType::UShort:
-    case QMetaType::UChar:
-    case QVariant::UInt:
-    {
-      uint val = value.toUInt();
-      return fillValue<uint>( msg, val, getCompatibleTypes( val ));
+    if ( value.canConvert<WallTime>() ) {
+      ros::WallTime wall_time = value.value<WallTime>().getRosTime();
+      return fillValue<ros::Time>( msg, ros::Time( wall_time.sec, wall_time.nsec ),
+                                   MessageTypes::Time );
     }
-    case QMetaType::Long:
-    case QVariant::LongLong:
-    {
-      qlonglong val = value.toLongLong();
-      return fillValue<qlonglong>( msg, val, getCompatibleTypes( val ));
-    }
-    case QMetaType::ULong:
-    case QVariant::ULongLong:
-    {
-      qulonglong val = value.toULongLong();
-      return fillValue<qulonglong>( msg, val, getCompatibleTypes( val ));
-    }
-    case QMetaType::Float:
-    case QVariant::Double:
-    {
-      double val = value.toDouble();
-      return fillValue<double>( msg, value.toDouble(), getCompatibleTypes( val ));
-    }
-    case QVariant::String:
-      return fillValue<std::string>( msg, value.toString().toStdString(), 0 /* ignored for this special case anyway */);
-    case QVariant::Url:
-      return fillValue<std::string>( msg, value.toUrl().toString().toStdString(), 0 /* same */ );
-    case QVariant::DateTime:
-      return fillValue<ros::Time>( msg, qmlToRosTime( value.toDateTime()), MessageTypes::Time );
-    case QVariant::Date: // Not sure if any of these types should be supported
-    case QVariant::Time:
-    case QVariant::Char:
-    default:
-      if ( value.canConvert<Time>())
-      {
-        return fillValue<ros::Time>( msg, value.value<Time>().getRosTime(), MessageTypes::Time );
+    if ( value.canConvert<QVariantMap>() ) {
+      const QVariantMap &map = value.value<QVariantMap>();
+      if ( msg.type() == MessageTypes::Time ) {
+        uint32_t sec = 0;
+        if ( map.contains( "sec" ) )
+          sec = map["sec"].toUInt();
+        uint32_t nsec = 0;
+        if ( map.contains( "nsec" ) )
+          nsec = map["nsec"].toUInt();
+        msg.as<ValueMessage<ros::Time>>().setValue( ros::Time( sec, nsec ) );
+        return true;
+      } else if ( msg.type() == MessageTypes::Duration ) {
+        int32_t sec = 0;
+        if ( map.contains( "sec" ) )
+          sec = map["sec"].toInt();
+        int32_t nsec = 0;
+        if ( map.contains( "nsec" ) )
+          nsec = map["nsec"].toInt();
+        msg.as<ValueMessage<ros::Duration>>().setValue( ros::Duration( sec, nsec ) );
+        return true;
       }
-      if ( value.canConvert<WallTime>())
-      {
-        ros::WallTime wall_time = value.value<WallTime>().getRosTime();
-        return fillValue<ros::Time>( msg, ros::Time( wall_time.sec, wall_time.nsec ), MessageTypes::Time );
-      }
-      if ( value.canConvert<QVariantMap>())
-      {
-        const QVariantMap &map = value.value<QVariantMap>();
-        if ( msg.type() == MessageTypes::Time )
-        {
-          uint32_t sec = 0;
-          if ( map.contains( "sec" )) sec = map["sec"].toUInt();
-          uint32_t nsec = 0;
-          if ( map.contains( "nsec" )) nsec = map["nsec"].toUInt();
-          msg.as<ValueMessage<ros::Time>>().setValue( ros::Time( sec, nsec ));
-          return true;
-        }
-        else if ( msg.type() == MessageTypes::Duration )
-        {
-          int32_t sec = 0;
-          if ( map.contains( "sec" )) sec = map["sec"].toInt();
-          int32_t nsec = 0;
-          if ( map.contains( "nsec" )) nsec = map["nsec"].toInt();
-          msg.as<ValueMessage<ros::Duration>>().setValue( ros::Duration( sec, nsec ));
-          return true;
-        }
-      }
-      ROS_WARN( "Unsupported QVariant type '%s' encountered while filling message!", value.typeName());
-      break;
+    }
+    ROS_WARN( "Unsupported QVariant type '%s' encountered while filling message!", value.typeName() );
+    break;
   }
   return false;
 }
-}
-}
+} // namespace conversion
+} // namespace qml_ros_plugin

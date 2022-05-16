@@ -32,6 +32,6 @@ private:
 
   ros_babel_fish::DescriptionProvider::Ptr description_provider_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
-#endif //QML_ROS_PLUGIN_BABEL_FISH_DISPENSER_H
+#endif // QML_ROS_PLUGIN_BABEL_FISH_DISPENSER_H

@@ -36,8 +36,7 @@ namespace ros_init_options
 {
 Q_NAMESPACE
 
-enum RosInitOption
-{
+enum RosInitOption {
   //! Don't install a SIGINT handler.
   NoSigintHandler = ros::init_options::NoSigintHandler,
   //! Anonymize the node name. Adds a random number to the node's name to make it unique.
@@ -47,11 +46,11 @@ enum RosInitOption
 };
 
 Q_ENUM_NS( RosInitOption )
-}
+} // namespace ros_init_options
 
 class RosQml : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 private:
   RosQml();
 
@@ -107,7 +106,7 @@ public:
    * @param datatype The message type to filter topics for, e.g., sensor_msgs/Image. Omit to query for all topics.
    * @return A list of topics that matches the given datatype or all topics if no datatype provided.
    */
-  QStringList queryTopics( const QString &datatype = QString()) const;
+  QStringList queryTopics( const QString &datatype = QString() ) const;
 
   /*!
    * Queries the ROS master for its topics and their type.
@@ -186,7 +185,7 @@ private:
 
 class RosQmlSingletonWrapper : public QObject
 {
-Q_OBJECT
+  Q_OBJECT
 
   // @formatter:off
   Q_PROPERTY( qml_ros_plugin::Console console READ console CONSTANT )
@@ -228,7 +227,7 @@ public:
   Q_INVOKABLE QString getNamespace();
 
   //! @copydoc RosQml::queryTopics
-  Q_INVOKABLE QStringList queryTopics( const QString &datatype = QString()) const;
+  Q_INVOKABLE QStringList queryTopics( const QString &datatype = QString() ) const;
 
   //! @copydoc RosQml::queryTopicInfo
   Q_INVOKABLE QList<TopicInfo> queryTopicInfo() const;
@@ -318,9 +317,8 @@ public:
    */
   QJSValue fatal();
 
-  Q_INVOKABLE void logInternal( int level, const QString &function,
-                                const QString &file, int line, const QString &msg,
-                                const QString &name = QString()) const;
+  Q_INVOKABLE void logInternal( int level, const QString &function, const QString &file, int line,
+                                const QString &msg, const QString &name = QString() ) const;
 
   /*!
    * Creates a Publisher to publish ROS messages.
@@ -331,7 +329,8 @@ public:
    * @param latch Whether or not this publisher should latch, i.e., always send out the last message to new subscribers.
    * @return A Publisher instance.
    */
-  Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size, bool latch = false );
+  Q_INVOKABLE QObject *advertise( const QString &type, const QString &topic, quint32 queue_size,
+                                  bool latch = false );
 
   /*!
    * Creates a Publisher to publish ROS messages.
@@ -343,8 +342,8 @@ public:
    * @param latch Whether or not this publisher should latch, i.e., always send out the last message to new subscribers.
    * @return A Publisher instance.
    */
-  Q_INVOKABLE QObject *advertise( const QString &ns, const QString &type, const QString &topic, quint32 queue_size,
-                                  bool latch = false );
+  Q_INVOKABLE QObject *advertise( const QString &ns, const QString &type, const QString &topic,
+                                  quint32 queue_size, bool latch = false );
 
   /*!
    * Creates a Subscriber to subscribe to ROS messages.
@@ -382,7 +381,8 @@ public:
    * @param name The name of the action server to connect to. This is essentially a base topic.
    * @return An instance of ActionClient.
    */
-  Q_INVOKABLE QObject *createActionClient( const QString &ns, const QString &type, const QString &name );
+  Q_INVOKABLE QObject *createActionClient( const QString &ns, const QString &type,
+                                           const QString &name );
 
 signals:
 
@@ -405,6 +405,6 @@ private:
   QJSValue error_function_;
   QJSValue fatal_function_;
 };
-} // qml_ros_plugin
+} // namespace qml_ros_plugin
 
 #endif // QML_ROS_PLUGIN_ROS_H
