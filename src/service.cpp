@@ -13,7 +13,7 @@ using namespace qml_ros_plugin::conversion;
 
 namespace qml_ros_plugin
 {
-Service::Service() { babel_fish_ = BabelFishDispenser::getBabelFish(); }
+Service::Service() : id_counter_( 0 ) { babel_fish_ = BabelFishDispenser::getBabelFish(); }
 
 QVariant Service::call( const QString &service, const QString &type, const QVariantMap &req )
 {
@@ -54,31 +54,38 @@ void Service::callAsync( const QString &service, const QString &type, const QVar
                                Q_ARG( QJSValue, callback ), Q_ARG( QVariant, QVariant( false ) ) );
     return;
   }
-  std::thread thread( [std_service, this, message, callback]() -> void {
+  // Insert the callback into a container and pass the id to the service call thread
+  // Passing the callback to the thread would lead to random segfaults because the QJSValue is not
+  // supposed to leave the thread of the QJSEngine
+  int id = ++id_counter_;
+  callbacks_.insert( id, callback );
+  std::thread thread( [std_service, this, message, id]() -> void {
     TranslatedMessage::Ptr response;
     bool result = babel_fish_.callService( std_service, message, response );
-    if ( !callback.isCallable() )
-      return;
     if ( !result ) {
-      QMetaObject::invokeMethod( this, "invokeCallback", Qt::AutoConnection,
-                                 Q_ARG( QJSValue, callback ), Q_ARG( QVariant, QVariant( false ) ) );
+      QMetaObject::invokeMethod( this, "invokeCallback", Qt::QueuedConnection, Q_ARG( int, id ),
+                                 Q_ARG( QVariant, QVariant( false ) ) );
       return;
     }
     if ( response->input_message->size() == 0 ) {
-      QMetaObject::invokeMethod( this, "invokeCallback", Qt::AutoConnection,
-                                 Q_ARG( QJSValue, callback ), Q_ARG( QVariant, QVariant( true ) ) );
+      QMetaObject::invokeMethod( this, "invokeCallback", Qt::QueuedConnection, Q_ARG( int, id ),
+                                 Q_ARG( QVariant, QVariant( true ) ) );
       return;
     }
     QMetaObject::invokeMethod(
-        this, "invokeCallback", Qt::AutoConnection, Q_ARG( QJSValue, callback ),
+        this, "invokeCallback", Qt::QueuedConnection, Q_ARG( int, id ),
         Q_ARG( QVariant, msgToMap( response, *response->translated_message ) ) );
   } );
   thread.detach();
 }
 
-void Service::invokeCallback( QJSValue value, QVariant result )
+void Service::invokeCallback( int id, QVariant result )
 {
+  QJSValue callback = callbacks_[id];
+  callbacks_.remove( id );
+  if ( !callback.isCallable() )
+    return;
   QJSEngine *engine = qjsEngine( this );
-  value.call( { engine->toScriptValue( result ) } );
+  callback.call( { engine->toScriptValue( result ) } );
 }
 } // namespace qml_ros_plugin

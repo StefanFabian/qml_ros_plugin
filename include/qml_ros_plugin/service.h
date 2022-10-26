@@ -42,10 +42,13 @@ public:
                               const QJSValue &callback = QJSValue() );
 
 private slots:
-  void invokeCallback( QJSValue value, QVariant result );
+  void invokeCallback( int id, QVariant result );
 
 private:
+  // Store callbacks in map as they may not be copied to a different thread
+  QMap<int, QJSValue> callbacks_;
   ros_babel_fish::BabelFish babel_fish_;
+  int id_counter_;
 };
 } // namespace qml_ros_plugin
 
