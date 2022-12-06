@@ -206,6 +206,68 @@ TEST( Communication, subscriber )
               "running.";
 }
 
+TEST( Communication, waitForMessage )
+{
+  QJSEngine engine;
+  RosQmlSingletonWrapper *pwrapper = new RosQmlSingletonWrapper();
+  QJSValue jswrapper = engine.newQObject(pwrapper);
+  RosQmlSingletonWrapper &wrapper = *pwrapper;
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh( "~private_ns" );
+  ros::Publisher pub_pns = pnh.advertise<geometry_msgs::Pose>( "test", 10 );
+  EXPECT_EQ( pub_pns.getTopic(), "/communication/private_ns/test" );
+  geometry_msgs::Pose pose;
+  pose.position.x = 2.34;
+  QJSValue obj = engine.newObject();
+  // Check that callback is called using a watcher object that will hold the passed response
+  QJSValue callback =
+      engine
+          .evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
+          .call( { obj } );
+
+  wrapper.waitForMessageAsync( "/communication/private_ns/test", callback );
+  ASSERT_TRUE( waitFor( [&pub_pns]() { return pub_pns.getNumSubscribers() > 0; } ) );
+  ASSERT_FALSE( obj.hasProperty( "result" ) );
+  // Publish message
+  pub_pns.publish( pose );
+  waitFor( [&obj]() { return obj.hasProperty( "result" ); }, 60 );
+  processEvents();
+  ASSERT_TRUE( obj.hasProperty( "result" ) );
+  QVariant result = obj.property( "result" ).toVariant();
+  EXPECT_DOUBLE_EQ( pose.position.x, result.toMap()["position"].toMap()["x"].toDouble() );
+
+  // With timeout but receiving a message within timeout
+  pose.position.x = 3.14;
+  obj = engine.newObject();
+  callback =
+      engine
+          .evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
+          .call( { obj } );
+  wrapper.waitForMessageAsync( "/communication/private_ns/test", 500, callback );
+  ASSERT_TRUE( waitFor( [&pub_pns]() { return pub_pns.getNumSubscribers() > 0; } ) );
+  ASSERT_FALSE( obj.hasProperty( "result" ) );
+  // Publish message
+  pub_pns.publish( pose );
+  waitFor( [&obj]() { return obj.hasProperty( "result" ); }, 60 );
+  processEvents();
+  ASSERT_TRUE( obj.hasProperty( "result" ) );
+  result = obj.property( "result" ).toVariant();
+  EXPECT_DOUBLE_EQ( pose.position.x, result.toMap()["position"].toMap()["x"].toDouble() );
+
+  // Timeouting
+  obj = engine.newObject();
+  callback =
+      engine
+          .evaluate( "(function (watcher) { return function (resp) { watcher.result = resp; }; })" )
+          .call( { obj } );
+  wrapper.waitForMessageAsync( "/communication/private_ns/test", 500, callback );
+  processEvents();
+  ASSERT_FALSE( obj.hasProperty( "result" ) );
+  ASSERT_TRUE( waitFor( [&obj]() { return obj.hasProperty( "result" ); }, 60 ) );
+  result = obj.property( "result" ).toVariant();
+  ASSERT_FALSE( result.isValid() );
+}
+
 TEST( Communication, queryTopics )
 {
   ros::NodeHandle nh;
