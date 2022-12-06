@@ -321,6 +321,11 @@ void RosQmlSingletonWrapper::waitForMessageAsync( const QString &topic, double d
   } ).detach();
 }
 
+QString RosQmlSingletonWrapper::getEnvironmentVariable( const QString &name ) const
+{
+  return qEnvironmentVariable( name.toStdString().c_str() );
+}
+
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
 
 Package RosQmlSingletonWrapper::package() const { return RosQml::getInstance().package(); }

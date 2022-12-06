@@ -260,6 +260,8 @@ public:
   Q_INVOKABLE void waitForMessageAsync( const QString &topic, double duration,
                                         const QJSValue &callback );
 
+  Q_INVOKABLE QString getEnvironmentVariable( const QString &name ) const;
+
   Console console() const;
 
   Package package() const;
