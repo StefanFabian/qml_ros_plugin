@@ -3,6 +3,7 @@ Subscribers
 ===========
 
 A subscriber listens for messages on a given topic.
+If you only require a single message, you can check out ``Ros.waitForMessageAsync`` in the ``Ros`` singleton.
 
 Simple example
 --------------

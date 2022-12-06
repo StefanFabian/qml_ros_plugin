@@ -241,6 +241,25 @@ public:
   //! @copydoc RosQml::createEmptyServiceRequest
   Q_INVOKABLE QVariant createEmptyServiceRequest( const QString &datatype ) const;
 
+  /*!
+   * Waits for a single message on the given topic and once a message is received passes it to the
+   *   given callback.
+   * @param topic The topic the message is expected on.
+   * @param callback The callback that handles the received message.
+   */
+  Q_INVOKABLE void waitForMessageAsync( const QString &topic, const QJSValue &callback );
+
+  /*!
+   * Waits for a single message on the given topic for the specified duration and once a message is
+   * received passes it to the given callback.
+   * If the duration elapsed without a message, the callback is called with null.
+   * @param topic The topic the message is expected on.
+   * @param duration The maximum duration to wait in milliseconds.
+   * @param callback The callback that handles the received message or the timeout.
+   */
+  Q_INVOKABLE void waitForMessageAsync( const QString &topic, double duration,
+                                        const QJSValue &callback );
+
   Console console() const;
 
   Package package() const;
@@ -392,12 +411,17 @@ signals:
   //! @copydoc RosQml::shutdown
   void shutdown();
 
+private slots:
+  void invokeCallback( int id, const QVariant &result );
+
 private:
   NodeHandle::Ptr findOrCreateNodeHandle( const QString &ns );
 
   QJSValue createLogFunction( ros_console_levels::RosConsoleLevel level );
 
   std::map<QString, NodeHandle::Ptr> node_handles_;
+  QMap<int, QJSValue> callbacks_;
+  int id_counter_;
   QJSValue log_function_;
   QJSValue debug_function_;
   QJSValue info_function_;

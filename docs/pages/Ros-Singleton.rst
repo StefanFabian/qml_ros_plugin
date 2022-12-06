@@ -42,6 +42,23 @@ following ``RosInitOptions`` options:
     Ros.init("node_name", RosInitOptions.AnonymousName | RosInitOptions.NoRosout)
   }
 
+Wait For Message
+----------------
+
+If you only require a single message from a topic, you can use the ``Ros.waitForMessageAsync`` method which asynchronously
+waits for a message on the given topic with an optional maximum duration to wait and once a message is received or the
+maximum wait duration elapsed, the callback method is called with the received message or null if the waiting timeouted.
+
+.. code-block:: qml
+
+  Ros.waitForMessageAsync("/some_topic", 10000 /* wait for maximum 10 seconds */, function (msg) {
+    if (!msg) {
+      // Handle timeout
+      return
+    }
+    // Handle message
+  }
+
 Query Topics
 ------------
 

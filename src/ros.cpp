@@ -6,6 +6,7 @@
 #include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/message_conversions.h"
 #include "qml_ros_plugin/publisher.h"
+#include "qml_ros_plugin/qml_ros_conversion.h"
 #include "qml_ros_plugin/subscriber.h"
 
 #include <ros/master.h>
@@ -223,7 +224,7 @@ void RosQml::stopSpinning()
 /************************************* RosQmlSingletonWrapper **************************************/
 /***************************************************************************************************/
 
-RosQmlSingletonWrapper::RosQmlSingletonWrapper()
+RosQmlSingletonWrapper::RosQmlSingletonWrapper() : id_counter_( 0 )
 {
   connect( &RosQml::getInstance(), &RosQml::initialized, this, &RosQmlSingletonWrapper::initialized );
   connect( &RosQml::getInstance(), &RosQml::shutdown, this, &RosQmlSingletonWrapper::shutdown );
@@ -287,6 +288,37 @@ QVariant RosQmlSingletonWrapper::createEmptyMessage( const QString &datatype ) c
 QVariant RosQmlSingletonWrapper::createEmptyServiceRequest( const QString &datatype ) const
 {
   return RosQml::getInstance().createEmptyServiceRequest( datatype );
+}
+void RosQmlSingletonWrapper::waitForMessageAsync( const QString &topic, const QJSValue &callback )
+{
+  waitForMessageAsync( topic, 0, callback );
+}
+
+void RosQmlSingletonWrapper::waitForMessageAsync( const QString &topic, double duration,
+                                                  const QJSValue &callback )
+{
+  using ros::topic::waitForMessage;
+  using namespace ros_babel_fish;
+  // Insert the callback into a container and pass the id to the message wait thread
+  // Passing the callback to the thread would lead to random segfaults because the QJSValue is not
+  // supposed to leave the thread of the QJSEngine
+  int id = ++id_counter_;
+  callbacks_.insert( id, callback );
+  std::string std_topic = topic.toStdString();
+  std::thread( [this, std_topic, id, duration]() {
+    ros::NodeHandle nh;
+    nh.setCallbackQueue( RosQml::getInstance().callbackQueue().get() );
+    auto msg = waitForMessage<BabelFishMessage>( std_topic, nh, qmlToRosDuration( duration ) );
+    if ( msg == nullptr ) {
+      QMetaObject::invokeMethod( this, "invokeCallback", Qt::QueuedConnection, Q_ARG( int, id ),
+                                 Q_ARG( QVariant, QVariant() ) );
+      return;
+    }
+    TranslatedMessage::Ptr response = BabelFishDispenser::getBabelFish().translateMessage( msg );
+    QMetaObject::invokeMethod(
+        this, "invokeCallback", Qt::QueuedConnection, Q_ARG( int, id ),
+        Q_ARG( QVariant, conversion::msgToMap( response, *response->translated_message ) ) );
+  } ).detach();
 }
 
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
@@ -379,6 +411,15 @@ QObject *RosQmlSingletonWrapper::createActionClient( const QString &ns, const QS
 {
   NodeHandle::Ptr node_handle = findOrCreateNodeHandle( ns );
   return new ActionClient( node_handle, type, name );
+}
+void RosQmlSingletonWrapper::invokeCallback( int id, const QVariant &result )
+{
+  QJSValue callback = callbacks_[id];
+  callbacks_.remove( id );
+  if ( !callback.isCallable() )
+    return;
+  QJSEngine *engine = qjsEngine( this );
+  callback.call( { engine->toScriptValue( result ) } );
 }
 
 NodeHandle::Ptr RosQmlSingletonWrapper::findOrCreateNodeHandle( const QString &ns )
