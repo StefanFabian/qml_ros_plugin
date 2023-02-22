@@ -18,7 +18,7 @@ If you are using this module in a scientific context, feel free to cite this pap
 ```
 
 ## QML ROS Plugin
-Connects QML user interfaces to the Robot Operating System (ROS).  
+Connects QML user interfaces to the Robot Operating System (ROS). [For the ROS2 version click here](https://github.com/StefanFabian/qml_ros2_plugin).  
 Please be aware that this loses some of the semantic information that the type of a message would normally provide.
 
 Currently, has support for the following:  
