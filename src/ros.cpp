@@ -323,7 +323,11 @@ void RosQmlSingletonWrapper::waitForMessageAsync( const QString &topic, double d
 
 QString RosQmlSingletonWrapper::getEnvironmentVariable( const QString &name ) const
 {
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 10, 0 ) )
   return qEnvironmentVariable( name.toStdString().c_str() );
+#else
+  return QString::fromLocal8Bit( qgetenv( name.toStdString().c_str() ) );
+#endif
 }
 
 Console RosQmlSingletonWrapper::console() const { return RosQml::getInstance().console(); }
