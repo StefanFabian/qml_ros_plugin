@@ -240,6 +240,7 @@ void ImageTransportSubscriber::setEnabled( bool value )
   else
     shutdownSubscriber();
   emit enabledChanged();
+  emit playbackStateChanged( playbackState() );
 }
 
 double ImageTransportSubscriber::framerate() const
@@ -260,5 +261,40 @@ int ImageTransportSubscriber::networkLatency() const
 int ImageTransportSubscriber::processingLatency() const
 {
   return subscription_ == nullptr ? -1 : subscription_->processingLatency();
+}
+
+QMediaPlayer::State ImageTransportSubscriber::playbackState() const
+{
+  return subscription_ == nullptr ? QMediaPlayer::StoppedState
+         : paused_                ? QMediaPlayer::PausedState
+                                  : QMediaPlayer::PlayingState;
+}
+
+void ImageTransportSubscriber::play()
+{
+  if ( subscription_ && !paused_ && enabled_ )
+    return;
+  paused_ = false;
+  if ( !enabled_ ) {
+    setEnabled( true );
+  } else if ( !subscription_ ) {
+    initSubscriber();
+    emit playbackStateChanged( playbackState() );
+  }
+}
+
+void ImageTransportSubscriber::pause()
+{
+  if ( paused_ )
+    return;
+  paused_ = true;
+  emit playbackStateChanged( playbackState() );
+}
+
+void ImageTransportSubscriber::stop()
+{
+  if ( !subscription_ && !enabled_ )
+    return;
+  setEnabled( false );
 }
 } // namespace qml_ros_plugin

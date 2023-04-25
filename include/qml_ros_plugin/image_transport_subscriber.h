@@ -8,6 +8,7 @@
 #include "qml_ros_plugin/qobject_ros.h"
 
 #include <QAbstractVideoSurface>
+#include <QMediaPlayer>
 #include <QTimer>
 #include <QVideoSurfaceFormat>
 
@@ -51,6 +52,8 @@ class ImageTransportSubscriber : public QObjectRos
   Q_PROPERTY( double throttleRate READ throttleRate WRITE setThrottleRate NOTIFY throttleRateChanged )
   //! Whether the subscriber is active or not. Setting to false will shut down subscribers
   Q_PROPERTY( bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged )
+  //! The playback state of this video source. Can be modified with play and pause
+  Q_PROPERTY( QMediaPlayer::State playbackState READ playbackState NOTIFY playbackStateChanged )
   // @formatter:on
 public:
   ImageTransportSubscriber( NodeHandle::Ptr nh, QString topic, quint32 queue_size );
@@ -91,6 +94,18 @@ public:
 
   int processingLatency() const;
 
+  QMediaPlayer::State playbackState() const;
+
+  //! Starts playing the stream. If not enabled, will set enabled to true.
+  Q_INVOKABLE void play();
+
+  //! Pauses the stream. Will not shut down the subscriber and therefore be quicker to resume at
+  //!   the cost of still consuming bandwidth.
+  Q_INVOKABLE void pause();
+
+  //! Shuts down the subscriber. Similar as setEnabled.
+  Q_INVOKABLE void stop();
+
 signals:
 
   void topicChanged();
@@ -112,6 +127,8 @@ signals:
   void processingLatencyChanged();
 
   void enabledChanged();
+
+  void playbackStateChanged( QMediaPlayer::State playbackState );
 
 private slots:
 
@@ -145,6 +162,7 @@ private:
   int timeout_ = 3000;
   bool subscribed_ = false;
   bool enabled_ = true;
+  bool paused_ = false;
 };
 } // namespace qml_ros_plugin
 

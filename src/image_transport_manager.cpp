@@ -272,10 +272,9 @@ private:
       }
     }
     const ros::Time &image_stamp = image->header.stamp;
-    int network_latency =
-        !image_stamp.isZero() ? static_cast<int>( ( received - image_stamp ).toSec() * 1000 ) : -1;
+    int network_latency = image_stamp.isZero() ? 0 : int( ( received - image_stamp ).toSec() * 1000 );
     network_latency_average_.add( network_latency );
-    int processing_latency = static_cast<int>( ( ros::Time::now() - received ).toSec() * 1000 );
+    int processing_latency = int( ( ros::Time::now() - received ).toSec() * 1000 );
     processing_latency_average_.add( processing_latency );
     image_interval_average_.add( base_interval );
     for ( const auto &sub : subscribers ) {
