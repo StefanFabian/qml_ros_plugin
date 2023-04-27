@@ -115,9 +115,16 @@ void Subscriber::subscribe()
     return;
   if ( nh_ == nullptr || !nh_->isReady() )
     return;
-  subscriber_ = nh_->nodeHandle().subscribe<BabelFishMessage>( topic_.toStdString(), queue_size_,
-                                                               &Subscriber::messageCallback, this );
   is_subscribed_ = true;
+
+  std::shared_future<void> future = subscribe_future_;
+  subscribe_future_ = std::async(std::launch::async, [=]() {
+    ROS_WARN("Waiting to subscribe");
+    if (future.valid()) future.wait();
+    subscriber_ = nh_->nodeHandle().subscribe<BabelFishMessage>( topic_.toStdString(), queue_size_,
+                                                                 &Subscriber::messageCallback, this );
+    ROS_WARN("Subscribed");
+  });
 }
 
 void Subscriber::shutdown()

@@ -14,6 +14,7 @@
 #include <ros_babel_fish/babel_fish.h>
 #include <ros_babel_fish/babel_fish_message.h>
 
+#include <future>
 #include <mutex>
 #include <ros/subscriber.h>
 
@@ -128,6 +129,7 @@ protected:
   ros_babel_fish::BabelFish babel_fish_;
   ros_babel_fish::BabelFishMessage::ConstPtr last_message_;
   std::mutex message_mutex_;
+  std::shared_future<void> subscribe_future_;
   QTimer throttle_timer_;
   bool running_;
   bool is_subscribed_;

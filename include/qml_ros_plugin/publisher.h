@@ -6,15 +6,16 @@
 
 #include "qml_ros_plugin/node_handle.h"
 
-#include <QMap>
-#include <QObject>
-#include <QTimer>
-#include <QVariant>
-
 #include <ros_babel_fish/babel_fish.h>
 
 #include <ros/publisher.h>
 #include <ros/single_subscriber_publisher.h>
+
+#include <future>
+#include <QMap>
+#include <QObject>
+#include <QTimer>
+#include <QVariant>
 
 namespace qml_ros_plugin
 {
@@ -89,6 +90,7 @@ protected:
   NodeHandle::Ptr nh_;
   ros::Publisher publisher_;
   ros_babel_fish::BabelFish babel_fish_;
+  std::shared_future<void> advertise_future_;
 
   bool is_advertised_;
   QString type_;

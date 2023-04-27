@@ -12,6 +12,7 @@
 
 #include <QJSValue>
 #include <QTimer>
+#include <future>
 
 namespace qml_ros_plugin
 {
@@ -74,6 +75,7 @@ private:
 
   void onRosShutdown() override;
 
+  std::shared_future<void> init_future_;
   ros_babel_fish::BabelFish babel_fish_;
   NodeHandle::Ptr nh_;
   QString action_type_;

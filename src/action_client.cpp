@@ -26,35 +26,38 @@ ActionClient::ActionClient( NodeHandle::Ptr nh, const QString &action_type, cons
 
 void ActionClient::onRosInitialized()
 {
-  if ( !action_type_.endsWith( "Action" ) ) {
-    ROS_ERROR_NAMED( "qml_ros_plugin",
-                     "The action type did not end with 'Action'. Are you sure '%s' is an action?",
-                     action_type_.toStdString().c_str() );
-    return;
-  }
-  std::string action_goal_type = action_type_.toStdString() + "Goal";
-  auto description = babel_fish_.descriptionProvider()->getMessageDescription( action_goal_type );
-  if ( description == nullptr ) {
-    ROS_ERROR_NAMED(
-        "qml_ros_plugin", "Failed to look up action message of type '%s'. ActionClient not initialized and will not connect.",
-        action_goal_type.c_str() );
-    return;
-  }
-  try {
-    client_ = std::make_shared<actionlib::ActionClient<BabelFishAction>>(
-        nh_->nodeHandle(), description, name_.toStdString() );
-  } catch ( BabelFishMessageException &ex ) {
-    ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what() );
-    client_ = nullptr;
-    return;
-  } catch ( BabelFishException &ex ) {
-    ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what() );
-    client_ = nullptr;
-    return;
-  }
-  connect_timer_.setInterval( 16 );
-  connect( &connect_timer_, &QTimer::timeout, this, &ActionClient::checkServerConnected );
-  connect_timer_.start();
+  init_future_ = std::async( std::launch::async, [=]() {
+    if ( !action_type_.endsWith( "Action" ) ) {
+      ROS_ERROR_NAMED( "qml_ros_plugin",
+                       "The action type did not end with 'Action'. Are you sure '%s' is an action?",
+                       action_type_.toStdString().c_str() );
+      return;
+    }
+    std::string action_goal_type = action_type_.toStdString() + "Goal";
+    auto description = babel_fish_.descriptionProvider()->getMessageDescription( action_goal_type );
+    if ( description == nullptr ) {
+      ROS_ERROR_NAMED(
+          "qml_ros_plugin", "Failed to look up action message of type '%s'. ActionClient not initialized and will not connect.",
+          action_goal_type.c_str() );
+      return;
+    }
+    try {
+      client_ = std::make_shared<actionlib::ActionClient<BabelFishAction>>(
+          nh_->nodeHandle(), description, name_.toStdString() );
+    } catch ( BabelFishMessageException &ex ) {
+      ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what() );
+      client_ = nullptr;
+      return;
+    } catch ( BabelFishException &ex ) {
+      ROS_ERROR_NAMED( "qml_ros_plugin", "Could not create ActionClient: %s", ex.what() );
+      client_ = nullptr;
+      return;
+    }
+    connect_timer_.setInterval( 16 );
+    connect( &connect_timer_, &QTimer::timeout, this, &ActionClient::checkServerConnected );
+    QMetaObject::invokeMethod(
+        &connect_timer_, [=]() { connect_timer_.start(); }, Qt::QueuedConnection );
+  } );
 }
 
 void ActionClient::onRosShutdown() { client_.reset(); }
