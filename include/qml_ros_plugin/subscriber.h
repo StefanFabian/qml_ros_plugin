@@ -45,6 +45,10 @@ class Subscriber : public QObjectRos
 
   //! Controls whether or not the subscriber is currently running, i.e., able to receive messages. Default: true
   Q_PROPERTY( bool running READ running WRITE setRunning NOTIFY runningChanged )
+
+  //! Indicates whether this Subscriber is subscribed. This is usually the case but may take longer on slow networks.
+  //! See also subscribed signal available with an onSubscribed handler.
+  Q_PROPERTY( bool isSubscribed READ isSubscribed NOTIFY isSubscribedChanged )
   // @formatter:on
 public:
   Subscriber();
@@ -68,6 +72,8 @@ public:
   bool running() const;
 
   void setRunning( bool value );
+
+  bool isSubscribed() const;
 
   int throttleRate() const;
 
@@ -108,6 +114,11 @@ signals:
    * @param message The received message.
    */
   void newMessage( QVariant message );
+
+  //! Emitted when the subscriber is subscribed. Wil be re-emitted if you change the topic or other properties.
+  void subscribed();
+
+  void isSubscribedChanged();
 
 protected slots:
 

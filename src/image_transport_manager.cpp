@@ -4,10 +4,14 @@
 
 #include "qml_ros_plugin/image_transport_manager.h"
 
+#include "./camera_streaming/image_transport_camera_subscription.h"
+#include "./camera_streaming/rtsp_camera_server_manager.h"
+#include "./camera_streaming/rtsp_camera_subscription.h"
 #include "qml_ros_plugin/helpers/rolling_average.h"
 #include "qml_ros_plugin/image_buffer.h"
 
 #include <QTimer>
+#include <QVideoSurfaceFormat>
 #include <mutex>
 #include <thread>
 
@@ -24,60 +28,6 @@ struct ImageTransportManager::SubscriptionManager {
   std::unique_ptr<image_transport::ImageTransport> transport;
 };
 
-class ImageTransportManager::LoadBalancer : public QObject
-{
-  Q_OBJECT
-public:
-  LoadBalancer()
-  {
-    connect( &timer_, &QTimer::timeout, this, &ImageTransportManager::LoadBalancer::onTimeout );
-    timer_.setInterval( 33 );
-    timer_.setSingleShot( false );
-    timer_.start();
-  }
-
-  void setEnabled( bool value ) { load_balancing_enabled_ = value; }
-
-  void notifyImageReceived( ImageTransportManager::Subscription *subscription,
-                            long throttle_interval );
-
-  void registerThrottledSubscription( ImageTransportManager::Subscription *subscription );
-
-  void unregister( ImageTransportManager::Subscription *subscription );
-
-private slots:
-
-  void onTimeout()
-  {
-    // Triggers subscription for all expired timeouts and restarts the timer unless no more timeouts are active
-    std::lock_guard<std::mutex> lock( mutex_ );
-    using namespace std::chrono;
-    size_t i = 0;
-    long now =
-        duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch() ).count();
-    std::vector<ImageTransportManager::Subscription *> ready;
-    for ( ; i < timeouts_.size(); ++i ) {
-      if ( timeouts_[i].first > now )
-        break;
-      ready.push_back( timeouts_[i].second );
-    }
-    for ( auto &sub : ready ) triggerSubscription( sub );
-  }
-
-private:
-  void triggerSubscription( ImageTransportManager::Subscription *subscription );
-
-  void insertTimeout( long desired_throttle_interval,
-                      ImageTransportManager::Subscription *subscription );
-
-  QTimer timer_;
-  std::set<ImageTransportManager::Subscription *> waiting_subscriptions_;
-  std::vector<ImageTransportManager::Subscription *> new_subscriptions_;
-  std::vector<std::pair<long, ImageTransportManager::Subscription *>> timeouts_;
-  std::mutex mutex_;
-  bool load_balancing_enabled_ = true;
-};
-
 class ImageTransportManager::Subscription final : public QObject
 {
   Q_OBJECT
@@ -88,53 +38,84 @@ public:
   quint32 queue_size = 0;
   image_transport::TransportHints hints;
 
-  ~Subscription() final
-  {
-    if ( throttled_ )
-      manager->load_balancer_->unregister( this );
-  }
-
-  int getThrottleInterval() const
-  {
-    int interval = std::accumulate(
-        subscription_handles_.begin(), subscription_handles_.end(), std::numeric_limits<int>::max(),
-        []( int current, const std::weak_ptr<ImageTransportSubscriptionHandle> &sub_weak ) {
-          std::shared_ptr<ImageTransportSubscriptionHandle> sub = sub_weak.lock();
-          if ( sub == nullptr )
-            return current;
-          return std::min( current, sub->throttle_interval );
-        } );
-    return interval == std::numeric_limits<int>::max() ? current_throttle_interval_ : interval;
-  }
-
-  void updateThrottling()
-  {
-    int min_interval = getThrottleInterval();
-    if ( min_interval <= 0 ) {
-      if ( throttled_ )
-        manager->load_balancer_->unregister( this );
-      throttled_ = false;
-      if ( !subscriber_ )
-        subscribe();
-    } else if ( !throttled_ ) {
-      throttled_ = true;
-      manager->load_balancer_->registerThrottledSubscription( this );
-    }
-  }
-
   void subscribe()
   {
     if ( subscriptions_.empty() )
       return;
     // Subscribing on background thread to reduce load on UI thread
     std::thread( [this]() {
+      std::lock_guard<std::mutex> lock( camera_mutex_ );
       // Make sure we don't subscribe twice in a row due to a race condition
-      std::lock_guard<std::mutex> lock( subscribe_mutex_ );
-      if ( subscriber_ )
+      if ( activeSubscription() != nullptr )
         return;
-      subscriber_ = subscription_manager->transport->subscribe(
-          topic, queue_size, &Subscription::imageCallback, this, hints );
+      connect( &RtspCameraServerManager::getInstance(), &RtspCameraServerManager::serversChanged,
+               this, &Subscription::onRtspServersChanged, Qt::QueuedConnection );
+      // Try to use rtsp if possible
+      if ( !subscribeRtsp() ) {
+        // Fallback to image transport
+        ROS_DEBUG_NAMED( "qml_ros_plugin", "Falling back to image transport for: %s", topic.c_str() );
+        camera_subscription_ = std::make_unique<ImageTransportCameraSubscription>(
+            subscription_manager->transport.get(), topic, 1, hints );
+      }
+      auto *sub = activeSubscription();
+      ROS_ERROR("Created subscription for: %s", topic.c_str());
+
+      sub->setSupportedFormats( supported_formats_ );
+      connect( sub, &CameraSubscription::newImage, this, &Subscription::imageDelivery,
+               Qt::QueuedConnection );
     } ).detach();
+  }
+
+  bool subscribeRtsp()
+  {
+    if ( rtsp_subscription_ != nullptr )
+      return true;
+    if ( hints.getTransport() != "compressed" )
+      return false;
+    std::lock_guard<std::mutex> subscriptions_lock( subscriptions_mutex_ );
+    std::vector<QSize> sizes;
+    std::vector<double> framerates;
+    sizes.reserve( subscription_handles_.size() );
+    framerates.reserve( subscription_handles_.size() );
+    for ( const auto &handle : subscription_handles_ ) {
+      auto sub = handle.lock();
+      if ( sub == nullptr )
+        continue;
+      sizes.push_back( sub->minimum_size );
+      framerates.push_back( sub->framerate_ );
+    }
+    rtsp_subscription_ = RtspCameraServerManager::getInstance().subscribe( topic, sizes, framerates );
+    return rtsp_subscription_ != nullptr;
+  }
+
+  void onRtspServersChanged()
+  {
+    std::lock_guard<std::mutex> lock( camera_mutex_ );
+    if ( rtsp_subscription_ != nullptr )
+      return; // Subscription will update itself
+    // Try to subscribe again and replace stream if possible
+    if ( !subscribeRtsp() )
+      return;
+    // If we have a subscriber now, wait for the first image and replace then
+    connect( rtsp_subscription_.get(), &CameraSubscription::newImage, this,
+             &Subscription::replaceStream, Qt::QueuedConnection );
+  }
+
+  void replaceStream()
+  {
+    std::unique_lock<std::mutex> lock( camera_mutex_ );
+    if ( camera_subscription_ == nullptr )
+      return;
+    disconnect( rtsp_subscription_.get(), &CameraSubscription::newImage, this,
+                &Subscription::replaceStream );
+    disconnect( camera_subscription_.get(), &CameraSubscription::newImage, this,
+                &Subscription::imageDelivery );
+    camera_subscription_ = nullptr;
+    connect( activeSubscription(), &CameraSubscription::newImage, this,
+             &Subscription::imageDelivery, Qt::QueuedConnection );
+    lock.unlock();
+    imageDelivery();
+    ROS_INFO_NAMED( "qml_ros_plugin", "Switched %s to rtsp", topic.c_str() );
   }
 
   void addSubscription( const std::shared_ptr<ImageTransportSubscriptionHandle> &sub )
@@ -143,7 +124,6 @@ public:
     subscriptions_.push_back( sub.get() );
     subscription_handles_.push_back( sub );
     updateSupportedFormats();
-    updateThrottling();
     // If this was the first subscription, subscribe
     if ( subscriptions_.size() == 1 )
       subscribe();
@@ -165,13 +145,52 @@ public:
     subscriptions_.erase( it );
     subscription_handles_.erase( subscription_handles_.begin() + index );
     updateSupportedFormats();
-    updateThrottling();
+    if ( subscriptions_.empty() ) {
+      // Unsubscribe if no subscriptions left
+      std::lock_guard<std::mutex> lock( camera_mutex_ );
+      camera_subscription_ = nullptr;
+      rtsp_subscription_ = nullptr;
+      ROS_ERROR("Shut down subscription for: %s", topic.c_str());
+    }
+  }
+
+  void updateSize()
+  {
+    if ( rtsp_subscription_ == nullptr )
+      return; // Only relevant for rtsp streams
+    std::vector<QSize> sizes;
+    {
+      std::lock_guard<std::mutex> subscriptions_lock( subscriptions_mutex_ );
+      sizes.reserve( subscription_handles_.size() );
+      for ( const auto &sub : subscription_handles_ ) {
+        sizes.push_back( sub.lock()->minimum_size );
+      }
+    }
+    rtsp_subscription_->setSizes( sizes );
+  }
+
+  void updateFramerate()
+  {
+    if ( rtsp_subscription_ == nullptr )
+      return; // Only relevant for rtsp streams
+    std::vector<double> framerates;
+    {
+      std::lock_guard<std::mutex> subscriptions_lock( subscriptions_mutex_ );
+      framerates.reserve( subscription_handles_.size() );
+      for ( const auto &sub : subscription_handles_ ) {
+        framerates.push_back( sub.lock()->minimum_framerate );
+      }
+    }
+    rtsp_subscription_->setFramerates( framerates );
   }
 
   std::string getTopic() const
   {
-    const std::string &topic = subscriber_.getTopic();
-    const std::string &transport = subscriber_.getTransport();
+    const auto *sub = activeSubscription();
+    if ( sub == nullptr )
+      return "";
+    const std::string &topic = sub->topic();
+    const std::string &transport = sub->transport();
     if ( topic.size() < transport.size() + 1 ||
          0 != topic.compare( topic.size() - transport.size() - 1, transport.size() + 1,
                              "/" + transport ) )
@@ -179,88 +198,36 @@ public:
     return topic.substr( 0, topic.size() - transport.size() - 1 );
   }
 
-private:
-  void imageCallback( const sensor_msgs::ImageConstPtr &image )
+  const CameraSubscription *activeSubscription() const noexcept
   {
-    // Ignore image if timestamp did not differ which seems to be a bug of some gazebo camera plugins when throttling
-    if ( throttled_ && !image->header.stamp.isZero() && last_image_ != nullptr &&
-         last_image_->header.stamp == image->header.stamp )
-      return;
-
-    ros::Time received_stamp = ros::Time::now();
-    // Check if we have to throttle
-    int interval = getThrottleInterval();
-    if ( throttled_ ) {
-      if ( interval != 0 && interval > camera_base_interval_ ) {
-        {
-          std::lock_guard<std::mutex> lock( subscribe_mutex_ );
-          subscriber_.shutdown();
-        }
-        manager->load_balancer_->notifyImageReceived( this, interval );
-      } else {
-        // No need to throttle
-        manager->load_balancer_->unregister( this );
-        throttled_ = false;
-      }
-    } else if ( interval != 0 && interval > camera_base_interval_ *
-                                                1.1 ) // 10% off for hysteresis to prevent oscillation
-    {
-      // Need to throttle now
-      {
-        std::lock_guard<std::mutex> lock( subscribe_mutex_ );
-        subscriber_.shutdown();
-      }
-      manager->load_balancer_->registerThrottledSubscription( this );
-      throttled_ = true;
-    }
-    QList<QVideoFrame::PixelFormat> formats;
-    {
-      std::lock_guard<std::mutex> subscription_lock( subscriptions_mutex_ );
-      if ( subscription_handles_.empty() )
-        return;
-      formats = supported_formats_;
-    }
-    auto buffer = new ImageBuffer( image, formats );
-
-    {
-      std::lock_guard<std::mutex> image_lock( image_mutex_ );
-      if ( !throttled_ && last_image_ != nullptr ) {
-        // Update the base interval only if we are not throttled
-        if ( last_image_->header.stamp.isZero() )
-          camera_base_interval_ = static_cast<int>(
-              ( received_stamp - last_received_stamp_ ).toNSec() / ( 1000 * 1000 ) );
-        else
-          camera_base_interval_ = static_cast<int>(
-              ( image->header.stamp - last_image_->header.stamp ).toNSec() / ( 1000 * 1000 ) );
-      } else if ( throttled_ ) {
-        current_throttle_interval_ = interval;
-      }
-      last_received_stamp_ = received_stamp;
-      last_image_ = image;
-      delete last_buffer_;
-      last_buffer_ = buffer;
-    }
-    // Deliver frames on UI thread
-    QMetaObject::invokeMethod( this, "imageDelivery", Qt::AutoConnection );
+    if ( camera_subscription_ != nullptr )
+      return camera_subscription_.get();
+    return rtsp_subscription_.get();
   }
 
+  CameraSubscription *activeSubscription() noexcept
+  {
+    if ( camera_subscription_ != nullptr )
+      return camera_subscription_.get();
+    return rtsp_subscription_.get();
+  }
+
+private:
   Q_INVOKABLE void imageDelivery()
   {
-    ImageBuffer *buffer;
-    sensor_msgs::ImageConstPtr image;
-    ros::Time received;
-    int base_interval;
+    ImageBuffer *buffer = nullptr;
+    double framerate;
     {
-      std::lock_guard<std::mutex> image_lock( image_mutex_ );
-      if ( last_buffer_ == nullptr || last_image_ == nullptr )
+      std::lock_guard<std::mutex> lock( camera_mutex_ );
+      auto *camera_subscription = activeSubscription();
+      if ( camera_subscription == nullptr )
         return;
-      buffer = last_buffer_;
-      image = last_image_;
-      received = last_received_stamp_;
-      base_interval = throttled_ ? current_throttle_interval_ : camera_base_interval_;
-      last_buffer_ = nullptr;
+      buffer = camera_subscription->takeBuffer();
+      framerate = camera_subscription->framerate();
     }
-    QVideoFrame frame( buffer, QSize( image->width, image->height ), buffer->format() );
+    if ( buffer == nullptr )
+      return;
+    QVideoFrame frame( buffer, QSize( buffer->width(), buffer->height() ), buffer->format() );
     std::vector<std::shared_ptr<ImageTransportSubscriptionHandle>> subscribers;
     {
       // This nested lock makes sure that our destruction of the subscription pointer will not lead to a deadlock
@@ -271,18 +238,24 @@ private:
         subscribers.push_back( sub_weak.lock() );
       }
     }
-    const ros::Time &image_stamp = image->header.stamp;
-    int network_latency = image_stamp.isZero() ? 0 : int( ( received - image_stamp ).toSec() * 1000 );
-    network_latency_average_.add( network_latency );
-    int processing_latency = int( ( ros::Time::now() - received ).toSec() * 1000 );
-    processing_latency_average_.add( processing_latency );
-    image_interval_average_.add( base_interval );
+    //    int network_latency =
+    //        last_image_stamp_.isZero() ? 0 : int( ( received - last_image_stamp_ ).toSec() * 1000 );
+    //    if ( network_latency >= 0 ) {
+    //      network_latency_average_.add( network_latency );
+    //      int processing_latency = int( ( ros::Time::now() - received ).toSec() * 1000 );
+    //      processing_latency_average_.add( processing_latency );
+    //    } else {
+    //      ROS_WARN_ONCE_NAMED( "qml_ros_plugin",
+    //                           "The estimated camera network latency was less than 0, make sure your "
+    //                           "system's clocks are synced. This warning is only printed once." );
+    //    }
     for ( const auto &sub : subscribers ) {
       if ( sub == nullptr || !sub->callback )
         continue;
-      sub->network_latency = network_latency_average_;
+      //      sub->network_latency = network_latency_average_;
+      sub->network_latency = 0;
       sub->processing_latency = processing_latency_average_;
-      sub->framerate_ = std::round( 1000.0 / image_interval_average_ * 10 ) / 10;
+      sub->framerate_ = framerate;
       sub->callback( frame );
     }
   }
@@ -307,136 +280,26 @@ private:
         supported_formats_.removeAt( i );
       }
     }
+    if ( camera_subscription_ )
+      camera_subscription_->setSupportedFormats( supported_formats_ );
+    if ( rtsp_subscription_ )
+      rtsp_subscription_->setSupportedFormats( supported_formats_ );
   }
 
   std::mutex subscriptions_mutex_;
   std::mutex subscribe_mutex_;
-  std::mutex image_mutex_;
-  image_transport::Subscriber subscriber_;
+  std::mutex camera_mutex_;
+  std::unique_ptr<CameraSubscription> camera_subscription_;
+  std::unique_ptr<RtspCameraSubscription> rtsp_subscription_;
   std::vector<ImageTransportSubscriptionHandle *> subscriptions_;
   std::vector<std::weak_ptr<ImageTransportSubscriptionHandle>> subscription_handles_;
   QList<QVideoFrame::PixelFormat> supported_formats_;
-  RollingAverage<int, 10> image_interval_average_;
-  RollingAverage<int, 10> network_latency_average_;
   RollingAverage<int, 10> processing_latency_average_;
-  ros::Time last_received_stamp_;
-  sensor_msgs::ImageConstPtr last_image_;
-  ImageBuffer *last_buffer_ = nullptr;
-  int camera_base_interval_ = 0;
-  int current_throttle_interval_ = 0;
-  bool throttled_ = false;
 };
-
-// ============================= Load Balancing =============================
-void ImageTransportManager::LoadBalancer::notifyImageReceived(
-    ImageTransportManager::Subscription *subscription, long throttle_interval )
-{
-  std::lock_guard<std::mutex> lock( mutex_ );
-  waiting_subscriptions_.erase( subscription );
-  insertTimeout( throttle_interval, subscription );
-  if ( !waiting_subscriptions_.empty() && !new_subscriptions_.empty() ) {
-    // Can trigger the next camera if we have new subscriptions
-    triggerSubscription( new_subscriptions_.front() );
-  }
-}
-
-void ImageTransportManager::LoadBalancer::registerThrottledSubscription( Subscription *subscription )
-{
-  std::lock_guard<std::mutex> lock( mutex_ );
-  for ( auto &timeout : timeouts_ )
-    if ( timeout.second == subscription )
-      return;
-  insertTimeout( subscription->getThrottleInterval(), subscription );
-  if ( !waiting_subscriptions_.empty() ) {
-    new_subscriptions_.push_back( subscription );
-    return;
-  }
-  triggerSubscription( subscription );
-}
-
-void ImageTransportManager::LoadBalancer::unregister( ImageTransportManager::Subscription *subscription )
-{
-  std::lock_guard<std::mutex> lock( mutex_ );
-  waiting_subscriptions_.erase( subscription );
-  new_subscriptions_.erase(
-      std::remove( new_subscriptions_.begin(), new_subscriptions_.end(), subscription ),
-      new_subscriptions_.end() );
-  timeouts_.erase(
-      std::remove_if( timeouts_.begin(), timeouts_.end(),
-                      [subscription]( auto item ) { return item.second == subscription; } ),
-      timeouts_.end() );
-}
-
-void ImageTransportManager::LoadBalancer::triggerSubscription(
-    ImageTransportManager::Subscription *subscription )
-{
-  new_subscriptions_.erase(
-      std::remove( new_subscriptions_.begin(), new_subscriptions_.end(), subscription ),
-      new_subscriptions_.end() );
-  timeouts_.erase(
-      std::remove_if( timeouts_.begin(), timeouts_.end(),
-                      [subscription]( auto item ) { return item.second == subscription; } ),
-      timeouts_.end() );
-
-  waiting_subscriptions_.insert( subscription );
-  subscription->subscribe();
-}
-
-void ImageTransportManager::LoadBalancer::insertTimeout(
-    const long desired_throttle_interval, ImageTransportManager::Subscription *subscription )
-{
-  const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       std::chrono::system_clock::now().time_since_epoch() )
-                       .count();
-  long timeout = now + desired_throttle_interval;
-  if ( !load_balancing_enabled_ ) {
-    std::pair<long, ImageTransportManager::Subscription *> value( timeout, subscription );
-    timeouts_.insert( std::upper_bound( timeouts_.begin(), timeouts_.end(), value,
-                                        []( auto a, auto b ) { return a.first < b.first; } ),
-                      value );
-    return;
-  }
-  long largest_gap = timeouts_.empty() ? 0 : timeouts_[0].first - now;
-  size_t ind_largest_gap = 0;
-  // Very unsophisticated method. We just find the largest gap before the desired interval and insert the desired_throttle_interval in the middle
-  for ( size_t i = 1; i < timeouts_.size(); ++i ) {
-    if ( timeouts_[i - 1].first > timeout )
-      break;
-    long gap;
-    // Gap is either between two timeouts or between now and the first desired_throttle_interval that is not in the past
-    if ( timeouts_[i - 1].first < now ) {
-      if ( timeouts_[i].first <= now )
-        continue;
-      gap = timeouts_[i].first - now;
-    } else {
-      gap = timeouts_[i].first > timeout ? timeout - timeouts_[i - 1].first
-                                         : timeouts_[i].first - timeouts_[i - 1].first;
-    }
-    if ( gap <= largest_gap )
-      continue;
-    ind_largest_gap = i;
-    largest_gap = gap;
-  }
-  // Update timeout if inserting it with the desired timeout wouldn't create a larger gap (which can only happen if it is inserted at the end)
-  if ( !timeouts_.empty() && timeout - timeouts_.back().first < largest_gap / 2 ) {
-    timeout = timeouts_[ind_largest_gap].first - largest_gap / 2;
-  }
-  // We insert the desired_throttle_interval in the table so that the timeouts are sorted or before now
-  std::pair<long, ImageTransportManager::Subscription *> value( timeout, subscription );
-  timeouts_.insert( std::upper_bound( timeouts_.begin(), timeouts_.end(), value,
-                                      []( auto a, auto b ) { return a.first < b.first; } ),
-                    value );
-}
 
 ImageTransportSubscriptionHandle::~ImageTransportSubscriptionHandle()
 {
   subscription->removeSubscription( this );
-}
-
-void ImageTransportSubscriptionHandle::updateThrottleInterval( int interval )
-{
-  throttle_interval = interval;
-  subscription->updateThrottling();
 }
 
 std::string ImageTransportSubscriptionHandle::getTopic() const { return subscription->getTopic(); }
@@ -452,10 +315,18 @@ int ImageTransportSubscriptionHandle::processingLatency() const { return process
 
 double ImageTransportSubscriptionHandle::framerate() const { return framerate_; }
 
-ImageTransportManager::ImageTransportManager()
+void ImageTransportSubscriptionHandle::setMinimumSize( const QSize &value )
 {
-  load_balancer_ = std::make_unique<ImageTransportManager::LoadBalancer>();
+  minimum_size = value;
+  subscription->updateSize();
 }
+void ImageTransportSubscriptionHandle::setMinimumFramerate( double value )
+{
+  minimum_framerate = value;
+  subscription->updateFramerate();
+}
+
+ImageTransportManager::ImageTransportManager() = default;
 
 ImageTransportManager &ImageTransportManager::getInstance()
 {
@@ -463,20 +334,17 @@ ImageTransportManager &ImageTransportManager::getInstance()
   return manager;
 }
 
-std::shared_ptr<ImageTransportSubscriptionHandle>
-ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtopic,
-                                  quint32 queue_size,
-                                  const image_transport::TransportHints &transport_hints,
-                                  const std::function<void( const QVideoFrame & )> &callback,
-                                  QAbstractVideoSurface *surface, int throttle_interval )
+std::shared_ptr<ImageTransportSubscriptionHandle> ImageTransportManager::subscribe(
+    const NodeHandle::Ptr &nh, const QString &qtopic, quint32 queue_size,
+    const image_transport::TransportHints &transport_hints,
+    const std::function<void( const QVideoFrame & )> &callback, QAbstractVideoSurface *surface,
+    QSize minimumSize, double minimumFramerate )
 {
   std::string ns = nh->ns().toStdString();
   std::string topic = qtopic.toStdString();
   auto it = subscriptions_.find( ns );
   if ( it == subscriptions_.end() ) {
-    it = subscriptions_
-             .insert( { topic, std::make_shared<SubscriptionManager>( nh->nodeHandle() ) } )
-             .first;
+    it = subscriptions_.insert( { ns, std::make_shared<SubscriptionManager>( nh->nodeHandle() ) } ).first;
   }
   std::shared_ptr<SubscriptionManager> &subscription_manager = it->second;
   std::vector<std::shared_ptr<Subscription>> &subscriptions = subscription_manager->subscriptions;
@@ -487,9 +355,10 @@ ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtop
         break; // We could also compare transport type and hints
     }
     auto handle = std::make_shared<ImageTransportSubscriptionHandle>();
+    handle->minimum_size = minimumSize;
+    handle->minimum_framerate = minimumFramerate;
     handle->surface = surface;
     handle->callback = callback;
-    handle->throttle_interval = throttle_interval;
     if ( i == subscriptions.size() ) {
       auto sub = new Subscription;
       sub->manager = this;
@@ -508,16 +377,6 @@ ImageTransportManager::subscribe( const NodeHandle::Ptr &nh, const QString &qtop
     ROS_ERROR_NAMED( "qml_ros_plugin", "Could not subscribe to image topic: %s", ex.what() );
   }
   return nullptr;
-}
-
-void ImageTransportManager::setLoadBalancingEnabled( bool value )
-{
-  load_balancer_->setEnabled( value );
-}
-
-void ImageTransportManagerSingletonWrapper::setLoadBalancingEnabled( bool value )
-{
-  ImageTransportManager::getInstance().setLoadBalancingEnabled( value );
 }
 } // namespace qml_ros_plugin
 

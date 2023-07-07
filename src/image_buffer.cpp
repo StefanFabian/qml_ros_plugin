@@ -8,6 +8,20 @@
 namespace qml_ros_plugin
 {
 
+ImageBuffer::ImageBuffer( int width, int height, QVideoFrame::PixelFormat format )
+    : QAbstractVideoBuffer( QAbstractVideoBuffer::NoHandle ), format_( format ), width_( width ),
+      height_( height )
+{
+}
+
+QAbstractVideoBuffer::MapMode ImageBuffer::mapMode() const { return ReadOnly; }
+
+QVideoFrame::PixelFormat ImageBuffer::format() const { return format_; }
+
+int ImageBuffer::width() const { return width_; }
+
+int ImageBuffer::height() const { return height_; }
+
 namespace
 {
 
@@ -431,19 +445,17 @@ QVideoFrame::PixelFormat convertFrame( const sensor_msgs::Image &img, uint8_t **
 }
 } // namespace
 
-ImageBuffer::ImageBuffer( sensor_msgs::ImageConstPtr img,
-                          const QList<QVideoFrame::PixelFormat> &supported_formats )
-    : QAbstractVideoBuffer( QAbstractVideoBuffer::NoHandle ), image_( std::move( img ) ),
-      data_( nullptr )
+RosImageBuffer::RosImageBuffer( sensor_msgs::ImageConstPtr img,
+                                const QList<QVideoFrame::PixelFormat> &supported_formats )
+    : ImageBuffer( img->width, img->height, QVideoFrame::PixelFormat::Format_Invalid ), image_( std::move( img ) ), num_bytes_( 0 ),
+      bytes_per_line_( 0 ), data_( nullptr )
 {
   format_ = convertFrame( *image_, &data_, num_bytes_, bytes_per_line_, supported_formats );
 }
 
-ImageBuffer::~ImageBuffer() { delete[] data_; }
+RosImageBuffer::~RosImageBuffer() { delete[] data_; }
 
-QAbstractVideoBuffer::MapMode ImageBuffer::mapMode() const { return ReadOnly; }
-
-uchar *ImageBuffer::map( QAbstractVideoBuffer::MapMode, int *num_bytes, int *bytes_per_line )
+uchar *RosImageBuffer::map( QAbstractVideoBuffer::MapMode mode, int *num_bytes, int *bytes_per_line )
 {
   if ( num_bytes != nullptr )
     *num_bytes = num_bytes_;
@@ -451,10 +463,9 @@ uchar *ImageBuffer::map( QAbstractVideoBuffer::MapMode, int *num_bytes, int *byt
     *bytes_per_line = bytes_per_line_;
   if ( data_ != nullptr )
     return data_;
-  return const_cast<uchar *>( image_->data.data() );
+  return const_cast<unsigned char *>( image_->data.data() );
 }
 
-void ImageBuffer::unmap() { }
+void RosImageBuffer::unmap() { }
 
-QVideoFrame::PixelFormat ImageBuffer::format() const { return format_; }
 } // namespace qml_ros_plugin

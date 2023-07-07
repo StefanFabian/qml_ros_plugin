@@ -47,7 +47,7 @@ TEST( ImageConversions, testRGB8 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGR24, QVideoFrame::Format_BGR32,
@@ -60,7 +60,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -74,7 +74,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -90,7 +90,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -105,7 +105,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -120,7 +120,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32 );
@@ -134,7 +134,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
@@ -148,7 +148,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_Y8 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_Y8 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -161,12 +161,12 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, {} );
+    RosImageBuffer buffer( image, {} );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Invalid );
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -176,7 +176,7 @@ TEST( ImageConversions, testRGB8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -204,7 +204,7 @@ TEST( ImageConversions, testBGR8 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGR24, QVideoFrame::Format_BGR32,
@@ -215,7 +215,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32,
                  QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -229,7 +229,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -245,7 +245,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -260,7 +260,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -275,7 +275,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32 );
@@ -289,7 +289,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
@@ -303,7 +303,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -316,7 +316,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -326,7 +326,7 @@ TEST( ImageConversions, testBGR8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -356,7 +356,7 @@ TEST( ImageConversions, testRGBA8 )
   int bytes_per_line;
   {
     // We actually prefer BGRA32 over ARGB32 because on little endian this can be achieved without copy.
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
@@ -367,7 +367,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                  QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_RGB24,
                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -383,7 +383,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
@@ -399,7 +399,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -414,7 +414,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR32 );
@@ -424,7 +424,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB24 );
@@ -436,7 +436,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR24 );
     EXPECT_EQ( num_bytes, 3 * 3 * 2 );
@@ -447,7 +447,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -460,7 +460,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -470,7 +470,7 @@ TEST( ImageConversions, testRGBA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -500,7 +500,7 @@ TEST( ImageConversions, testBGRA8 )
   int bytes_per_line;
   {
     // We actually prefer ARGB32 over BGRA32 because on little endian this can be achieved without copy.
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
@@ -511,7 +511,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32_Premultiplied,
                  QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_RGB24,
                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -527,7 +527,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
@@ -543,7 +543,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -558,7 +558,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB32 );
@@ -568,7 +568,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_BGR32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR24 );
@@ -580,7 +580,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB24 );
     EXPECT_EQ( num_bytes, 3 * 3 * 2 );
@@ -591,7 +591,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -604,7 +604,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -614,7 +614,7 @@ TEST( ImageConversions, testBGRA8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -643,7 +643,7 @@ TEST( ImageConversions, testRGB16 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGR24, QVideoFrame::Format_BGR32,
@@ -658,7 +658,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -672,7 +672,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -688,7 +688,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -703,7 +703,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -718,7 +718,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32 );
@@ -732,7 +732,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
@@ -746,7 +746,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -759,7 +759,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -769,7 +769,7 @@ TEST( ImageConversions, testRGB16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -798,7 +798,7 @@ TEST( ImageConversions, testBGR16 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGR24, QVideoFrame::Format_BGR32,
@@ -813,7 +813,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32,
                  QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -827,7 +827,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32,
                           QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
@@ -843,7 +843,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -858,7 +858,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                           QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -873,7 +873,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32 );
@@ -887,7 +887,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
@@ -901,7 +901,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -914,7 +914,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -924,7 +924,7 @@ TEST( ImageConversions, testBGR16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -954,7 +954,7 @@ TEST( ImageConversions, testRGBA16 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
@@ -971,7 +971,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -987,7 +987,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
@@ -1003,7 +1003,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -1018,7 +1018,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB24 );
@@ -1030,7 +1030,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_BGR24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR24 );
@@ -1042,7 +1042,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1055,7 +1055,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1068,7 +1068,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -1078,7 +1078,7 @@ TEST( ImageConversions, testRGBA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -1108,7 +1108,7 @@ TEST( ImageConversions, testBGRA16 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_ARGB32,
                                  QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
@@ -1125,7 +1125,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1141,7 +1141,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
@@ -1157,7 +1157,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
@@ -1172,7 +1172,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR24 );
@@ -1184,7 +1184,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR32,
                                  QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB24 );
@@ -1196,7 +1196,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGR32, QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGR32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1209,7 +1209,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_RGB32 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_RGB32 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_RGB32 );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1222,7 +1222,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y8, QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y8 );
     EXPECT_EQ( num_bytes, 2 * 3 );
@@ -1232,7 +1232,7 @@ TEST( ImageConversions, testBGRA16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_Y16 } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_Y16 );
     EXPECT_EQ( num_bytes, 2 * 3 * 2 );
@@ -1260,7 +1260,7 @@ TEST( ImageConversions, testMONO8 )
   int num_bytes;
   int bytes_per_line;
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                  QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_ARGB32_Premultiplied,
                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1273,7 +1273,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1289,7 +1289,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1303,7 +1303,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1317,7 +1317,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32 } );
@@ -1333,7 +1333,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB32 } );
@@ -1349,7 +1349,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32 );
@@ -1363,7 +1363,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32 );
@@ -1377,7 +1377,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1390,7 +1390,7 @@ TEST( ImageConversions, testMONO8 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1421,7 +1421,7 @@ TEST( ImageConversions, testMONO16 )
   int bytes_per_line;
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                  QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_ARGB32_Premultiplied,
                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1436,7 +1436,7 @@ TEST( ImageConversions, testMONO16 )
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 ) ) );
   }
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1450,7 +1450,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1464,7 +1464,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1478,7 +1478,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32 } );
@@ -1494,7 +1494,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB32 } );
@@ -1510,7 +1510,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32 );
@@ -1524,7 +1524,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32 );
@@ -1538,7 +1538,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1551,7 +1551,7 @@ TEST( ImageConversions, testMONO16 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1583,7 +1583,7 @@ TEST( ImageConversions, test32FC1 )
   int bytes_per_line;
 
   {
-    ImageBuffer buffer(
+    RosImageBuffer buffer(
         image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                  QVideoFrame::Format_BGRA32_Premultiplied, QVideoFrame::Format_ARGB32_Premultiplied,
                  QVideoFrame::Format_RGB24, QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1598,7 +1598,7 @@ TEST( ImageConversions, test32FC1 )
     EXPECT_TRUE( compareImage( data, std::vector<uint8_t>( ref_ptr, ref_ptr + 12 ) ) );
   }
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_BGR24, QVideoFrame::Format_RGB32,
@@ -1612,7 +1612,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1626,7 +1626,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                                  QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB24,
                                  QVideoFrame::Format_RGB32, QVideoFrame::Format_BGR32 } );
@@ -1640,7 +1640,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_BGR32 } );
@@ -1656,7 +1656,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image,
+    RosImageBuffer buffer( image,
                         { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32,
                           QVideoFrame::Format_BGRA32_Premultiplied,
                           QVideoFrame::Format_ARGB32_Premultiplied, QVideoFrame::Format_RGB32 } );
@@ -1672,7 +1672,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32 );
@@ -1686,7 +1686,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32, QVideoFrame::Format_BGRA32_Premultiplied,
                                  QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32 );
@@ -1700,7 +1700,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_BGRA32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_BGRA32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );
@@ -1713,7 +1713,7 @@ TEST( ImageConversions, test32FC1 )
   }
 
   {
-    ImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
+    RosImageBuffer buffer( image, { QVideoFrame::Format_ARGB32_Premultiplied } );
     uchar *data = buffer.map( QAbstractVideoBuffer::ReadOnly, &num_bytes, &bytes_per_line );
     ASSERT_EQ( buffer.format(), QVideoFrame::Format_ARGB32_Premultiplied );
     EXPECT_EQ( num_bytes, 4 * 3 * 2 );

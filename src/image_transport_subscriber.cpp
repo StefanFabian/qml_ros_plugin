@@ -40,18 +40,17 @@ void ImageTransportSubscriber::setVideoSurface( QAbstractVideoSurface *surface )
     surface_->stop();
   surface_ = surface;
   if ( surface_ == nullptr && subscribed_ ) {
-    shutdownSubscriber();
+    shutdownSubscriber( true );
     return;
   }
-  if ( !subscribed_ )
-    initSubscriber();
   if ( last_frame_.isValid() )
     presentFrame( last_frame_ );
+  initSubscriber();
 }
 
 void ImageTransportSubscriber::onNodeHandleReady() { initSubscriber(); }
 
-void ImageTransportSubscriber::onRosShutdown() { shutdownSubscriber(); }
+void ImageTransportSubscriber::onRosShutdown() { shutdownSubscriber( true ); }
 
 void ImageTransportSubscriber::initSubscriber()
 {
@@ -65,25 +64,20 @@ void ImageTransportSubscriber::initSubscriber()
   if ( topic_.isEmpty() )
     return;
   bool was_subscribed = subscribed_;
-  if ( subscribed_ ) {
-    blockSignals( true );
-    shutdownSubscriber();
-    blockSignals( false );
-  }
   // TODO Transport hints
   image_transport::TransportHints transport_hints( default_transport_.toStdString() );
   subscription_ = ImageTransportManager::getInstance().subscribe(
       nh_, topic_, queue_size_, transport_hints,
-      [this]( const QVideoFrame &frame ) { presentFrame( frame ); }, surface_, throttle_interval_ );
+      [this]( const QVideoFrame &frame ) { presentFrame( frame ); }, surface_ );
   subscribed_ = subscription_ != nullptr;
-  if ( !was_subscribed )
+  if ( was_subscribed != subscribed_ )
     emit subscribedChanged();
 }
 
-void ImageTransportSubscriber::shutdownSubscriber()
+void ImageTransportSubscriber::shutdownSubscriber( bool stop_surface )
 {
   subscription_.reset();
-  if ( surface_ != nullptr && surface_->isActive() )
+  if ( stop_surface && surface_ != nullptr && surface_->isActive() )
     surface_->stop();
   if ( !subscribed_ )
     return;
@@ -93,8 +87,14 @@ void ImageTransportSubscriber::shutdownSubscriber()
 
 void ImageTransportSubscriber::onNoImageTimeout()
 {
+  using namespace std::chrono_literals;
   if ( surface_ == nullptr || !surface_->isActive() )
     return;
+  if ( paused_ ) {
+    // Check again in 30ms
+    no_image_timer_.start( 30ms );
+    return;
+  }
   int elapsed_time_milliseconds =
       static_cast<int>( ( ros::Time::now() - last_frame_timestamp_ ).toNSec() / 1000000 );
 
@@ -130,7 +130,7 @@ const char *videoSurfaceErrorToString( QAbstractVideoSurface::Error error )
 
 void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
 {
-  if ( surface_ == nullptr )
+  if ( surface_ == nullptr || paused_ )
     return;
   const QVideoSurfaceFormat &surface_format = surface_->surfaceFormat();
   if ( surface_format.frameWidth() != frame.width() ||
@@ -143,13 +143,13 @@ void ImageTransportSubscriber::presentFrame( const QVideoFrame &frame )
     format_ = QVideoSurfaceFormat( frame.size(), frame.pixelFormat() );
     if ( format_.pixelFormat() == QVideoFrame::Format_Invalid ) {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Could not find compatible format for video surface." );
-      shutdownSubscriber();
+      shutdownSubscriber( true );
       return;
     }
     if ( !surface_->start( format_ ) ) {
       ROS_ERROR_NAMED( "qml_ros_plugin", "Failed to start video surface: %s",
                        videoSurfaceErrorToString( surface_->error() ) );
-      shutdownSubscriber();
+      shutdownSubscriber( true );
       return;
     }
   }
@@ -189,7 +189,7 @@ void ImageTransportSubscriber::setTopic( const QString &value )
 {
   if ( topic_ == value )
     return;
-  shutdownSubscriber();
+  shutdownSubscriber( true );
   topic_ = value;
   emit topicChanged();
   initSubscriber();
@@ -201,10 +201,39 @@ void ImageTransportSubscriber::setDefaultTransport( const QString &value )
 {
   if ( default_transport_ == value )
     return;
-  shutdownSubscriber();
+  shutdownSubscriber( true );
   default_transport_ = value;
   emit defaultTransportChanged();
   initSubscriber();
+}
+
+int ImageTransportSubscriber::minimumWidth() const { return minimum_size_.width(); }
+
+void ImageTransportSubscriber::setMinimumWidth( int value )
+{
+  minimum_size_.setWidth( value );
+  if ( subscription_ != nullptr )
+    subscription_->setMinimumSize( minimum_size_ );
+  emit minimumWidthChanged();
+}
+
+int ImageTransportSubscriber::minimumHeight() const { return minimum_size_.height(); }
+
+void ImageTransportSubscriber::setMinimumHeight( int value )
+{
+  minimum_size_.setHeight( value );
+  if ( subscription_ != nullptr )
+    subscription_->setMinimumSize( minimum_size_ );
+  emit minimumHeightChanged();
+}
+
+double ImageTransportSubscriber::minimumFramerate() const { return minimum_framerate_; }
+void ImageTransportSubscriber::setMinimumFramerate( double value )
+{
+  minimum_framerate_ = value;
+  if ( subscription_ != nullptr )
+    subscription_->setMinimumFramerate( value );
+  emit minimumFramerateChanged();
 }
 
 bool ImageTransportSubscriber::subscribed() const { return subscribed_; }
@@ -217,17 +246,6 @@ void ImageTransportSubscriber::setTimeout( int value )
   emit timeoutChanged();
 }
 
-double ImageTransportSubscriber::throttleRate() const { return 1000.0 / throttle_interval_; }
-
-void ImageTransportSubscriber::setThrottleRate( double value )
-{
-  throttle_interval_ = value == 0 ? 0 : static_cast<int>( 1000 / value );
-  if ( subscription_ ) {
-    subscription_->updateThrottleInterval( throttle_interval_ );
-  }
-  emit throttleRateChanged();
-}
-
 bool ImageTransportSubscriber::enabled() const { return enabled_; }
 
 void ImageTransportSubscriber::setEnabled( bool value )
@@ -238,7 +256,7 @@ void ImageTransportSubscriber::setEnabled( bool value )
   if ( enabled_ )
     initSubscriber();
   else
-    shutdownSubscriber();
+    shutdownSubscriber( true );
   emit enabledChanged();
   emit playbackStateChanged( playbackState() );
 }

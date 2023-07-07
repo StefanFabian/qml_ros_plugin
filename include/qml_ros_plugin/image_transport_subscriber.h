@@ -33,6 +33,13 @@ class ImageTransportSubscriber : public QObjectRos
   //! The default transport passed as transport hint. May be overridden by a parameter. (Default: compressed)
   Q_PROPERTY( QString defaultTransport READ defaultTransport WRITE setDefaultTransport NOTIFY
                   defaultTransportChanged )
+  //! Specifies the minimum width of the rtsp stream if you use the hector_camera_server package to serve (ROS) camera streams via RTSP.
+  Q_PROPERTY( int minimumFrameWidth READ minimumWidth WRITE setMinimumWidth NOTIFY minimumWidthChanged )
+  //! Specifies the minimum width of the rtsp stream if you use the hector_camera_server package to serve (ROS) camera streams via RTSP.
+  Q_PROPERTY( int minimumFrameHeight READ minimumHeight WRITE setMinimumHeight NOTIFY minimumHeightChanged )
+  //! Specifies the minimum framerate of the rtsp stream if you use the hector_camera_server package to serve (ROS) camera streams via RTSP.
+  Q_PROPERTY( double minimumFramerate READ minimumFramerate WRITE setMinimumFramerate NOTIFY
+                  minimumFramerateChanged )
   //! Whether or not this ImageTransportSubscriber is subscribed to the given topic
   Q_PROPERTY( bool subscribed READ subscribed NOTIFY subscribedChanged )
   //! The latency from the sender to the received time in ms not including the conversion latency before displaying.
@@ -47,9 +54,6 @@ class ImageTransportSubscriber : public QObjectRos
   //! The timeout when no image is received until a blank frame is served. Set to 0 to disable and
   //! always show last frame. Default is 3000 ms.
   Q_PROPERTY( int timeout READ timeout WRITE setTimeout NOTIFY timeoutChanged )
-  //! The update rate to throttle image receiving in images per second. Set to 0 to disable
-  //! throttling. Default is 0 (disabled).
-  Q_PROPERTY( double throttleRate READ throttleRate WRITE setThrottleRate NOTIFY throttleRateChanged )
   //! Whether the subscriber is active or not. Setting to false will shut down subscribers
   Q_PROPERTY( bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged )
   //! The playback state of this video source. Can be modified with play and pause
@@ -72,15 +76,23 @@ public:
 
   void setDefaultTransport( const QString &value );
 
+  int minimumWidth() const;
+
+  void setMinimumWidth( int value );
+
+  int minimumHeight() const;
+
+  void setMinimumHeight( int value );
+
+  double minimumFramerate() const;
+
+  void setMinimumFramerate( double value );
+
   bool subscribed() const;
 
   int timeout() const;
 
   void setTimeout( int value );
-
-  double throttleRate() const;
-
-  void setThrottleRate( double value );
 
   bool enabled() const;
 
@@ -112,11 +124,15 @@ signals:
 
   void defaultTransportChanged();
 
+  void minimumWidthChanged();
+
+  void minimumHeightChanged();
+
+  void minimumFramerateChanged();
+
   void subscribedChanged();
 
   void timeoutChanged();
-
-  void throttleRateChanged();
 
   void framerateChanged();
 
@@ -143,17 +159,19 @@ private:
 
   void initSubscriber();
 
-  void shutdownSubscriber();
+  void shutdownSubscriber( bool stop_surface );
 
   QTimer no_image_timer_;
   QVideoSurfaceFormat format_;
   QString topic_;
   QString default_transport_;
+  QSize minimum_size_;
   QVideoFrame last_frame_;
   NodeHandle::Ptr nh_;
   std::shared_ptr<ImageTransportSubscriptionHandle> subscription_;
   QAbstractVideoSurface *surface_ = nullptr;
   ros::Time last_frame_timestamp_;
+  double minimum_framerate_ = 30;
   double last_framerate_ = 0;
   quint32 queue_size_;
   int throttle_interval_ = 0;

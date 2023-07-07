@@ -14,22 +14,35 @@ namespace qml_ros_plugin
 class ImageBuffer : public QAbstractVideoBuffer
 {
 public:
-  ImageBuffer( sensor_msgs::ImageConstPtr img,
-               const QList<QVideoFrame::PixelFormat> &supported_formats );
+  ImageBuffer( int width, int height, QVideoFrame::PixelFormat format );
 
-  ~ImageBuffer() override;
+  int width() const;
+
+  int height() const;
 
   MapMode mapMode() const override;
 
-  uchar *map( MapMode, int *num_bytes, int *bytes_per_line ) override;
-
-  void unmap() override;
-
   QVideoFrame::PixelFormat format() const;
+
+protected:
+  QVideoFrame::PixelFormat format_;
+  int width_;
+  int height_;
+};
+
+class RosImageBuffer : public ImageBuffer
+{
+public:
+  RosImageBuffer( sensor_msgs::ImageConstPtr img,
+                  const QList<QVideoFrame::PixelFormat> &supported_formats );
+
+  ~RosImageBuffer() override;
+
+  uchar *map( MapMode mode, int *num_bytes, int *bytes_per_line ) override;
+  void unmap() override;
 
 private:
   sensor_msgs::ImageConstPtr image_;
-  QVideoFrame::PixelFormat format_;
   int num_bytes_;
   int bytes_per_line_;
   unsigned char *data_;

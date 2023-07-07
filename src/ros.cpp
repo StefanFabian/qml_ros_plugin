@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 #include "qml_ros_plugin/ros.h"
+#include "./camera_streaming/rtsp_camera_server_manager.h"
 #include "qml_ros_plugin/action_client.h"
 #include "qml_ros_plugin/babel_fish_dispenser.h"
 #include "qml_ros_plugin/message_conversions.h"
@@ -28,10 +29,11 @@ RosQml &RosQml::getInstance()
 RosQml::RosQml() : threads_( 1 ), initialized_( false )
 {
   callback_queue_ = std::make_shared<ros::CallbackQueue>();
-  connect( &timer_, &QTimer::timeout, this, &RosQml::checkInitialized );
   if ( ros::isInitialized() ) {
     onInitialized();
+    return;
   }
+  connect( &timer_, &QTimer::timeout, this, &RosQml::checkInitialized );
   timer_.setInterval( 33 );
   timer_.start();
 }
@@ -170,6 +172,7 @@ void RosQml::onInitialized()
   disconnect( &timer_, &QTimer::timeout, this, &RosQml::checkInitialized );
   connect( &timer_, &QTimer::timeout, this, &RosQml::checkShutdown );
   updateSpinner();
+  RtspCameraServerManager::getInstance().initialize( callback_queue_.get() );
 }
 
 void RosQml::spinOnce()

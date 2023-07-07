@@ -2,16 +2,17 @@ cmake_minimum_required(VERSION 3.10)
 project(qml_ros_plugin)
 set(CMAKE_CXX_STANDARD 14)
 
-add_definitions(-Wall -Wextra)
+add_definitions(-Wall -Wextra -Wno-deprecated-declarations)
 
 #set(CMAKE_BUILD_TYPE "Debug")
 
-find_package(catkin REQUIRED actionlib roscpp image_transport ros_babel_fish tf2_ros)
+find_package(catkin REQUIRED actionlib roscpp hector_camera_server_msgs image_transport ros_babel_fish tf2_ros)
 
 find_package(Qt5 COMPONENTS Core Multimedia Qml Quick REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(YAML_CPP yaml-cpp)
+pkg_check_modules(GST REQUIRED gstreamer-1.0 gstreamer-app-1.0 gstreamer-rtsp-1.0)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -38,6 +39,7 @@ include_directories(
   ${Qt5Qml_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
+  ${GST_INCLUDE_DIRS}
 )
 
 set(SOURCES
@@ -63,6 +65,14 @@ set(SOURCES
   include/qml_ros_plugin/tf_transform_listener.h
   include/qml_ros_plugin/topic_info.h
   include/qml_ros_plugin/time.h
+  src/camera_streaming/camera_subscription.h
+  src/camera_streaming/image_transport_camera_subscription.h
+  src/camera_streaming/rtsp_camera_subscription.h
+  src/camera_streaming/rtsp_camera_subscription.cpp
+  src/camera_streaming/rtsp_camera_server_manager.h
+  src/camera_streaming/rtsp_camera_server_manager.cpp
+  src/camera_streaming/rtsp/rtsp_pipeline.h
+  src/camera_streaming/rtsp/rtsp_pipeline.cpp
   src/array.cpp
   src/action_client.cpp
   src/babel_fish_dispenser.cpp
@@ -86,7 +96,7 @@ set(SOURCES
   src/time.cpp)
 
 add_library(qml_ros_plugin ${SOURCES})
-target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick ${YAML_CPP_LIBRARIES})
+target_link_libraries(qml_ros_plugin ${catkin_LIBRARIES} Qt5::Core Qt5::Multimedia Qt5::Qml Qt5::Quick ${YAML_CPP_LIBRARIES} ${GST_LIBRARIES})
 
 #############
 ## Testing ##

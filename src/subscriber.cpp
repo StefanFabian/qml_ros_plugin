@@ -86,6 +86,8 @@ void Subscriber::setRunning( bool value )
   emit runningChanged();
 }
 
+bool Subscriber::isSubscribed() const { return is_subscribed_; }
+
 int Subscriber::throttleRate() const { return throttle_rate_; }
 
 void Subscriber::setThrottleRate( int value )
@@ -108,31 +110,36 @@ void Subscriber::onRosInitialized() { subscribe(); }
 
 void Subscriber::subscribe()
 {
-  if ( is_subscribed_ ) {
-    shutdown();
+  if ( topic_.isEmpty() || nh_ == nullptr || !nh_->isReady() ) {
+    if ( is_subscribed_ ) {
+      shutdown();
+    }
+    return;
   }
-  if ( topic_.isEmpty() )
-    return;
-  if ( nh_ == nullptr || !nh_->isReady() )
-    return;
-  is_subscribed_ = true;
 
   std::shared_future<void> future = subscribe_future_;
   subscribe_future_ = std::async(std::launch::async, [=]() {
-    ROS_WARN("Waiting to subscribe");
     if (future.valid()) future.wait();
     subscriber_ = nh_->nodeHandle().subscribe<BabelFishMessage>( topic_.toStdString(), queue_size_,
                                                                  &Subscriber::messageCallback, this );
-    ROS_WARN("Subscribed");
+    bool was_subscribed = is_subscribed_;
+    is_subscribed_ = true;
+    if (!was_subscribed) emit isSubscribedChanged();
+    emit subscribed();
   });
 }
 
 void Subscriber::shutdown()
 {
-  if ( !is_subscribed_ )
-    return;
-  subscriber_.shutdown();
-  is_subscribed_ = false;
+  std::shared_future<void> future = subscribe_future_;
+  subscribe_future_ = std::async(std::launch::async, [=]() {
+    if (future.valid()) future.wait();
+    if ( !is_subscribed_ )
+      return;
+    subscriber_.shutdown();
+    is_subscribed_ = false;
+    emit isSubscribedChanged();
+  });
 }
 
 void Subscriber::messageCallback( const ros_babel_fish::BabelFishMessage::ConstPtr &msg )
