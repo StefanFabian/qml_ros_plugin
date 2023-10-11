@@ -3,6 +3,7 @@ project(qml_ros_plugin)
 set(CMAKE_CXX_STANDARD 14)
 
 add_definitions(-Wall -Wextra)
+option(GLOBAL_INSTALL "Installs the module in the global QML module path. If off, will add itself to the ROS workspace environment." OFF)
 
 #set(CMAKE_BUILD_TYPE "Debug")
 
@@ -155,15 +156,24 @@ endif ()
 ## Install ##
 #############
 
-# Install Qml plugin as found here https://github.com/4rtzel/cmake-qml-plugin-example/issues/1
-set(URI Ros)
-string(REPLACE "." "/" TARGETPATH ${URI})
-execute_process(COMMAND qmake -qt5 -query QT_INSTALL_QML OUTPUT_VARIABLE QT_INSTALL_QML_RAW)
-string(REPLACE "\n" "" QT_INSTALL_QML ${QT_INSTALL_QML_RAW})
-if ("${QT_INSTALL_QML}" STREQUAL "**Unknown**")
-  message(FATAL_ERROR "Could not find qml plugin dir. Is qml installed?")
+if (${GLOBAL_INSTALL})
+  # Install Qml plugin as found here https://github.com/4rtzel/cmake-qml-plugin-example/issues/1
+  set(URI Ros)
+  string(REPLACE "." "/" TARGETPATH ${URI})
+  execute_process(COMMAND qmake -qt5 -query QT_INSTALL_QML OUTPUT_VARIABLE QT_INSTALL_QML_RAW)
+  string(REPLACE "\n" "" QT_INSTALL_QML ${QT_INSTALL_QML_RAW})
+  if ("${QT_INSTALL_QML}" STREQUAL "**Unknown**")
+    message(FATAL_ERROR "Could not find qml plugin dir. Is qml installed?")
+  endif ()
+  message(STATUS "Plugin will be installed to ${QT_INSTALL_QML}")
+  set(DESTDIR "${QT_INSTALL_QML}/${TARGETPATH}")
+  install(TARGETS qml_ros_plugin DESTINATION ${DESTDIR})
+  install(FILES ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${DESTDIR})
+else ()
+  catkin_add_env_hooks(export_qml_ros_plugin SHELLS sh)
+
+  set_target_properties(qml_ros_plugin PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
+  file(COPY ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
+  install(TARGETS qml_ros_plugin LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
+  install(FILES ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
 endif ()
-message(STATUS "Plugin will be installed to ${QT_INSTALL_QML}")
-set(DESTDIR "${QT_INSTALL_QML}/${TARGETPATH}")
-install(TARGETS qml_ros_plugin DESTINATION ${DESTDIR})
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${DESTDIR})

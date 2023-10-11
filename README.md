@@ -174,11 +174,15 @@ TfTransform change and the changes are propagated by QML.
 
 ### Installation
 Clone this repo and its dependencies into your workspace.
+If you only require the module with your ROS workspace, you only have to build it with catkin and you're good to go.
+#### Global Installation
+Optionally, you can also install the module globally.
+This is usually not necessary and only required if you want to use the module without a catkin workspace sourced (ROS still needs to be sourced).
 ```bash
 cd {REPO}
 mkdir build
 cd build
-cmake ..
+cmake .. -DGLOBAL_INSTALL=ON
 # Replace 8 with the number of (virtual) cores on your machine
 make -j8
 sudo make install
@@ -208,23 +212,3 @@ pip3 install sphinx sphinx_rtd_theme breathe
 cd REPO/docs
 make html
 ```
-
-
-### Roadmap
-
-- [x] ~~Subscribers~~
-- [x] ~~Publishers~~  
-- [x] ~~Look up of Tf transforms~~
-- [x] ~~Service Calls~~   
-- [x] ~~ImageTransport Subscriber~~  
-- [x] ~~Handle Endianness in Image messages~~
-- [x] ~~Logging~~
-- [x] ~~Action Clients~~
-- [ ] Service Clients
-- [ ] Make available as ros package
-- [ ] Transport Hints(?)
-- [ ] Callback Queues(?)
-- [ ] Sending of Tf transforms(?)  
-- [ ] ImageTransport Publisher(?)
-
-(?) For items with a question mark, please send me user stories (preferably as issues) because I don't know what that would be useful for.
