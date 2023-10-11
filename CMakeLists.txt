@@ -172,8 +172,14 @@ if (${GLOBAL_INSTALL})
 else ()
   catkin_add_env_hooks(export_qml_ros_plugin SHELLS sh)
 
-  set_target_properties(qml_ros_plugin PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
+  add_custom_command(TARGET qml_ros_plugin POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy
+    "$<TARGET_FILE:qml_ros_plugin>"
+    "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros/$<TARGET_FILE_NAME:qml_ros_plugin>"
+    COMMENT "Copying to module directory for use in devel workspace.")
   file(COPY ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
+  # Once in lib destination so it can be linked against in case someone wants to do that for some reason
+  install(TARGETS qml_ros_plugin LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
   install(TARGETS qml_ros_plugin LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
   install(FILES ${CMAKE_CURRENT_LIST_DIR}/qmldir DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}/${PROJECT_NAME}/Ros)
 endif ()
